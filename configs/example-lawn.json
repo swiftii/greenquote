@@ -1,0 +1,68 @@
+{
+  "clientId": "example-lawn",
+  "businessName": "Green Valley Lawn Care",
+  "currencySymbol": "$",
+  "baseVisitFee": 30,
+  "monthlyQuoteLimit": 150,
+  "googleMapsApiKey": "",
+  "centralWebhookUrl": "https://mock-webhook.example.com/quotes",
+  "ghlWebhookUrl": "https://your-ghl-instance.com/webhook/example",
+  "lawnSizeTiers": [
+    {
+      "id": "small",
+      "label": "0–5,000 sq ft",
+      "pricePerVisit": 40
+    },
+    {
+      "id": "medium",
+      "label": "5,001–10,000 sq ft",
+      "pricePerVisit": 55
+    },
+    {
+      "id": "large",
+      "label": "10,001–20,000 sq ft",
+      "pricePerVisit": 75
+    },
+    {
+      "id": "xl",
+      "label": "20,000+ sq ft",
+      "pricePerVisit": 100
+    }
+  ],
+  "frequencyMultipliers": {
+    "one_time": 1.0,
+    "weekly": 0.85,
+    "bi_weekly": 0.95,
+    "monthly": 1.1
+  },
+  "services": [
+    { "id": "mowing", "label": "Lawn Mowing" },
+    { "id": "fertilization", "label": "Fertilization" },
+    { "id": "aeration", "label": "Aeration" },
+    { "id": "overseeding", "label": "Overseeding" },
+    { "id": "leaf_cleanup", "label": "Leaf Cleanup" },
+    { "id": "weed_control", "label": "Weed Control" }
+  ],
+  "addOns": [
+    {
+      "id": "edging",
+      "label": "Edging",
+      "pricePerVisit": 15
+    },
+    {
+      "id": "bush_trimming",
+      "label": "Bush Trimming",
+      "pricePerVisit": 30
+    },
+    {
+      "id": "mulching",
+      "label": "Mulching",
+      "pricePerVisit": 45
+    }
+  ],
+  "theme": {
+    "primaryColor": "#1b5e20",
+    "accentColor": "#c8e6c9",
+    "borderRadius": "12px"
+  }
+}
