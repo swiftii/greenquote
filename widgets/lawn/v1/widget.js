@@ -416,31 +416,60 @@
             const mockSize = Math.floor(Math.random() * 15000) + 3000;
             state.lawnSizeSqFt = mockSize;
             updateLawnSizeDisplay();
-            document.getElementById('draw-btn').disabled = false;
+            document.getElementById('draw-btn').disabled = true; // Can't draw without maps
             document.getElementById('clear-btn').disabled = false;
             console.log('[Widget] Mock property size calculated:', mockSize);
+            
+            // Update instructions for mock mode
+            const instructions = document.querySelector('.map-instructions');
+            if (instructions) {
+                instructions.innerHTML = '<strong>Mock Mode:</strong> Property size estimated. Add Google Maps API key to see satellite view and draw precise boundaries.';
+            }
             return;
         }
+        
+        // Disable button during processing
+        const calcBtn = document.getElementById('calculate-btn');
+        calcBtn.disabled = true;
+        calcBtn.textContent = 'Loading...';
         
         // Use Google Maps Geocoding
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ address: address }, (results, status) => {
+            calcBtn.disabled = false;
+            calcBtn.textContent = 'Calculate Size';
+            
             if (status === 'OK') {
                 const location = results[0].geometry.location;
-                map.setCenter(location);
                 
-                // Auto-calculate approximate property boundary
-                // This is a simplified version - in production you'd use property boundary APIs
+                // Center map on location with appropriate zoom
+                map.setCenter(location);
+                map.setZoom(19); // Closer zoom for better property view
+                
+                // Get property bounds
                 const bounds = results[0].geometry.viewport;
                 const ne = bounds.getNorthEast();
                 const sw = bounds.getSouthWest();
+                const nw = { lat: ne.lat(), lng: sw.lng() };
+                const se = { lat: sw.lat(), lng: ne.lng() };
                 
-                // Create approximate rectangle
+                // Calculate a more realistic property size (approximate lot)
+                // Create a smaller polygon representing typical residential lot
+                const latSpan = ne.lat() - sw.lat();
+                const lngSpan = ne.lng() - sw.lng();
+                const reduceFactor = 0.4; // Use 40% of viewport as property estimate
+                
+                const centerLat = (ne.lat() + sw.lat()) / 2;
+                const centerLng = (ne.lng() + sw.lng()) / 2;
+                
+                const halfLatSpan = (latSpan * reduceFactor) / 2;
+                const halfLngSpan = (lngSpan * reduceFactor) / 2;
+                
                 const paths = [
-                    { lat: ne.lat(), lng: ne.lng() },
-                    { lat: ne.lat(), lng: sw.lng() },
-                    { lat: sw.lat(), lng: sw.lng() },
-                    { lat: sw.lat(), lng: ne.lng() }
+                    { lat: centerLat + halfLatSpan, lng: centerLng - halfLngSpan }, // NW
+                    { lat: centerLat + halfLatSpan, lng: centerLng + halfLngSpan }, // NE
+                    { lat: centerLat - halfLatSpan, lng: centerLng + halfLngSpan }, // SE
+                    { lat: centerLat - halfLatSpan, lng: centerLng - halfLngSpan }  // SW
                 ];
                 
                 if (currentPolygon) {
@@ -450,19 +479,36 @@
                 currentPolygon = new google.maps.Polygon({
                     paths: paths,
                     fillColor: '#2e7d32',
-                    fillOpacity: 0.4,
-                    strokeWeight: 2,
+                    fillOpacity: 0.35,
+                    strokeWeight: 3,
                     strokeColor: '#1b5e20',
                     editable: true,
+                    draggable: false,
                     map: map
                 });
+                
+                // Add listeners for real-time updates when editing
+                google.maps.event.addListener(currentPolygon.getPath(), 'set_at', calculatePolygonArea);
+                google.maps.event.addListener(currentPolygon.getPath(), 'insert_at', calculatePolygonArea);
+                google.maps.event.addListener(currentPolygon.getPath(), 'remove_at', calculatePolygonArea);
                 
                 calculatePolygonArea();
                 document.getElementById('draw-btn').disabled = false;
                 document.getElementById('clear-btn').disabled = false;
                 
+                // Update instructions
+                const instructions = document.querySelector('.map-instructions');
+                if (instructions) {
+                    instructions.innerHTML = '<strong>✓ Property located!</strong> Drag the corners of the green area to match your exact service area, or click "Adjust Boundary" to redraw.';
+                    instructions.style.background = '#d4edda';
+                    instructions.style.borderLeft = '4px solid #28a745';
+                }
+                
+                console.log('[Widget] Property located and boundary created');
+                
             } else {
-                alert('Could not find address. Please try a different address.');
+                alert('Could not find that address. Please check the spelling and try again.');
+                console.error('[Widget] Geocoding failed:', status);
             }
         });
     }
