@@ -336,41 +336,69 @@
     function initMap() {
         if (typeof google === 'undefined') {
             console.log('[Widget] Google Maps not available, using mock mode');
+            // Show message in map container
+            const mapElement = document.getElementById('map');
+            if (mapElement) {
+                mapElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:#f5f5f5;color:#666;text-align:center;padding:20px;"><div><p style="margin-bottom:8px;font-weight:600;">Map Preview Unavailable</p><p style="font-size:13px;">Add Google Maps API key to see satellite view and drawing tools.</p></div></div>';
+            }
             return;
         }
         
-        map = new google.maps.Map(document.getElementById('map'), {
-            center: { lat: 40.7128, lng: -74.0060 },
-            zoom: 18,
-            mapTypeId: 'satellite',
-            disableDefaultUI: true,
-            zoomControl: true
-        });
-        
-        drawingManager = new google.maps.drawing.DrawingManager({
-            drawingMode: null,
-            drawingControl: false,
-            polygonOptions: {
-                fillColor: '#2e7d32',
-                fillOpacity: 0.4,
-                strokeWeight: 2,
-                strokeColor: '#1b5e20',
-                editable: true
-            }
-        });
-        
-        drawingManager.setMap(map);
-        
-        google.maps.event.addListener(drawingManager, 'polygoncomplete', function(polygon) {
-            if (currentPolygon) {
-                currentPolygon.setMap(null);
-            }
-            currentPolygon = polygon;
-            drawingManager.setDrawingMode(null);
-            calculatePolygonArea();
-            document.getElementById('draw-btn').disabled = false;
-            document.getElementById('clear-btn').disabled = false;
-        });
+        try {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 40.7128, lng: -74.0060 },
+                zoom: 18,
+                mapTypeId: 'satellite',
+                disableDefaultUI: true,
+                zoomControl: true,
+                streetViewControl: false,
+                mapTypeControl: false,
+                fullscreenControl: false,
+                tilt: 0
+            });
+            
+            drawingManager = new google.maps.drawing.DrawingManager({
+                drawingMode: null,
+                drawingControl: false,
+                polygonOptions: {
+                    fillColor: '#2e7d32',
+                    fillOpacity: 0.35,
+                    strokeWeight: 3,
+                    strokeColor: '#1b5e20',
+                    editable: true,
+                    draggable: false
+                }
+            });
+            
+            drawingManager.setMap(map);
+            
+            google.maps.event.addListener(drawingManager, 'polygoncomplete', function(polygon) {
+                if (currentPolygon) {
+                    currentPolygon.setMap(null);
+                }
+                currentPolygon = polygon;
+                drawingManager.setDrawingMode(null);
+                
+                // Add listeners for polygon editing
+                google.maps.event.addListener(polygon.getPath(), 'set_at', calculatePolygonArea);
+                google.maps.event.addListener(polygon.getPath(), 'insert_at', calculatePolygonArea);
+                google.maps.event.addListener(polygon.getPath(), 'remove_at', calculatePolygonArea);
+                
+                calculatePolygonArea();
+                document.getElementById('draw-btn').disabled = false;
+                document.getElementById('clear-btn').disabled = false;
+                
+                // Update instructions
+                const instructions = document.querySelector('.map-instructions');
+                if (instructions) {
+                    instructions.textContent = 'Drag the corners to adjust your service area. Click "Clear" to start over.';
+                }
+            });
+            
+            console.log('[Widget] Google Maps initialized successfully');
+        } catch (error) {
+            console.error('[Widget] Error initializing Google Maps:', error);
+        }
     }
     
     // Calculate property size from address
