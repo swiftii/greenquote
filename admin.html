@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget Admin - Configuration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 12px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+        }
+        
+        .card h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #1a1a1a;
+        }
+        
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+        
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            color: #1a1a1a;
+            transition: all 0.2s ease;
+        }
+        
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-hint {
+            font-size: 13px;
+            color: #666;
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+        
+        .form-hint a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .form-hint a:hover {
+            text-decoration: underline;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .btn-secondary:hover {
+            background: #f0f2ff;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .alert {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .config-preview {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .config-preview h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+        }
+        
+        .config-preview pre {
+            background: #1a1a1a;
+            color: #a8e6cf;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .instructions h3 {
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+        
+        .instructions li {
+            margin-bottom: 12px;
+        }
+        
+        .instructions code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .test-section {
+            background: #f0f2ff;
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 24px;
+        }
+        
+        .test-section h3 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+        }
+        
+        .test-result {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .test-result.show {
+            display: block;
+        }
+        
+        .test-result.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .test-result.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .current-config {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .current-config h4 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #856404;
+        }
+        
+        .current-config p {
+            font-size: 14px;
+            color: #856404;
+            margin: 4px 0;
+        }
+        
+        .current-config code {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ Widget Admin</h1>
+            <p>Configure your Google Maps API key and client settings</p>
+        </div>
+        
+        <div class="card">
+            <h2>Google Maps API Configuration</h2>
+            
+            <div id="alert-container"></div>
+            
+            <div class="current-config" id="current-config-display" style="display: none;">
+                <h4>📍 Current Configuration</h4>
+                <p><strong>Client:</strong> <code id="current-client"></code></p>
+                <p><strong>API Key:</strong> <code id="current-key-status"></code></p>
+            </div>
+            
+            <form id="config-form">
+                <div class="form-group">
+                    <label class="form-label">Select Client Configuration</label>
+                    <select class="form-select" id="client-select">
+                        <option value="">Loading...</option>
+                    </select>
+                    <div class="form-hint">Choose which client configuration to update</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Google Maps API Key</label>
+                    <input type="text" class="form-input" id="api-key-input" placeholder="AIzaSy...">
+                    <div class="form-hint">
+                        Don't have a key? <a href="https://console.cloud.google.com/" target="_blank">Get one from Google Cloud Console</a>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">Save Configuration</button>
+                    <button type="button" class="btn btn-secondary" id="test-btn">Test API Key</button>
+                </div>
+            </form>
+            
+            <div class="test-section">
+                <h3>🧪 Test Your Configuration</h3>
+                <p>Click "Test API Key" to verify your Google Maps API is working correctly.</p>
+                <div class="test-result" id="test-result"></div>
+            </div>
+            
+            <div class="config-preview">
+                <h3>📄 Current Configuration</h3>
+                <pre id="config-display">Select a client to view configuration</pre>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>📚 How to Get Your Google Maps API Key</h3>
+            <ol>
+                <li>Go to <a href="https://console.cloud.google.com/" target="_blank" style="color: #a8e6cf;">Google Cloud Console</a></li>
+                <li>Create a new project or select an existing one</li>
+                <li>Enable these APIs:
+                    <ul style="margin-top: 8px;">
+                        <li><strong>Maps JavaScript API</strong> - For displaying maps</li>
+                        <li><strong>Geocoding API</strong> - For address lookup</li>
+                        <li><strong>Places API</strong> - For address autocomplete</li>
+                    </ul>
+                </li>
+                <li>Go to "Credentials" and click "Create Credentials" → "API Key"</li>
+                <li>Copy your API key and paste it above</li>
+                <li>Click "Save Configuration"</li>
+            </ol>
+            
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+                <strong>💡 Pro Tip:</strong> The widget works in mock mode without an API key for testing. Add the key when you're ready for production!
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let configs = {};
+        let currentClient = '';
+        
+        // Load available configs
+        async function loadConfigs() {
+            const configFiles = ['default', 'example-lawn'];
+            
+            for (const configName of configFiles) {
+                try {
+                    const response = await fetch(`../configs/${configName}.json`);
+                    const data = await response.json();
+                    configs[configName] = data;
+                } catch (error) {
+                    console.error(`Error loading ${configName}:`, error);
+                }
+            }
+            
+            populateClientSelect();
+        }
+        
+        // Populate client dropdown
+        function populateClientSelect() {
+            const select = document.getElementById('client-select');
+            select.innerHTML = '<option value="">Select a client...</option>';
+            
+            Object.keys(configs).forEach(clientId => {
+                const option = document.createElement('option');
+                option.value = clientId;
+                option.textContent = configs[clientId].businessName || clientId;
+                select.appendChild(option);
+            });
+        }
+        
+        // Display config
+        function displayConfig(clientId) {
+            if (!configs[clientId]) return;
+            
+            const config = configs[clientId];
+            document.getElementById('config-display').textContent = JSON.stringify(config, null, 2);
+            
+            // Update current config display
+            document.getElementById('current-config-display').style.display = 'block';
+            document.getElementById('current-client').textContent = config.businessName || clientId;
+            
+            const keyStatus = config.googleMapsApiKey ? 
+                '✅ Set (' + config.googleMapsApiKey.substring(0, 10) + '...)' : 
+                '❌ Not set (using mock mode)';
+            document.getElementById('current-key-status').textContent = keyStatus;
+            
+            // Populate API key input
+            document.getElementById('api-key-input').value = config.googleMapsApiKey || '';
+            
+            currentClient = clientId;
+        }
+        
+        // Show alert
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} show`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+        
+        // Save configuration
+        async function saveConfiguration(clientId, apiKey) {
+            if (!configs[clientId]) {
+                showAlert('Please select a client configuration', 'error');
+                return;
+            }
+            
+            // Update config
+            configs[clientId].googleMapsApiKey = apiKey;
+            
+            // Create download link for updated config
+            const dataStr = JSON.stringify(configs[clientId], null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${clientId}.json`;
+            a.click();
+            
+            showAlert('✅ Configuration updated! Download the JSON file and replace it in your /configs/ folder.', 'success');
+            displayConfig(clientId);
+        }
+        
+        // Test API key
+        async function testApiKey() {
+            const apiKey = document.getElementById('api-key-input').value;
+            const testResult = document.getElementById('test-result');
+            
+            if (!apiKey) {
+                testResult.className = 'test-result show error';
+                testResult.textContent = '❌ Please enter an API key to test';
+                return;
+            }
+            
+            testResult.className = 'test-result show';
+            testResult.style.background = '#d1ecf1';
+            testResult.style.color = '#0c5460';
+            testResult.textContent = '⏳ Testing API key...';
+            
+            // Test by loading Google Maps script
+            try {
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,drawing,geometry`;
+                
+                script.onload = () => {
+                    if (typeof google !== 'undefined' && google.maps) {
+                        testResult.className = 'test-result show success';
+                        testResult.textContent = '✅ API key is valid! Google Maps loaded successfully.';
+                    } else {
+                        testResult.className = 'test-result show error';
+                        testResult.textContent = '❌ API key loaded but Google Maps not available. Check your API settings.';
+                    }
+                };
+                
+                script.onerror = () => {
+                    testResult.className = 'test-result show error';
+                    testResult.textContent = '❌ Failed to load Google Maps. Please check your API key and make sure the required APIs are enabled.';
+                };
+                
+                document.head.appendChild(script);
+            } catch (error) {
+                testResult.className = 'test-result show error';
+                testResult.textContent = '❌ Error testing API key: ' + error.message;
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('client-select').addEventListener('change', (e) => {
+            if (e.target.value) {
+                displayConfig(e.target.value);
+            }
+        });
+        
+        document.getElementById('config-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const clientId = document.getElementById('client-select').value;
+            const apiKey = document.getElementById('api-key-input').value;
+            
+            if (!clientId) {
+                showAlert('Please select a client configuration', 'error');
+                return;
+            }
+            
+            saveConfiguration(clientId, apiKey);
+        });
+        
+        document.getElementById('test-btn').addEventListener('click', testApiKey);
+        
+        // Initialize
+        loadConfigs();
+    </script>
+</body>
+</html>
