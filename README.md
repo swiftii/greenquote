@@ -110,18 +110,41 @@ Open your new config file and customize:
 3. Upload your new config file
 4. Click "Commit changes"
 
+## How to Add Your Google Maps API Key
+
+### Option 1: Use the Admin Panel (Easiest)
+
+1. Open `admin.html` in your browser (locally or after deploying)
+2. Select your client configuration
+3. Paste your Google Maps API key
+4. Click "Test API Key" to verify it works
+5. Click "Save Configuration" to download the updated config file
+6. Replace the config file in your `/configs/` folder
+7. Commit and push to GitHub
+
+### Option 2: Edit Config File Manually
+
+1. Open your config file (e.g., `configs/example-lawn.json`)
+2. Find the `googleMapsApiKey` field
+3. Replace the empty string with your API key:
+   ```json
+   "googleMapsApiKey": "AIzaSyABCDEF1234567890..."
+   ```
+4. Save and commit the file
+
 ## How to Get a Google Maps API Key
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select an existing one
 3. Enable these APIs:
-   - Maps JavaScript API
-   - Geocoding API
-   - Places API
+   - **Maps JavaScript API** - For displaying maps
+   - **Geocoding API** - For address lookup
+   - **Places API** - For address autocomplete
 4. Go to "Credentials" and create an API key
-5. Add the key to your config file's `googleMapsApiKey` field
+5. Copy the API key
+6. Use the Admin Panel or manually edit your config file (see above)
 
-**Note:** The widget works without an API key (using mock data), but the maps functionality requires a valid key.
+**Note:** The widget works without an API key (using mock data), but the maps functionality requires a valid key for production use.
 
 ## How to Embed on GoHighLevel
 
