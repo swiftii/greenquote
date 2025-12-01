@@ -515,11 +515,35 @@
     
     // Enable manual drawing
     function enableDrawing() {
+        if (typeof google === 'undefined') {
+            alert('Google Maps is required for drawing. Please add your API key in the admin panel.');
+            return;
+        }
+        
         if (currentPolygon) {
             currentPolygon.setMap(null);
             currentPolygon = null;
         }
+        
+        state.lawnSizeSqFt = 0;
+        document.getElementById('lawn-size-display').classList.add('hidden');
+        
         drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+        
+        // Update button state
+        document.getElementById('draw-btn').textContent = 'Drawing...';
+        document.getElementById('draw-btn').style.background = config.theme.primaryColor;
+        document.getElementById('draw-btn').style.color = 'white';
+        
+        // Update instructions
+        const instructions = document.querySelector('.map-instructions');
+        if (instructions) {
+            instructions.innerHTML = '<strong>Draw Mode:</strong> Click on the map to create points around your service area. Double-click to complete.';
+            instructions.style.background = '#fff3cd';
+            instructions.style.borderLeft = '4px solid #ffc107';
+        }
+        
+        console.log('[Widget] Drawing mode enabled');
     }
     
     // Clear polygon
@@ -530,17 +554,50 @@
         }
         state.lawnSizeSqFt = 0;
         document.getElementById('lawn-size-display').classList.add('hidden');
+        document.getElementById('draw-btn').disabled = false;
+        document.getElementById('draw-btn').textContent = 'Adjust Boundary';
+        document.getElementById('draw-btn').style.background = '';
+        document.getElementById('draw-btn').style.color = '';
+        
+        // Reset instructions
+        const instructions = document.querySelector('.map-instructions');
+        if (instructions) {
+            instructions.innerHTML = 'Enter your address above and click "Calculate Size" to see your property. You can then adjust the boundary if needed.';
+            instructions.style.background = '';
+            instructions.style.borderLeft = '';
+        }
+        
         validateStep2();
+        console.log('[Widget] Polygon cleared');
     }
     
     // Calculate polygon area
     function calculatePolygonArea() {
         if (!currentPolygon) return;
         
-        const area = google.maps.geometry.spherical.computeArea(currentPolygon.getPath());
-        state.lawnSizeSqFt = Math.round(area * 10.7639); // Convert sq meters to sq feet
+        if (typeof google === 'undefined') {
+            console.log('[Widget] Cannot calculate area without Google Maps');
+            return;
+        }
         
-        updateLawnSizeDisplay();
+        try {
+            const area = google.maps.geometry.spherical.computeArea(currentPolygon.getPath());
+            state.lawnSizeSqFt = Math.round(area * 10.7639); // Convert sq meters to sq feet
+            
+            updateLawnSizeDisplay();
+            
+            // Reset draw button after completing polygon
+            const drawBtn = document.getElementById('draw-btn');
+            if (drawBtn) {
+                drawBtn.textContent = 'Adjust Boundary';
+                drawBtn.style.background = '';
+                drawBtn.style.color = '';
+            }
+            
+            console.log('[Widget] Area calculated:', state.lawnSizeSqFt, 'sq ft');
+        } catch (error) {
+            console.error('[Widget] Error calculating polygon area:', error);
+        }
     }
     
     // Update lawn size display
