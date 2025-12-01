@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Your Google Maps API Key</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 32px;
+            font-size: 15px;
+        }
+        
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 24px;
+            border-radius: 8px;
+        }
+        
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 32px;
+            font-weight: 700;
+            margin-right: 12px;
+        }
+        
+        .step h3 {
+            display: inline-block;
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+        }
+        
+        .step p {
+            margin-left: 44px;
+            color: #666;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        
+        .input-group {
+            margin: 24px 0;
+        }
+        
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.2s;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 24px;
+            border-left: 4px solid #28a745;
+            display: none;
+        }
+        
+        .success.show {
+            display: block;
+        }
+        
+        .code-block {
+            background: #1a1a1a;
+            color: #a8e6cf;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin-top: 16px;
+            line-height: 1.6;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 24px;
+            font-size: 14px;
+            color: #856404;
+        }
+        
+        .link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🗺️ Add Your Google Maps API Key</h1>
+            <p class="subtitle">Let's activate the satellite view and boundary editing features!</p>
+            
+            <div class="step">
+                <span class="step-number">1</span>
+                <h3>Paste Your API Key</h3>
+                <p>Enter your Google Maps API key below. It should start with "AIzaSy..."</p>
+            </div>
+            
+            <div class="input-group">
+                <label for="api-key">Google Maps API Key:</label>
+                <input type="text" id="api-key" placeholder="AIzaSyABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890">
+            </div>
+            
+            <button class="btn" id="generate-btn">Generate Updated Config Files</button>
+            
+            <div class="success" id="success-message">
+                <strong>✅ Success!</strong> Your configuration files have been updated with your API key. 
+                <br><br>
+                <strong>Download the files below and replace them in your project:</strong>
+            </div>
+            
+            <div id="download-links"></div>
+            
+            <div class="step" style="margin-top: 32px;">
+                <span class="step-number">2</span>
+                <h3>Replace Config Files</h3>
+                <p>After downloading, replace these files in your project:</p>
+                <div class="code-block">/configs/default.json
+/configs/example-lawn.json</div>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">3</span>
+                <h3>Test Your Widget</h3>
+                <p>Open your widget and enter a real address. You should now see the satellite view!</p>
+            </div>
+            
+            <div class="warning">
+                <strong>⚠️ Security Note:</strong> Never commit your API key to public repositories. 
+                Consider adding HTTP referrer restrictions in <a href="https://console.cloud.google.com/" target="_blank" class="link">Google Cloud Console</a>.
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const configs = {
+            'default': {
+                "clientId": "default",
+                "businessName": "Lawn Care Pro",
+                "currencySymbol": "$",
+                "baseVisitFee": 25,
+                "monthlyQuoteLimit": 100,
+                "googleMapsApiKey": "",
+                "centralWebhookUrl": "https://mock-webhook.example.com/quotes",
+                "lawnSizeTiers": [
+                    {
+                        "id": "small",
+                        "label": "0–5,000 sq ft",
+                        "pricePerVisit": 35
+                    },
+                    {
+                        "id": "medium",
+                        "label": "5,001–10,000 sq ft",
+                        "pricePerVisit": 45
+                    },
+                    {
+                        "id": "large",
+                        "label": "10,001–20,000 sq ft",
+                        "pricePerVisit": 60
+                    },
+                    {
+                        "id": "xl",
+                        "label": "20,000+ sq ft",
+                        "pricePerVisit": 80
+                    }
+                ],
+                "frequencyMultipliers": {
+                    "one_time": 1.0,
+                    "weekly": 0.9,
+                    "bi_weekly": 1.0,
+                    "monthly": 1.1
+                },
+                "services": [
+                    { "id": "mowing", "label": "Lawn Mowing" },
+                    { "id": "fertilization", "label": "Fertilization" },
+                    { "id": "aeration", "label": "Aeration" },
+                    { "id": "overseeding", "label": "Overseeding" },
+                    { "id": "leaf_cleanup", "label": "Leaf Cleanup" }
+                ],
+                "addOns": [
+                    {
+                        "id": "edging",
+                        "label": "Edging",
+                        "pricePerVisit": 10
+                    },
+                    {
+                        "id": "bush_trimming",
+                        "label": "Bush Trimming",
+                        "pricePerVisit": 25
+                    }
+                ],
+                "theme": {
+                    "primaryColor": "#2e7d32",
+                    "accentColor": "#e8f5e9",
+                    "borderRadius": "16px"
+                }
+            },
+            'example-lawn': {
+                "clientId": "example-lawn",
+                "businessName": "Green Valley Lawn Care",
+                "currencySymbol": "$",
+                "baseVisitFee": 30,
+                "monthlyQuoteLimit": 150,
+                "googleMapsApiKey": "",
+                "centralWebhookUrl": "https://mock-webhook.example.com/quotes",
+                "ghlWebhookUrl": "https://your-ghl-instance.com/webhook/example",
+                "lawnSizeTiers": [
+                    {
+                        "id": "small",
+                        "label": "0–5,000 sq ft",
+                        "pricePerVisit": 40
+                    },
+                    {
+                        "id": "medium",
+                        "label": "5,001–10,000 sq ft",
+                        "pricePerVisit": 55
+                    },
+                    {
+                        "id": "large",
+                        "label": "10,001–20,000 sq ft",
+                        "pricePerVisit": 75
+                    },
+                    {
+                        "id": "xl",
+                        "label": "20,000+ sq ft",
+                        "pricePerVisit": 100
+                    }
+                ],
+                "frequencyMultipliers": {
+                    "one_time": 1.0,
+                    "weekly": 0.85,
+                    "bi_weekly": 0.95,
+                    "monthly": 1.1
+                },
+                "services": [
+                    { "id": "mowing", "label": "Lawn Mowing" },
+                    { "id": "fertilization", "label": "Fertilization" },
+                    { "id": "aeration", "label": "Aeration" },
+                    { "id": "overseeding", "label": "Overseeding" },
+                    { "id": "leaf_cleanup", "label": "Leaf Cleanup" },
+                    { "id": "weed_control", "label": "Weed Control" }
+                ],
+                "addOns": [
+                    {
+                        "id": "edging",
+                        "label": "Edging",
+                        "pricePerVisit": 15
+                    },
+                    {
+                        "id": "bush_trimming",
+                        "label": "Bush Trimming",
+                        "pricePerVisit": 30
+                    },
+                    {
+                        "id": "mulching",
+                        "label": "Mulching",
+                        "pricePerVisit": 45
+                    }
+                ],
+                "theme": {
+                    "primaryColor": "#1b5e20",
+                    "accentColor": "#c8e6c9",
+                    "borderRadius": "12px"
+                }
+            }
+        };
+        
+        document.getElementById('generate-btn').addEventListener('click', function() {
+            const apiKey = document.getElementById('api-key').value.trim();
+            
+            if (!apiKey) {
+                alert('Please enter your Google Maps API key');
+                return;
+            }
+            
+            if (!apiKey.startsWith('AIza')) {
+                alert('Invalid API key format. Google Maps API keys typically start with "AIza"');
+                return;
+            }
+            
+            // Update configs with API key
+            configs['default'].googleMapsApiKey = apiKey;
+            configs['example-lawn'].googleMapsApiKey = apiKey;
+            
+            // Show success message
+            document.getElementById('success-message').classList.add('show');
+            
+            // Create download links
+            const downloadContainer = document.getElementById('download-links');
+            downloadContainer.innerHTML = '';
+            
+            Object.keys(configs).forEach(configName => {
+                const configData = JSON.stringify(configs[configName], null, 2);
+                const blob = new Blob([configData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const downloadLink = document.createElement('a');
+                downloadLink.href = url;
+                downloadLink.download = `${configName}.json`;
+                downloadLink.style.cssText = 'display:block;margin:12px 0;padding:12px 16px;background:#667eea;color:white;text-decoration:none;border-radius:8px;text-align:center;font-weight:600;transition:all 0.2s;';
+                downloadLink.textContent = `📥 Download ${configName}.json`;
+                downloadLink.onmouseover = function() {
+                    this.style.background = '#5568d3';
+                    this.style.transform = 'translateY(-1px)';
+                };
+                downloadLink.onmouseout = function() {
+                    this.style.background = '#667eea';
+                    this.style.transform = 'translateY(0)';
+                };
+                
+                downloadContainer.appendChild(downloadLink);
+            });
+            
+            // Disable button
+            this.disabled = true;
+            this.textContent = '✅ Configuration Files Ready';
+        });
+    </script>
+</body>
+</html>
