@@ -22,6 +22,7 @@ This is a static HTML/CSS/JavaScript widget system that:
 ✅ **Webhook integration** - Sends leads to GoHighLevel or any webhook
 ✅ **Usage tracking** - Monitors quote submissions per client
 ✅ **UTM tracking** - Captures marketing attribution data
+✅ **Pro Field Interface** - Internal quoting app for field teams
 
 ## How to Deploy to GitHub Pages
 
