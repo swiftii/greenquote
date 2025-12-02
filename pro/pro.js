@@ -358,9 +358,22 @@
     
     // Initialize autocomplete
     function initAutocomplete() {
-        if (typeof google === 'undefined' || !google.maps.places) return;
+        if (typeof google === 'undefined' || !google.maps) {
+            console.warn('[Pro] Google Maps not available for autocomplete');
+            return;
+        }
+        
+        if (!google.maps.places) {
+            console.error('[Pro] Places API not available - autocomplete will not work');
+            console.error('[Pro] Make sure Places API is enabled in Google Cloud Console');
+            return;
+        }
         
         const addressInput = document.getElementById('address');
+        if (!addressInput) {
+            console.error('[Pro] Address input element not found');
+            return;
+        }
         
         try {
             autocomplete = new google.maps.places.Autocomplete(addressInput, {
@@ -370,12 +383,15 @@
             
             if (map) {
                 autocomplete.bindTo('bounds', map);
+                console.log('[Pro] Autocomplete bound to map viewport');
             }
             
             autocomplete.addListener('place_changed', onPlaceChanged);
-            console.log('[Pro] Autocomplete initialized');
+            
+            console.log('[Pro] ✓ Autocomplete initialized and ready');
         } catch (error) {
-            console.error('[Pro] Error initializing autocomplete:', error);
+            console.error('[Pro] ❌ Error initializing autocomplete:', error);
+            console.error('[Pro] Error details:', error.message);
         }
     }
     
