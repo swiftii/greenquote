@@ -738,9 +738,15 @@
         
         try {
             const area = google.maps.geometry.spherical.computeArea(currentPolygon.getPath());
-            state.lawnSizeSqFt = Math.round(area * 10.7639); // Convert sq meters to sq feet
+            const sqFt = Math.round(area * 10.7639); // Convert sq meters to sq feet
             
-            updateLawnSizeDisplay();
+            // This is measured area from polygon
+            state.measuredAreaSqft = sqFt;
+            state.lawnSizeSqFt = sqFt;
+            state.estimatedAreaSqft = 0; // Clear estimated
+            state.areaSource = 'measured';
+            
+            updateLawnSizeDisplay(false); // false = measured, not estimated
             
             // Reset draw button after completing polygon
             const drawBtn = document.getElementById('draw-btn');
@@ -750,7 +756,7 @@
                 drawBtn.style.color = '';
             }
             
-            console.log('[Widget] Area calculated:', state.lawnSizeSqFt, 'sq ft');
+            console.log('[Widget] Measured area calculated:', state.measuredAreaSqft, 'sq ft');
         } catch (error) {
             console.error('[Widget] Error calculating polygon area:', error);
         }
