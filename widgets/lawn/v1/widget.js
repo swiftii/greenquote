@@ -876,7 +876,7 @@
                     </div>
                     <div class="quote-detail-item">
                         <span>Lawn Size:</span>
-                        <span>${state.lawnSizeSqFt.toLocaleString()} sq ft (${state.lawnSizeTier.label})</span>
+                        <span>${state.lawnSizeSqFt.toLocaleString()} sq ft ${state.areaSource === 'measured' ? '(measured)' : '(estimated)'}</span>
                     </div>
                     <div class="quote-detail-item">
                         <span>Frequency:</span>
