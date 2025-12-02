@@ -763,9 +763,21 @@
     }
     
     // Update lawn size display
-    function updateLawnSizeDisplay() {
-        document.getElementById('lawn-size-value').textContent = state.lawnSizeSqFt.toLocaleString();
-        document.getElementById('lawn-size-display').classList.remove('hidden');
+    function updateLawnSizeDisplay(isEstimated = false) {
+        const displayElement = document.getElementById('lawn-size-display');
+        const valueElement = document.getElementById('lawn-size-value');
+        
+        if (isEstimated) {
+            valueElement.textContent = state.lawnSizeSqFt.toLocaleString() + ' (estimated)';
+            displayElement.style.background = '#fff3cd';
+            displayElement.style.color = '#856404';
+        } else {
+            valueElement.textContent = state.lawnSizeSqFt.toLocaleString() + ' (measured)';
+            displayElement.style.background = config.theme.primaryColor;
+            displayElement.style.color = 'white';
+        }
+        
+        displayElement.classList.remove('hidden');
         validateStep2();
     }
     
