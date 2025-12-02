@@ -275,11 +275,11 @@
             <div class="map-container">
                 <div id="map"></div>
                 <div class="map-instructions">
-                    Enter your address above and click "Calculate Size" to see your property. You can then adjust the boundary if needed.
+                    Start typing your address above and select from the suggestions. The map will automatically locate your property.
                 </div>
                 <div class="map-controls">
-                    <button class="map-btn" id="calculate-btn">Calculate Size</button>
-                    <button class="map-btn" id="draw-btn" disabled>Adjust Boundary</button>
+                    <button class="map-btn" id="calculate-btn">Locate Property</button>
+                    <button class="map-btn" id="draw-btn" disabled>Draw Boundary</button>
                     <button class="map-btn" id="clear-btn" disabled>Clear</button>
                 </div>
                 <div class="lawn-size-display hidden" id="lawn-size-display">
