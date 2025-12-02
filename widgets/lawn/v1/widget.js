@@ -1159,6 +1159,7 @@
                 phone: state.phone,
                 address: state.address,
                 zipCode: state.zipCode,
+                addressSource: state.addressSource,
                 preferredTime: state.preferredTime
             },
             tracking: trackingData
