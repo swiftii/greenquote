@@ -38,6 +38,7 @@
     let drawingManager = null;
     let currentPolygon = null;
     let autocomplete = null;
+    let selectedPlace = null; // Store selected place from autocomplete
     
     // Initialize the widget
     function init() {
