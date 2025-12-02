@@ -407,3 +407,156 @@ This widget system is provided as-is for use with your lawn care business or cli
 ---
 
 **Need help?** Check the troubleshooting section or review the example config files for reference.
+
+**You're all set!** Start customizing and deploying. 🚀
+
+---
+
+## GreenQuote Pro - Internal Field Quoting
+
+### What is GreenQuote Pro?
+
+GreenQuote Pro is an internal quoting interface designed for your field teams (owners, techs, sales reps) to create quotes on-site using phones or tablets.
+
+**Key Benefits:**
+- Same pricing and configuration as your public widget
+- Mobile-optimized for field use
+- Works with the same Google Maps integration
+- Submits to the same central webhook
+- No CRM dependency required
+
+### Accessing the Pro Interface
+
+**URL Pattern:**
+```
+https://YOUR-USERNAME.github.io/YOUR-REPO/pro/index.html?client=CLIENT-NAME
+```
+
+**Example:**
+```
+https://yourusername.github.io/lawn-widget/pro/index.html?client=example-lawn
+```
+
+### Pro Interface Features
+
+**Customer Information:**
+- First name, last name (required)
+- Phone number (required)
+- Email (optional)
+- Notes field for gate codes, special instructions
+
+**Property Location:**
+- Address search with autocomplete
+- Google Maps satellite view
+- Draw boundaries for precise measurements
+- Estimated area based on ZIP/property type
+
+**Service & Pricing:**
+- Same services and add-ons as public widget
+- Same frequency options
+- Real-time pricing calculations
+- Shows measured vs estimated area
+
+**Actions:**
+- Save quote to central webhook
+- Optional: Send quote to customer email
+- Copy quote summary to clipboard
+- Create new quote
+
+### How It Works
+
+1. **Field team opens Pro interface** on their phone
+2. **Enters customer info** and property address
+3. **Draws lawn boundary** on satellite map for accuracy
+4. **Selects services** and frequency
+5. **Saves quote** - automatically sent to your webhook
+6. **Quote tracked** in your system, flagged as "internal"
+
+### Differences from Public Widget
+
+| Feature | Public Widget | Pro Interface |
+|---------|--------------|---------------|
+| Purpose | Customer self-service | Internal field use |
+| Workflow | 3-step wizard | Single-page mobile form |
+| Branding | Customer-facing | Internal team tool |
+| Data | Lead capture | Operator + customer data |
+| Submission | "Lead" mode | "Internal" mode |
+| Design | Marketing-focused | Utility-focused |
+
+### Configuration
+
+**Pro interface uses the same config files:**
+- `/configs/default.json`
+- `/configs/your-client.json`
+
+**No separate configuration needed!**
+
+All pricing, services, add-ons, and Google Maps settings are shared between the public widget and Pro interface.
+
+### Webhook Payload
+
+Quotes from Pro interface include:
+
+```json
+{
+  "mode": "internal",
+  "source": "greenquote_pro",
+  "lead": {
+    "firstName": "John",
+    "lastName": "Smith",
+    "phone": "555-123-4567",
+    "notes": "Gate code: 1234"
+  },
+  "operator": {
+    "name": "Sarah (Sales Rep)",
+    "timestamp": "2025-01-15T14:30:00Z"
+  },
+  "actions": {
+    "sendCustomerEmail": true
+  }
+}
+```
+
+Your webhook can distinguish between public widget leads and internal Pro quotes using the `mode` and `source` fields.
+
+### Mobile Optimization
+
+Pro interface is optimized for:
+- iOS Safari (iPhone, iPad)
+- Android Chrome
+- Touch-friendly UI
+- Large buttons and inputs
+- Minimal data usage
+- Works offline (with cached config)
+
+### Use Cases
+
+**Perfect for:**
+- Door-to-door sales teams
+- On-site estimates
+- Service truck tablets
+- Owner/manager field quoting
+- Trade show quotes
+- Quick property assessments
+
+**Typical workflow:**
+```
+Field Rep → Visits Property → Opens Pro on Phone → 
+Creates Quote On-Site → Sends to Customer → 
+Quote Logged in System → Follow-up Automated
+```
+
+### Security Notes
+
+**The Pro interface:**
+- Does NOT require authentication (add your own if needed)
+- Uses same webhook as public widget
+- Includes operator tracking for accountability
+- Can be password-protected via hosting (optional)
+
+**Recommended:** If deploying publicly accessible Pro interface, consider:
+- Password protection via hosting provider
+- IP allowlist for your team
+- Or keep URL private/internal only
+
+---
