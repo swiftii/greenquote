@@ -283,7 +283,17 @@
     
     // Initialize Google Map
     function initMap() {
-        if (typeof google === 'undefined') return;
+        if (typeof google === 'undefined') {
+            console.error('[Pro] Google Maps not available - cannot initialize map');
+            return;
+        }
+        
+        if (!google.maps) {
+            console.error('[Pro] google.maps not available - script may have failed to load');
+            return;
+        }
+        
+        console.log('[Pro] Initializing map...');
         
         try {
             map = new google.maps.Map(document.getElementById('map'), {
