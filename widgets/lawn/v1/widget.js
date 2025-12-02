@@ -352,8 +352,8 @@
         
         try {
             map = new google.maps.Map(document.getElementById('map'), {
-                center: { lat: 40.7128, lng: -74.0060 },
-                zoom: 18,
+                center: { lat: 39.8283, lng: -98.5795 }, // Center of USA
+                zoom: 4,
                 mapTypeId: 'satellite',
                 disableDefaultUI: true,
                 zoomControl: true,
@@ -397,14 +397,179 @@
                 // Update instructions
                 const instructions = document.querySelector('.map-instructions');
                 if (instructions) {
-                    instructions.textContent = 'Drag the corners to adjust your service area. Click "Clear" to start over.';
+                    instructions.textContent = '✓ Measured area! Drag corners to adjust. This measured area will be used for your quote.';
                 }
             });
+            
+            // Initialize Places Autocomplete
+            initAutocomplete();
+            
+            // Trigger resize to ensure map renders correctly
+            google.maps.event.trigger(map, 'resize');
             
             console.log('[Widget] Google Maps initialized successfully');
         } catch (error) {
             console.error('[Widget] Error initializing Google Maps:', error);
         }
+    }
+    
+    // Initialize Google Places Autocomplete
+    function initAutocomplete() {
+        if (typeof google === 'undefined' || !google.maps.places) {
+            console.log('[Widget] Google Places API not available');
+            return;
+        }
+        
+        const addressInput = document.getElementById('address-input');
+        if (!addressInput) {
+            console.log('[Widget] Address input not found');
+            return;
+        }
+        
+        try {
+            autocomplete = new google.maps.places.Autocomplete(addressInput, {
+                types: ['address'],
+                fields: ['address_components', 'geometry', 'formatted_address', 'name']
+            });
+            
+            // Bias results to current map viewport
+            if (map) {
+                autocomplete.bindTo('bounds', map);
+            }
+            
+            // Listen for place selection
+            autocomplete.addListener('place_changed', onPlaceChanged);
+            
+            console.log('[Widget] Places Autocomplete initialized');
+        } catch (error) {
+            console.error('[Widget] Error initializing autocomplete:', error);
+        }
+    }
+    
+    // Handle place selection from autocomplete
+    function onPlaceChanged() {
+        const place = autocomplete.getPlace();
+        
+        if (!place.geometry) {
+            console.log('[Widget] No geometry for selected place');
+            return;
+        }
+        
+        console.log('[Widget] Place selected:', place);
+        
+        // Store place data
+        state.placeData = place;
+        state.address = place.formatted_address || place.name;
+        
+        // Extract ZIP code
+        extractZipCode(place);
+        
+        // Update address input
+        document.getElementById('address-input').value = state.address;
+        
+        // Recenter and zoom map
+        recenterMapToPlace(place);
+        
+        // Estimate area if no polygon drawn
+        if (!currentPolygon) {
+            estimateAreaFromAddress();
+        }
+        
+        console.log('[Widget] Address selected:', state.address, 'ZIP:', state.zipCode);
+    }
+    
+    // Extract ZIP code from place
+    function extractZipCode(place) {
+        state.zipCode = '';
+        
+        if (place.address_components) {
+            for (const component of place.address_components) {
+                if (component.types.includes('postal_code')) {
+                    state.zipCode = component.short_name;
+                    break;
+                }
+            }
+        }
+        
+        console.log('[Widget] ZIP code extracted:', state.zipCode);
+    }
+    
+    // Recenter map to selected place
+    function recenterMapToPlace(place) {
+        if (!map) return;
+        
+        if (place.geometry.viewport) {
+            // Use viewport bounds if available
+            map.fitBounds(place.geometry.viewport);
+            
+            // After fitting to viewport, zoom in closer for property-level view
+            google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+                const currentZoom = map.getZoom();
+                // For addresses, zoom to parcel level (19-20)
+                if (currentZoom < 19) {
+                    map.setZoom(20);
+                }
+            });
+        } else if (place.geometry.location) {
+            // Center on location and zoom to property level
+            map.setCenter(place.geometry.location);
+            
+            // Determine zoom based on place type
+            const hasStreetAddress = place.address_components && 
+                place.address_components.some(c => c.types.includes('street_number'));
+            
+            if (hasStreetAddress) {
+                // Full address: zoom to individual property (parcel-like)
+                map.setZoom(20);
+            } else if (state.zipCode) {
+                // ZIP only: zoom to neighborhood level
+                map.setZoom(14);
+            } else {
+                // Generic location: moderate zoom
+                map.setZoom(16);
+            }
+        }
+        
+        console.log('[Widget] Map recentered to place');
+    }
+    
+    // Estimate area from address using config defaults
+    function estimateAreaFromAddress() {
+        if (!config.defaultAreaEstimates) {
+            console.log('[Widget] No default area estimates in config');
+            return;
+        }
+        
+        let estimatedArea = 0;
+        
+        // Check for ZIP-specific override
+        if (state.zipCode && config.defaultAreaEstimates.zipOverrides) {
+            const zipOverride = config.defaultAreaEstimates.zipOverrides[state.zipCode];
+            if (zipOverride) {
+                estimatedArea = zipOverride;
+                console.log('[Widget] Using ZIP override for', state.zipCode, ':', estimatedArea, 'sq ft');
+            }
+        }
+        
+        // Fall back to property type default
+        if (!estimatedArea) {
+            if (state.propertyType === 'commercial') {
+                estimatedArea = config.defaultAreaEstimates.commercial || 15000;
+            } else {
+                estimatedArea = config.defaultAreaEstimates.residential || 8000;
+            }
+            console.log('[Widget] Using', state.propertyType, 'default:', estimatedArea, 'sq ft');
+        }
+        
+        // Set estimated area
+        state.estimatedAreaSqft = estimatedArea;
+        state.lawnSizeSqFt = estimatedArea;
+        state.areaSource = 'estimated';
+        
+        // Update display
+        updateLawnSizeDisplay(true);
+        
+        console.log('[Widget] Area estimated:', estimatedArea, 'sq ft');
     }
     
     // Calculate property size from address
