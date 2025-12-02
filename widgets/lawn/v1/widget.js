@@ -997,6 +997,12 @@
             lawnSizeSqFt: state.lawnSizeSqFt,
             lawnSizeTier: state.lawnSizeTier.id,
             frequency: state.frequency,
+            areaData: {
+                measuredAreaSqft: state.measuredAreaSqft,
+                estimatedAreaSqft: state.estimatedAreaSqft,
+                areaSource: state.areaSource, // 'measured', 'estimated', or 'none'
+                usedForPricing: state.lawnSizeSqFt
+            },
             pricing: {
                 estimatedPerVisit: state.estimatedPerVisit,
                 estimatedMonthlyTotal: state.estimatedMonthlyTotal,
@@ -1008,6 +1014,7 @@
                 email: state.email,
                 phone: state.phone,
                 address: state.address,
+                zipCode: state.zipCode,
                 preferredTime: state.preferredTime
             },
             tracking: trackingData
