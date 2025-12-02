@@ -708,9 +708,22 @@
             currentPolygon.setMap(null);
             currentPolygon = null;
         }
-        state.lawnSizeSqFt = 0;
-        document.getElementById('lawn-size-display').classList.add('hidden');
-        document.getElementById('draw-btn').disabled = false;
+        
+        // Clear measured area
+        state.measuredAreaSqft = 0;
+        
+        // If we have an address, fall back to estimated area
+        if (state.placeData || state.address) {
+            estimateAreaFromAddress();
+            document.getElementById('draw-btn').disabled = false;
+        } else {
+            state.lawnSizeSqFt = 0;
+            state.estimatedAreaSqft = 0;
+            state.areaSource = 'none';
+            document.getElementById('lawn-size-display').classList.add('hidden');
+            document.getElementById('draw-btn').disabled = false;
+        }
+        
         document.getElementById('draw-btn').textContent = 'Adjust Boundary';
         document.getElementById('draw-btn').style.background = '';
         document.getElementById('draw-btn').style.color = '';
@@ -718,13 +731,19 @@
         // Reset instructions
         const instructions = document.querySelector('.map-instructions');
         if (instructions) {
-            instructions.innerHTML = 'Enter your address above and click "Calculate Size" to see your property. You can then adjust the boundary if needed.';
-            instructions.style.background = '';
-            instructions.style.borderLeft = '';
+            if (state.address) {
+                instructions.innerHTML = 'Boundary cleared. Using estimated area. Draw boundary for accurate measurement.';
+                instructions.style.background = '#fff3cd';
+                instructions.style.borderLeft = '4px solid #ffc107';
+            } else {
+                instructions.innerHTML = 'Enter your address and select from suggestions to locate your property.';
+                instructions.style.background = '';
+                instructions.style.borderLeft = '';
+            }
         }
         
         validateStep2();
-        console.log('[Widget] Polygon cleared');
+        console.log('[Widget] Polygon cleared, reverted to estimated area');
     }
     
     // Calculate polygon area
