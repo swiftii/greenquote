@@ -542,7 +542,21 @@
     
     // Recenter map to selected place
     function recenterMapToPlace(place) {
-        if (!map) return;
+        if (!map || !place || !place.geometry) {
+            console.warn('[Widget] Cannot recenter map - invalid place or map not initialized');
+            return;
+        }
+        
+        console.log('[Widget] Recentering map to place');
+        
+        // Determine if this is a full street address
+        const hasStreetNumber = place.address_components && 
+            place.address_components.some(c => c.types && c.types.includes('street_number'));
+        
+        const hasStreetAddress = place.address_components && 
+            place.address_components.some(c => c.types && c.types.includes('route'));
+        
+        const isFullAddress = hasStreetNumber && hasStreetAddress;
         
         if (place.geometry.viewport) {
             // Use viewport bounds if available
@@ -551,32 +565,41 @@
             // After fitting to viewport, zoom in closer for property-level view
             google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
                 const currentZoom = map.getZoom();
-                // For addresses, zoom to parcel level (19-20)
-                if (currentZoom < 19) {
+                
+                if (isFullAddress && currentZoom < 19) {
+                    // Full street address: zoom to parcel level (20)
                     map.setZoom(20);
+                } else if (!isFullAddress && currentZoom < 14) {
+                    // ZIP or city only: zoom to neighborhood level
+                    map.setZoom(14);
                 }
             });
         } else if (place.geometry.location) {
-            // Center on location and zoom to property level
+            // No viewport, use location directly
             map.setCenter(place.geometry.location);
             
-            // Determine zoom based on place type
-            const hasStreetAddress = place.address_components && 
-                place.address_components.some(c => c.types.includes('street_number'));
-            
-            if (hasStreetAddress) {
+            // Set appropriate zoom level
+            if (isFullAddress) {
                 // Full address: zoom to individual property (parcel-like)
                 map.setZoom(20);
+                console.log('[Widget] Zooming to parcel level (20) for street address');
             } else if (state.zipCode) {
                 // ZIP only: zoom to neighborhood level
                 map.setZoom(14);
+                console.log('[Widget] Zooming to neighborhood level (14) for ZIP');
             } else {
                 // Generic location: moderate zoom
                 map.setZoom(16);
+                console.log('[Widget] Zooming to moderate level (16) for generic location');
             }
         }
         
-        console.log('[Widget] Map recentered to place');
+        // Trigger map resize to ensure proper rendering
+        setTimeout(() => {
+            google.maps.event.trigger(map, 'resize');
+        }, 100);
+        
+        console.log('[Widget] Map recentered successfully');
     }
     
     // Estimate area from address using config defaults
