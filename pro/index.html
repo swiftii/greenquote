@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>GreenQuote Pro - Field Quoting</title>
+    <link rel="stylesheet" href="pro.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="pro-header">
+        <div class="header-content">
+            <h1 id="business-name">GreenQuote Pro</h1>
+            <span class="client-badge" id="client-badge">Loading...</span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="pro-main">
+        <div class="pro-container">
+            
+            <!-- Customer Info Section -->
+            <section class="pro-section" id="customer-section">
+                <h2 class="section-title">Customer Information</h2>
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label class="field-label required">First Name</label>
+                        <input type="text" class="field-input" id="firstName" placeholder="John">
+                    </div>
+                    <div class="form-field">
+                        <label class="field-label required">Last Name</label>
+                        <input type="text" class="field-input" id="lastName" placeholder="Smith">
+                    </div>
+                    <div class="form-field">
+                        <label class="field-label required">Phone</label>
+                        <input type="tel" class="field-input" id="phone" placeholder="(555) 123-4567">
+                    </div>
+                    <div class="form-field">
+                        <label class="field-label">Email</label>
+                        <input type="email" class="field-input" id="email" placeholder="john@example.com">
+                    </div>
+                    <div class="form-field full-width">
+                        <label class="field-label">Notes (gate code, pets, etc.)</label>
+                        <textarea class="field-textarea" id="notes" placeholder="Gate code: 1234, Dog in backyard" rows="2"></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Property Location Section -->
+            <section class="pro-section" id="location-section">
+                <h2 class="section-title">Property Location</h2>
+                
+                <div class="form-field">
+                    <label class="field-label required">Property Address</label>
+                    <input type="text" class="field-input" id="address" placeholder="Start typing address..." autocomplete="off">
+                    <p class="field-hint">Select from dropdown for best results</p>
+                </div>
+
+                <div class="property-type-selector">
+                    <label class="property-type-option">
+                        <input type="radio" name="propertyType" value="residential" checked>
+                        <span class="type-label">Residential</span>
+                    </label>
+                    <label class="property-type-option">
+                        <input type="radio" name="propertyType" value="commercial">
+                        <span class="type-label">Commercial</span>
+                    </label>
+                </div>
+
+                <div class="map-container">
+                    <div id="map" class="pro-map"></div>
+                    <div class="map-status" id="mapStatus">Enter address to locate property</div>
+                </div>
+
+                <div class="map-tools">
+                    <button class="tool-btn" id="locateBtn">📍 Locate</button>
+                    <button class="tool-btn" id="drawBtn" disabled>✏️ Draw Area</button>
+                    <button class="tool-btn" id="clearBtn" disabled>🗑️ Clear</button>
+                </div>
+
+                <div class="area-display hidden" id="areaDisplay">
+                    <span class="area-label">Lawn Area:</span>
+                    <span class="area-value" id="areaValue">0 sq ft</span>
+                </div>
+            </section>
+
+            <!-- Service & Pricing Section -->
+            <section class="pro-section" id="service-section">
+                <h2 class="section-title">Service & Pricing</h2>
+                
+                <div class="form-field">
+                    <label class="field-label required">Primary Service</label>
+                    <select class="field-select" id="primaryService">
+                        <option value="">Select service...</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label class="field-label">Add-ons</label>
+                    <div class="addon-list" id="addonList">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label class="field-label required">Frequency</label>
+                    <div class="frequency-grid" id="frequencyGrid">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Quote Summary -->
+                <div class="quote-summary hidden" id="quoteSummary">
+                    <div class="summary-row">
+                        <span>Per Visit:</span>
+                        <span class="summary-value" id="perVisitPrice">$0</span>
+                    </div>
+                    <div class="summary-row highlight">
+                        <span>Est. Monthly:</span>
+                        <span class="summary-value" id="monthlyPrice">$0</span>
+                    </div>
+                    <div class="summary-note" id="pricingNote"></div>
+                </div>
+            </section>
+
+            <!-- Operator Section -->
+            <section class="pro-section" id="operator-section">
+                <h2 class="section-title">Created By</h2>
+                <div class="form-field">
+                    <label class="field-label">Your Name</label>
+                    <input type="text" class="field-input" id="operatorName" placeholder="Your name">
+                </div>
+            </section>
+
+            <!-- Actions Section -->
+            <section class="pro-section actions-section">
+                <button class="action-btn primary" id="saveQuoteBtn" disabled>
+                    💾 Save Quote
+                </button>
+                <div class="action-options">
+                    <label class="checkbox-option">
+                        <input type="checkbox" id="sendEmailCheck">
+                        <span>Send quote to customer</span>
+                    </label>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Success Modal -->
+    <div class="modal hidden" id="successModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✅ Quote Saved</h3>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Success details populated dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" id="newQuoteBtn">New Quote</button>
+                <button class="modal-btn secondary" id="copyBtn">Copy Summary</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+
+    <script src="pro.js"></script>
+</body>
+</html>
