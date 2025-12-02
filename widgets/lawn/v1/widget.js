@@ -617,90 +617,199 @@
         console.log('[Widget] Area estimated:', estimatedArea, 'sq ft');
     }
     
-    // Calculate property size from address (fallback for manual trigger)
+    // Locate property - uses selected place first, falls back to geocoding
     function calculatePropertySize() {
-        const address = document.getElementById('address-input').value;
-        state.address = address;
+        const addressInput = document.getElementById('address-input');
+        const address = addressInput ? addressInput.value.trim() : '';
         
         if (!address) {
-            alert('Please enter an address or select from suggestions');
+            showAddressError('Please enter a property address to continue.');
             return;
         }
         
+        // Mock mode handling
         if (typeof google === 'undefined') {
-            // Mock mode - generate random size
             const mockSize = Math.floor(Math.random() * 15000) + 3000;
             state.lawnSizeSqFt = mockSize;
             state.estimatedAreaSqft = mockSize;
             state.areaSource = 'estimated';
+            state.address = address;
             updateLawnSizeDisplay(true);
-            document.getElementById('draw-btn').disabled = true; // Can't draw without maps
+            document.getElementById('draw-btn').disabled = true;
             document.getElementById('clear-btn').disabled = false;
-            console.log('[Widget] Mock property size calculated:', mockSize);
             
-            // Update instructions for mock mode
             const instructions = document.querySelector('.map-instructions');
             if (instructions) {
                 instructions.innerHTML = '<strong>Mock Mode:</strong> Property size estimated. Add Google Maps API key to see satellite view and draw precise boundaries.';
             }
+            console.log('[Widget] Mock property size calculated:', mockSize);
             return;
         }
         
         // Disable button during processing
         const calcBtn = document.getElementById('calculate-btn');
-        calcBtn.disabled = true;
-        calcBtn.textContent = 'Locating...';
+        if (calcBtn) {
+            calcBtn.disabled = true;
+            calcBtn.textContent = 'Locating...';
+        }
         
-        // Use Google Maps Geocoding
+        // Strategy 1: Use selected place from autocomplete if available
+        if (selectedPlace && selectedPlace.geometry && selectedPlace.geometry.location) {
+            console.log('[Widget] Using selected place from autocomplete');
+            
+            // Re-use the already selected place
+            processSelectedPlace(selectedPlace, 'autocomplete');
+            
+            if (calcBtn) {
+                calcBtn.disabled = false;
+                calcBtn.textContent = 'Locate Property';
+            }
+            return;
+        }
+        
+        // Strategy 2: Fallback to geocoding the raw address text
+        console.log('[Widget] No selected place, attempting geocode of:', address);
+        
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ address: address }, (results, status) => {
-            calcBtn.disabled = false;
-            calcBtn.textContent = 'Locate Property';
+            if (calcBtn) {
+                calcBtn.disabled = false;
+                calcBtn.textContent = 'Locate Property';
+            }
             
-            if (status === 'OK') {
+            if (status === 'OK' && results && results.length > 0) {
+                console.log('[Widget] Geocoding successful');
+                
+                // Convert geocode result to place-like object
                 const place = {
                     geometry: results[0].geometry,
                     formatted_address: results[0].formatted_address,
-                    address_components: results[0].address_components
+                    address_components: results[0].address_components,
+                    name: results[0].formatted_address
                 };
                 
-                state.placeData = place;
-                state.address = place.formatted_address;
-                document.getElementById('address-input').value = state.address;
+                // Store as selected place for future use
+                selectedPlace = place;
                 
-                // Extract ZIP
-                extractZipCode(place);
-                
-                // Recenter map
-                recenterMapToPlace(place);
-                
-                // Estimate area if no polygon
-                if (!currentPolygon) {
-                    estimateAreaFromAddress();
-                }
-                
-                // Update instructions
-                const instructions = document.querySelector('.map-instructions');
-                if (instructions) {
-                    if (currentPolygon) {
-                        instructions.innerHTML = '<strong>✓ Property located!</strong> Drag corners to adjust measured area, or click "Adjust Boundary" to redraw.';
-                    } else {
-                        instructions.innerHTML = '<strong>✓ Property located!</strong> Area estimated at ' + state.lawnSizeSqFt.toLocaleString() + ' sq ft. Draw boundary for accurate measurement.';
-                    }
-                    instructions.style.background = '#d4edda';
-                    instructions.style.borderLeft = '4px solid #28a745';
-                }
-                
-                document.getElementById('draw-btn').disabled = false;
-                document.getElementById('clear-btn').disabled = false;
-                
-                console.log('[Widget] Property located via geocoding');
+                // Process the geocoded place
+                processSelectedPlace(place, 'geocode');
                 
             } else {
-                alert('Could not find that address. Please try typing and selecting from the suggestions.');
-                console.error('[Widget] Geocoding failed:', status);
+                // Geocoding failed - show helpful error
+                handleGeocodeError(status, address);
             }
         });
+    }
+    
+    // Process a selected place (from autocomplete or geocoding)
+    function processSelectedPlace(place, source) {
+        console.log('[Widget] Processing place from', source);
+        
+        // Store in state
+        state.placeData = place;
+        state.address = place.formatted_address || place.name || '';
+        state.addressSource = source;
+        
+        // Update address input
+        const addressInput = document.getElementById('address-input');
+        if (addressInput) {
+            addressInput.value = state.address;
+        }
+        
+        // Extract ZIP code
+        extractZipCode(place);
+        
+        // Recenter and zoom map
+        if (map) {
+            recenterMapToPlace(place);
+        }
+        
+        // Estimate area if no polygon drawn
+        if (!currentPolygon) {
+            estimateAreaFromAddress();
+        }
+        
+        // Enable drawing tools
+        const drawBtn = document.getElementById('draw-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        if (drawBtn) drawBtn.disabled = false;
+        if (clearBtn) clearBtn.disabled = false;
+        
+        // Update instructions with success message
+        const instructions = document.querySelector('.map-instructions');
+        if (instructions) {
+            const areaText = state.lawnSizeSqFt > 0 ? 
+                state.lawnSizeSqFt.toLocaleString() + ' sq ft' : 'default';
+            
+            instructions.innerHTML = '<strong>✓ Property located!</strong> Area estimated at ' + 
+                areaText + '. Click "Draw Boundary" to measure your exact service area.';
+            instructions.style.background = '#d4edda';
+            instructions.style.borderLeft = '4px solid #28a745';
+        }
+        
+        console.log('[Widget] Place processed successfully:', state.address, 'ZIP:', state.zipCode);
+    }
+    
+    // Handle geocoding errors with helpful messages
+    function handleGeocodeError(status, address) {
+        console.error('[Widget] Geocoding failed with status:', status);
+        
+        let errorMessage = '';
+        let suggestion = '';
+        
+        switch (status) {
+            case 'ZERO_RESULTS':
+                errorMessage = 'Address Not Found';
+                suggestion = 'The address "' + address + '" could not be located. Please try:';
+                break;
+            case 'INVALID_REQUEST':
+                errorMessage = 'Invalid Address Format';
+                suggestion = 'Please check the address and try again. Make sure to include street number, name, city, and state.';
+                break;
+            case 'OVER_QUERY_LIMIT':
+                errorMessage = 'Service Temporarily Unavailable';
+                suggestion = 'Too many requests. Please wait a moment and try again.';
+                break;
+            case 'REQUEST_DENIED':
+                errorMessage = 'Service Error';
+                suggestion = 'Unable to verify address at this time. Please contact support if this continues.';
+                break;
+            default:
+                errorMessage = 'Unable to Locate Address';
+                suggestion = 'We couldn\'t find that address. Please try:';
+        }
+        
+        // Show error in instructions area
+        const instructions = document.querySelector('.map-instructions');
+        if (instructions) {
+            let helpText = '<strong>❌ ' + errorMessage + '</strong><br>';
+            helpText += suggestion;
+            
+            if (status === 'ZERO_RESULTS' || status === 'INVALID_REQUEST') {
+                helpText += '<br>• Start typing and <strong>select from the dropdown suggestions</strong>';
+                helpText += '<br>• Include full address (street, city, state, ZIP)';
+                helpText += '<br>• Check spelling and try variations';
+            }
+            
+            instructions.innerHTML = helpText;
+            instructions.style.background = '#f8d7da';
+            instructions.style.borderLeft = '4px solid #dc3545';
+        }
+        
+        // Also show alert for immediate feedback
+        if (status === 'ZERO_RESULTS') {
+            showAddressError(
+                'Address not found. Please start typing and select from the dropdown suggestions, ' +
+                'or try including more details (street number, city, state).'
+            );
+        } else {
+            showAddressError(suggestion);
+        }
+    }
+    
+    // Show address error message
+    function showAddressError(message) {
+        alert(message);
     }
     
     // Enable manual drawing
