@@ -462,32 +462,65 @@
     function onPlaceChanged() {
         const place = autocomplete.getPlace();
         
-        if (!place.geometry) {
-            console.log('[Widget] No geometry for selected place');
+        // Validate place has required data
+        if (!place || !place.geometry || !place.geometry.location) {
+            console.warn('[Widget] Selected place missing geometry or location');
+            
+            // Show helpful message
+            const instructions = document.querySelector('.map-instructions');
+            if (instructions) {
+                instructions.innerHTML = '⚠️ Please select a complete address from the dropdown suggestions.';
+                instructions.style.background = '#fff3cd';
+                instructions.style.borderLeft = '4px solid #ffc107';
+            }
             return;
         }
         
-        console.log('[Widget] Place selected:', place);
+        console.log('[Widget] Place selected from autocomplete:', place);
         
-        // Store place data
+        // Store the selected place as source of truth
+        selectedPlace = place;
+        
+        // Store place data in state
         state.placeData = place;
-        state.address = place.formatted_address || place.name;
+        state.address = place.formatted_address || place.name || '';
+        state.addressSource = 'autocomplete'; // Track how address was obtained
         
         // Extract ZIP code
         extractZipCode(place);
         
-        // Update address input
-        document.getElementById('address-input').value = state.address;
+        // Update address input to show formatted address
+        const addressInput = document.getElementById('address-input');
+        if (addressInput) {
+            addressInput.value = state.address;
+        }
         
-        // Recenter and zoom map
-        recenterMapToPlace(place);
+        // Recenter and zoom map to selected place
+        if (map && typeof google !== 'undefined') {
+            recenterMapToPlace(place);
+        }
         
         // Estimate area if no polygon drawn
         if (!currentPolygon) {
             estimateAreaFromAddress();
         }
         
-        console.log('[Widget] Address selected:', state.address, 'ZIP:', state.zipCode);
+        // Enable buttons
+        const drawBtn = document.getElementById('draw-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        if (drawBtn) drawBtn.disabled = false;
+        if (clearBtn) clearBtn.disabled = false;
+        
+        // Update instructions with success message
+        const instructions = document.querySelector('.map-instructions');
+        if (instructions) {
+            instructions.innerHTML = '<strong>✓ Property located!</strong> Area estimated at ' + 
+                state.lawnSizeSqFt.toLocaleString() + ' sq ft. Draw a boundary for precise measurement.';
+            instructions.style.background = '#d4edda';
+            instructions.style.borderLeft = '4px solid #28a745';
+        }
+        
+        console.log('[Widget] Address selected via autocomplete:', state.address, 'ZIP:', state.zipCode);
     }
     
     // Extract ZIP code from place
