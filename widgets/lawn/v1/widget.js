@@ -308,8 +308,19 @@
             </div>
         `;
         
-        // Initialize map
-        initMap();
+        // Initialize map if not already initialized
+        if (!map) {
+            initMap();
+        } else {
+            // Map already exists, trigger resize and reinitialize autocomplete
+            setTimeout(() => {
+                google.maps.event.trigger(map, 'resize');
+                if (state.placeData && state.placeData.geometry) {
+                    recenterMapToPlace(state.placeData);
+                }
+                initAutocomplete();
+            }, 100);
+        }
         
         // Event listeners
         document.querySelectorAll('input[name="frequency"]').forEach(radio => {
