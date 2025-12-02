@@ -37,6 +37,7 @@
     let map = null;
     let drawingManager = null;
     let currentPolygon = null;
+    let autocomplete = null;
     
     // Initialize the widget
     function init() {
