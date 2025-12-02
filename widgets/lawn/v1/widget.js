@@ -270,8 +270,9 @@
     function renderStep2(container) {
         container.innerHTML = `
             <div class="form-group">
-                <label class="form-label required">Enter Your Address</label>
-                <input type="text" class="form-input" id="address-input" placeholder="123 Main St, City, State" value="${state.address}">
+                <label class="form-label required">Property Address</label>
+                <input type="text" class="form-input" id="address-input" placeholder="Start typing your address..." value="${state.address}" autocomplete="off">
+                <p style="font-size: 12px; color: #666; margin-top: 6px;">Select your address from the dropdown suggestions for best results.</p>
             </div>
             
             <div class="map-container">
