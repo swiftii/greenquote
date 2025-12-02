@@ -583,13 +583,13 @@
         console.log('[Widget] Area estimated:', estimatedArea, 'sq ft');
     }
     
-    // Calculate property size from address
+    // Calculate property size from address (fallback for manual trigger)
     function calculatePropertySize() {
         const address = document.getElementById('address-input').value;
         state.address = address;
         
         if (!address) {
-            alert('Please enter an address');
+            alert('Please enter an address or select from suggestions');
             return;
         }
         
@@ -597,7 +597,9 @@
             // Mock mode - generate random size
             const mockSize = Math.floor(Math.random() * 15000) + 3000;
             state.lawnSizeSqFt = mockSize;
-            updateLawnSizeDisplay();
+            state.estimatedAreaSqft = mockSize;
+            state.areaSource = 'estimated';
+            updateLawnSizeDisplay(true);
             document.getElementById('draw-btn').disabled = true; // Can't draw without maps
             document.getElementById('clear-btn').disabled = false;
             console.log('[Widget] Mock property size calculated:', mockSize);
@@ -613,83 +615,55 @@
         // Disable button during processing
         const calcBtn = document.getElementById('calculate-btn');
         calcBtn.disabled = true;
-        calcBtn.textContent = 'Loading...';
+        calcBtn.textContent = 'Locating...';
         
         // Use Google Maps Geocoding
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ address: address }, (results, status) => {
             calcBtn.disabled = false;
-            calcBtn.textContent = 'Calculate Size';
+            calcBtn.textContent = 'Locate Property';
             
             if (status === 'OK') {
-                const location = results[0].geometry.location;
+                const place = {
+                    geometry: results[0].geometry,
+                    formatted_address: results[0].formatted_address,
+                    address_components: results[0].address_components
+                };
                 
-                // Center map on location with appropriate zoom
-                map.setCenter(location);
-                map.setZoom(19); // Closer zoom for better property view
+                state.placeData = place;
+                state.address = place.formatted_address;
+                document.getElementById('address-input').value = state.address;
                 
-                // Get property bounds
-                const bounds = results[0].geometry.viewport;
-                const ne = bounds.getNorthEast();
-                const sw = bounds.getSouthWest();
-                const nw = { lat: ne.lat(), lng: sw.lng() };
-                const se = { lat: sw.lat(), lng: ne.lng() };
+                // Extract ZIP
+                extractZipCode(place);
                 
-                // Calculate a more realistic property size (approximate lot)
-                // Create a smaller polygon representing typical residential lot
-                const latSpan = ne.lat() - sw.lat();
-                const lngSpan = ne.lng() - sw.lng();
-                const reduceFactor = 0.4; // Use 40% of viewport as property estimate
+                // Recenter map
+                recenterMapToPlace(place);
                 
-                const centerLat = (ne.lat() + sw.lat()) / 2;
-                const centerLng = (ne.lng() + sw.lng()) / 2;
-                
-                const halfLatSpan = (latSpan * reduceFactor) / 2;
-                const halfLngSpan = (lngSpan * reduceFactor) / 2;
-                
-                const paths = [
-                    { lat: centerLat + halfLatSpan, lng: centerLng - halfLngSpan }, // NW
-                    { lat: centerLat + halfLatSpan, lng: centerLng + halfLngSpan }, // NE
-                    { lat: centerLat - halfLatSpan, lng: centerLng + halfLngSpan }, // SE
-                    { lat: centerLat - halfLatSpan, lng: centerLng - halfLngSpan }  // SW
-                ];
-                
-                if (currentPolygon) {
-                    currentPolygon.setMap(null);
+                // Estimate area if no polygon
+                if (!currentPolygon) {
+                    estimateAreaFromAddress();
                 }
-                
-                currentPolygon = new google.maps.Polygon({
-                    paths: paths,
-                    fillColor: '#2e7d32',
-                    fillOpacity: 0.35,
-                    strokeWeight: 3,
-                    strokeColor: '#1b5e20',
-                    editable: true,
-                    draggable: false,
-                    map: map
-                });
-                
-                // Add listeners for real-time updates when editing
-                google.maps.event.addListener(currentPolygon.getPath(), 'set_at', calculatePolygonArea);
-                google.maps.event.addListener(currentPolygon.getPath(), 'insert_at', calculatePolygonArea);
-                google.maps.event.addListener(currentPolygon.getPath(), 'remove_at', calculatePolygonArea);
-                
-                calculatePolygonArea();
-                document.getElementById('draw-btn').disabled = false;
-                document.getElementById('clear-btn').disabled = false;
                 
                 // Update instructions
                 const instructions = document.querySelector('.map-instructions');
                 if (instructions) {
-                    instructions.innerHTML = '<strong>✓ Property located!</strong> Drag the corners of the green area to match your exact service area, or click "Adjust Boundary" to redraw.';
+                    if (currentPolygon) {
+                        instructions.innerHTML = '<strong>✓ Property located!</strong> Drag corners to adjust measured area, or click "Adjust Boundary" to redraw.';
+                    } else {
+                        instructions.innerHTML = '<strong>✓ Property located!</strong> Area estimated at ' + state.lawnSizeSqFt.toLocaleString() + ' sq ft. Draw boundary for accurate measurement.';
+                    }
                     instructions.style.background = '#d4edda';
                     instructions.style.borderLeft = '4px solid #28a745';
                 }
                 
-                console.log('[Widget] Property located and boundary created');
+                document.getElementById('draw-btn').disabled = false;
+                document.getElementById('clear-btn').disabled = false;
+                
+                console.log('[Widget] Property located via geocoding');
                 
             } else {
-                alert('Could not find that address. Please check the spelling and try again.');
+                alert('Could not find that address. Please try typing and selecting from the suggestions.');
                 console.error('[Widget] Geocoding failed:', status);
             }
         });
