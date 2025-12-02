@@ -217,9 +217,29 @@
     
     // Load Google Maps API
     function loadGoogleMapsAPI() {
-        if (!config.googleMapsApiKey) {
-            console.log('[Pro] No Google Maps API key, maps disabled');
-            document.getElementById('mapStatus').textContent = 'Maps unavailable - add API key';
+        if (!config.googleMapsApiKey || config.googleMapsApiKey.trim() === '') {
+            console.warn('[Pro] ⚠️ No Google Maps API key provided in config');
+            console.warn('[Pro] Maps features will be disabled');
+            console.warn('[Pro] To enable maps, add "googleMapsApiKey" to your config file');
+            
+            document.getElementById('mapStatus').textContent = 'Maps unavailable - API key required';
+            document.getElementById('mapStatus').className = 'map-status error';
+            
+            // Disable map tools
+            document.getElementById('locateBtn').disabled = true;
+            document.getElementById('drawBtn').disabled = true;
+            document.getElementById('clearBtn').disabled = true;
+            
+            return;
+        }
+        
+        console.log('[Pro] Loading Google Maps API with key from config...');
+        console.log('[Pro] API Key starts with:', config.googleMapsApiKey.substring(0, 10) + '...');
+        
+        // Check if script already loaded
+        if (typeof google !== 'undefined' && google.maps) {
+            console.log('[Pro] Google Maps already loaded, initializing map');
+            initMap();
             return;
         }
         
@@ -227,15 +247,38 @@
         script.src = `https://maps.googleapis.com/maps/api/js?key=${config.googleMapsApiKey}&libraries=places,drawing,geometry`;
         script.async = true;
         script.defer = true;
+        
         script.onload = () => {
-            console.log('[Pro] Google Maps API loaded');
+            console.log('[Pro] ✓ Google Maps API loaded successfully');
+            console.log('[Pro] Google Maps version:', google.maps.version);
+            
+            // Update status
+            document.getElementById('mapStatus').textContent = 'Enter address to locate property';
+            document.getElementById('mapStatus').className = 'map-status';
+            
+            // Initialize map
             initMap();
         };
-        script.onerror = () => {
-            console.error('[Pro] Error loading Google Maps API');
-            document.getElementById('mapStatus').textContent = 'Maps failed to load';
+        
+        script.onerror = (error) => {
+            console.error('[Pro] ❌ Failed to load Google Maps API');
+            console.error('[Pro] Check that your API key is valid');
+            console.error('[Pro] Verify these APIs are enabled in Google Cloud Console:');
+            console.error('[Pro]   - Maps JavaScript API');
+            console.error('[Pro]   - Places API');
+            console.error('[Pro]   - Geocoding API');
+            
+            document.getElementById('mapStatus').textContent = 'Maps failed to load - check API key';
+            document.getElementById('mapStatus').className = 'map-status error';
+            
+            // Disable map tools
+            document.getElementById('locateBtn').disabled = true;
+            document.getElementById('drawBtn').disabled = true;
+            document.getElementById('clearBtn').disabled = true;
         };
+        
         document.head.appendChild(script);
+        console.log('[Pro] Google Maps script tag added to document');
     }
     
     // Initialize Google Map
