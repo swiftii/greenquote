@@ -7,6 +7,14 @@
   "googleMapsApiKey": "",
   "centralWebhookUrl": "https://mock-webhook.example.com/quotes",
   "ghlWebhookUrl": "https://your-ghl-instance.com/webhook/example",
+  "defaultAreaEstimates": {
+    "residential": 8000,
+    "commercial": 15000,
+    "zipOverrides": {
+      "94043": 12000,
+      "10001": 6000
+    }
+  },
   "lawnSizeTiers": [
     {
       "id": "small",
