@@ -6,6 +6,11 @@
   "monthlyQuoteLimit": 100,
   "googleMapsApiKey": "",
   "centralWebhookUrl": "https://mock-webhook.example.com/quotes",
+  "defaultAreaEstimates": {
+    "residential": 8000,
+    "commercial": 15000,
+    "zipOverrides": {}
+  },
   "lawnSizeTiers": [
     {
       "id": "small",
