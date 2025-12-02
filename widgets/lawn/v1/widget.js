@@ -24,6 +24,7 @@
         phone: '',
         address: '',
         zipCode: '',
+        addressSource: 'none', // 'autocomplete', 'geocode', or 'none'
         preferredTime: '',
         estimatedPerVisit: 0,
         estimatedMonthlyTotal: 0,
