@@ -342,9 +342,17 @@
             initAutocomplete();
             google.maps.event.trigger(map, 'resize');
             
-            console.log('[Pro] Map initialized');
+            console.log('[Pro] ✓ Map initialized successfully');
+            console.log('[Pro] ✓ Drawing manager ready');
+            console.log('[Pro] ✓ Map is ready for use');
+            
+            // Update map status to ready
+            updateMapStatus('Enter address to locate property', '');
+            
         } catch (error) {
-            console.error('[Pro] Error initializing map:', error);
+            console.error('[Pro] ❌ Error initializing map:', error);
+            console.error('[Pro] Error details:', error.message);
+            updateMapStatus('Map initialization failed', 'error');
         }
     }
     
