@@ -121,4 +121,777 @@
             });
     }
     
-    // Apply configuration to UI\n    function applyConfig() {\n        // Update branding\n        document.getElementById('business-name').textContent = config.businessName + ' Pro';\n        document.getElementById('client-badge').textContent = config.clientId;\n        \n        // Apply theme\n        if (config.theme) {\n            document.documentElement.style.setProperty('--primary-color', config.theme.primaryColor);\n            document.documentElement.style.setProperty('--primary-dark', adjustColor(config.theme.primaryColor, -20));\n            document.documentElement.style.setProperty('--accent-color', config.theme.accentColor);\n            document.documentElement.style.setProperty('--border-radius', config.theme.borderRadius);\n        }\n        \n        // Populate services\n        populateServices();\n        populateAddOns();\n        populateFrequencies();\n    }\n    \n    // Darken a hex color\n    function adjustColor(hex, percent) {\n        const num = parseInt(hex.replace('#', ''), 16);\n        const amt = Math.round(2.55 * percent);\n        const R = (num >> 16) + amt;\n        const G = (num >> 8 & 0x00FF) + amt;\n        const B = (num & 0x0000FF) + amt;\n        return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +\n            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +\n            (B < 255 ? B < 1 ? 0 : B : 255))\n            .toString(16).slice(1);\n    }\n    \n    // Populate services dropdown\n    function populateServices() {\n        const select = document.getElementById('primaryService');\n        const services = config.services || [\n            { id: 'mowing', label: 'Lawn Mowing' },\n            { id: 'fertilization', label: 'Fertilization' },\n            { id: 'aeration', label: 'Aeration' }\n        ];\n        \n        services.forEach(service => {\n            const option = document.createElement('option');\n            option.value = service.id;\n            option.textContent = service.label;\n            select.appendChild(option);\n        });\n    }\n    \n    // Populate add-ons\n    function populateAddOns() {\n        const container = document.getElementById('addonList');\n        \n        if (!config.addOns || config.addOns.length === 0) {\n            container.innerHTML = '<p style=\"color: #999; font-size: 14px;\">No add-ons available</p>';\n            return;\n        }\n        \n        config.addOns.forEach(addon => {\n            const div = document.createElement('label');\n            div.className = 'addon-item';\n            div.innerHTML = `\n                <input type=\"checkbox\" value=\"${addon.id}\">\n                <div class=\"addon-info\">\n                    <span class=\"addon-name\">${addon.label}</span>\n                    <span class=\"addon-price\">+${config.currencySymbol}${addon.pricePerVisit}</span>\n                </div>\n            `;\n            container.appendChild(div);\n        });\n    }\n    \n    // Populate frequencies\n    function populateFrequencies() {\n        const container = document.getElementById('frequencyGrid');\n        const frequencies = {\n            'one_time': 'One-Time',\n            'weekly': 'Weekly',\n            'bi_weekly': 'Bi-Weekly',\n            'monthly': 'Monthly'\n        };\n        \n        Object.entries(frequencies).forEach(([key, label]) => {\n            const div = document.createElement('label');\n            div.className = 'frequency-option';\n            div.innerHTML = `\n                <input type=\"radio\" name=\"frequency\" value=\"${key}\">\n                <span class=\"frequency-label\">${label}</span>\n            `;\n            container.appendChild(div);\n        });\n    }\n    \n    // Load Google Maps API\n    function loadGoogleMapsAPI() {\n        if (!config.googleMapsApiKey) {\n            console.log('[Pro] No Google Maps API key, maps disabled');\n            document.getElementById('mapStatus').textContent = 'Maps unavailable - add API key';\n            return;\n        }\n        \n        const script = document.createElement('script');\n        script.src = `https://maps.googleapis.com/maps/api/js?key=${config.googleMapsApiKey}&libraries=places,drawing,geometry`;\n        script.async = true;\n        script.defer = true;\n        script.onload = () => {\n            console.log('[Pro] Google Maps API loaded');\n            initMap();\n        };\n        script.onerror = () => {\n            console.error('[Pro] Error loading Google Maps API');\n            document.getElementById('mapStatus').textContent = 'Maps failed to load';\n        };\n        document.head.appendChild(script);\n    }\n    \n    // Initialize Google Map\n    function initMap() {\n        if (typeof google === 'undefined') return;\n        \n        try {\n            map = new google.maps.Map(document.getElementById('map'), {\n                center: { lat: 39.8283, lng: -98.5795 },\n                zoom: 4,\n                mapTypeId: 'satellite',\n                disableDefaultUI: true,\n                zoomControl: true,\n                streetViewControl: false,\n                tilt: 0\n            });\n            \n            drawingManager = new google.maps.drawing.DrawingManager({\n                drawingMode: null,\n                drawingControl: false,\n                polygonOptions: {\n                    fillColor: config.theme.primaryColor,\n                    fillOpacity: 0.35,\n                    strokeWeight: 3,\n                    strokeColor: adjustColor(config.theme.primaryColor, -20),\n                    editable: true,\n                    draggable: false\n                }\n            });\n            \n            drawingManager.setMap(map);\n            \n            google.maps.event.addListener(drawingManager, 'polygoncomplete', function(polygon) {\n                if (currentPolygon) {\n                    currentPolygon.setMap(null);\n                }\n                currentPolygon = polygon;\n                drawingManager.setDrawingMode(null);\n                \n                google.maps.event.addListener(polygon.getPath(), 'set_at', calculatePolygonArea);\n                google.maps.event.addListener(polygon.getPath(), 'insert_at', calculatePolygonArea);\n                google.maps.event.addListener(polygon.getPath(), 'remove_at', calculatePolygonArea);\n                \n                calculatePolygonArea();\n                document.getElementById('drawBtn').disabled = false;\n                document.getElementById('clearBtn').disabled = false;\n                \n                updateMapStatus('✓ Area measured! Drag corners to adjust.', 'success');\n            });\n            \n            initAutocomplete();\n            google.maps.event.trigger(map, 'resize');\n            \n            console.log('[Pro] Map initialized');\n        } catch (error) {\n            console.error('[Pro] Error initializing map:', error);\n        }\n    }\n    \n    // Initialize autocomplete\n    function initAutocomplete() {\n        if (typeof google === 'undefined' || !google.maps.places) return;\n        \n        const addressInput = document.getElementById('address');\n        \n        try {\n            autocomplete = new google.maps.places.Autocomplete(addressInput, {\n                types: ['address'],\n                fields: ['address_components', 'geometry', 'formatted_address', 'name']\n            });\n            \n            if (map) {\n                autocomplete.bindTo('bounds', map);\n            }\n            \n            autocomplete.addListener('place_changed', onPlaceChanged);\n            console.log('[Pro] Autocomplete initialized');\n        } catch (error) {\n            console.error('[Pro] Error initializing autocomplete:', error);\n        }\n    }\n    \n    // Handle place changed\n    function onPlaceChanged() {\n        const place = autocomplete.getPlace();\n        \n        if (!place || !place.geometry || !place.geometry.location) {\n            updateMapStatus('⚠️ Please select a complete address from dropdown', 'error');\n            return;\n        }\n        \n        selectedPlace = place;\n        state.address = place.formatted_address || place.name || '';\n        state.addressSource = 'autocomplete';\n        \n        extractZipCode(place);\n        \n        document.getElementById('address').value = state.address;\n        \n        if (map) {\n            recenterMapToPlace(place);\n        }\n        \n        if (!currentPolygon) {\n            estimateAreaFromAddress();\n        }\n        \n        document.getElementById('drawBtn').disabled = false;\n        document.getElementById('clearBtn').disabled = false;\n        \n        updateMapStatus('✓ Property located! Draw boundary for accurate area.', 'success');\n        \n        console.log('[Pro] Place selected:', state.address, 'ZIP:', state.zipCode);\n    }\n    \n    // Extract ZIP code\n    function extractZipCode(place) {\n        state.zipCode = '';\n        if (place.address_components) {\n            for (const component of place.address_components) {\n                if (component.types.includes('postal_code')) {\n                    state.zipCode = component.short_name;\n                    break;\n                }\n            }\n        }\n    }\n    \n    // Recenter map to place\n    function recenterMapToPlace(place) {\n        if (!map || !place || !place.geometry) return;\n        \n        const hasStreetNumber = place.address_components &&\n            place.address_components.some(c => c.types && c.types.includes('street_number'));\n        \n        const hasStreetAddress = place.address_components &&\n            place.address_components.some(c => c.types && c.types.includes('route'));\n        \n        const isFullAddress = hasStreetNumber && hasStreetAddress;\n        \n        if (place.geometry.viewport) {\n            map.fitBounds(place.geometry.viewport);\n            \n            google.maps.event.addListenerOnce(map, 'bounds_changed', function() {\n                const currentZoom = map.getZoom();\n                if (isFullAddress && currentZoom < 19) {\n                    map.setZoom(20);\n                } else if (!isFullAddress && currentZoom < 14) {\n                    map.setZoom(14);\n                }\n            });\n        } else if (place.geometry.location) {\n            map.setCenter(place.geometry.location);\n            map.setZoom(isFullAddress ? 20 : (state.zipCode ? 14 : 16));\n        }\n        \n        setTimeout(() => {\n            google.maps.event.trigger(map, 'resize');\n        }, 100);\n    }\n    \n    // Estimate area from address\n    function estimateAreaFromAddress() {\n        if (!config.defaultAreaEstimates) return;\n        \n        let estimatedArea = 0;\n        \n        if (state.zipCode && config.defaultAreaEstimates.zipOverrides) {\n            const zipOverride = config.defaultAreaEstimates.zipOverrides[state.zipCode];\n            if (zipOverride) {\n                estimatedArea = zipOverride;\n            }\n        }\n        \n        if (!estimatedArea) {\n            estimatedArea = state.propertyType === 'commercial'\n                ? (config.defaultAreaEstimates.commercial || 15000)\n                : (config.defaultAreaEstimates.residential || 8000);\n        }\n        \n        state.estimatedAreaSqft = estimatedArea;\n        state.lawnSizeSqFt = estimatedArea;\n        state.areaSource = 'estimated';\n        \n        updateAreaDisplay(true);\n        calculatePricing();\n    }\n    \n    // Calculate polygon area\n    function calculatePolygonArea() {\n        if (!currentPolygon || typeof google === 'undefined') return;\n        \n        try {\n            const area = google.maps.geometry.spherical.computeArea(currentPolygon.getPath());\n            const sqFt = Math.round(area * 10.7639);\n            \n            state.measuredAreaSqft = sqFt;\n            state.lawnSizeSqFt = sqFt;\n            state.estimatedAreaSqft = 0;\n            state.areaSource = 'measured';\n            \n            updateAreaDisplay(false);\n            calculatePricing();\n            \n            console.log('[Pro] Area measured:', sqFt, 'sq ft');\n        } catch (error) {\n            console.error('[Pro] Error calculating area:', error);\n        }\n    }\n    \n    // Update area display\n    function updateAreaDisplay(isEstimated) {\n        const display = document.getElementById('areaDisplay');\n        const value = document.getElementById('areaValue');\n        \n        if (state.lawnSizeSqFt > 0) {\n            const label = isEstimated ? ' (estimated)' : ' (measured)';\n            value.textContent = state.lawnSizeSqFt.toLocaleString() + ' sq ft' + label;\n            \n            if (isEstimated) {\n                display.classList.add('estimated');\n            } else {\n                display.classList.remove('estimated');\n            }\n            \n            display.classList.remove('hidden');\n        } else {\n            display.classList.add('hidden');\n        }\n    }\n    \n    // Update map status\n    function updateMapStatus(message, type = '') {\n        const status = document.getElementById('mapStatus');\n        status.textContent = message;\n        status.className = 'map-status ' + type;\n    }\n    \n    // Calculate pricing (reusing widget logic)\n    function calculatePricing() {\n        if (!state.lawnSizeSqFt || !state.primaryService || !state.frequency) {\n            document.getElementById('quoteSummary').classList.add('hidden');\n            return;\n        }\n        \n        // Determine lawn size tier\n        state.lawnSizeTier = config.lawnSizeTiers.find(tier => {\n            if (tier.id === 'small') return state.lawnSizeSqFt <= 5000;\n            if (tier.id === 'medium') return state.lawnSizeSqFt > 5000 && state.lawnSizeSqFt <= 10000;\n            if (tier.id === 'large') return state.lawnSizeSqFt > 10000 && state.lawnSizeSqFt <= 20000;\n            return state.lawnSizeSqFt > 20000;\n        });\n        \n        if (!state.lawnSizeTier) {\n            console.error('[Pro] Could not determine lawn size tier');\n            return;\n        }\n        \n        // Calculate base visit price\n        let baseVisitPrice = config.baseVisitFee + state.lawnSizeTier.pricePerVisit;\n        \n        // Add add-ons\n        state.addOns.forEach(addonId => {\n            const addon = config.addOns.find(a => a.id === addonId);\n            if (addon) {\n                baseVisitPrice += addon.pricePerVisit;\n            }\n        });\n        \n        // Apply frequency multiplier\n        const frequencyMultiplier = config.frequencyMultipliers[state.frequency] || 1.0;\n        state.estimatedPerVisit = Math.round(baseVisitPrice * frequencyMultiplier);\n        \n        // Calculate monthly total\n        if (state.frequency === 'weekly') {\n            state.estimatedMonthlyTotal = state.estimatedPerVisit * 4;\n        } else if (state.frequency === 'bi_weekly') {\n            state.estimatedMonthlyTotal = state.estimatedPerVisit * 2;\n        } else {\n            state.estimatedMonthlyTotal = state.estimatedPerVisit;\n        }\n        \n        // Update display\n        document.getElementById('perVisitPrice').textContent = config.currencySymbol + state.estimatedPerVisit;\n        document.getElementById('monthlyPrice').textContent = config.currencySymbol + state.estimatedMonthlyTotal;\n        \n        const note = state.areaSource === 'measured'\n            ? 'Based on measured area (' + state.lawnSizeSqFt.toLocaleString() + ' sq ft)'\n            : 'Based on estimated area (' + state.lawnSizeSqFt.toLocaleString() + ' sq ft) - draw boundary for accuracy';\n        document.getElementById('pricingNote').textContent = note;\n        \n        document.getElementById('quoteSummary').classList.remove('hidden');\n        \n        validateForm();\n        \n        console.log('[Pro] Pricing calculated:', state.estimatedPerVisit, state.estimatedMonthlyTotal);\n    }\n    \n    // Setup event listeners\n    function setupEventListeners() {\n        // Property type\n        document.querySelectorAll('input[name=\"propertyType\"]').forEach(radio => {\n            radio.addEventListener('change', (e) => {\n                state.propertyType = e.target.value;\n                if (state.address && !currentPolygon) {\n                    estimateAreaFromAddress();\n                }\n            });\n        });\n        \n        // Service selection\n        document.getElementById('primaryService').addEventListener('change', (e) => {\n            state.primaryService = e.target.value;\n            calculatePricing();\n        });\n        \n        // Add-ons\n        document.getElementById('addonList').addEventListener('change', (e) => {\n            if (e.target.type === 'checkbox') {\n                state.addOns = Array.from(document.querySelectorAll('#addonList input:checked'))\n                    .map(cb => cb.value);\n                calculatePricing();\n            }\n        });\n        \n        // Frequency\n        document.getElementById('frequencyGrid').addEventListener('change', (e) => {\n            if (e.target.name === 'frequency') {\n                state.frequency = e.target.value;\n                calculatePricing();\n            }\n        });\n        \n        // Map tools\n        document.getElementById('locateBtn').addEventListener('click', locateProperty);\n        document.getElementById('drawBtn').addEventListener('click', enableDrawing);\n        document.getElementById('clearBtn').addEventListener('click', clearPolygon);\n        \n        // Save quote\n        document.getElementById('saveQuoteBtn').addEventListener('click', saveQuote);\n        \n        // Form inputs\n        ['firstName', 'lastName', 'phone', 'email', 'notes', 'operatorName'].forEach(id => {\n            const el = document.getElementById(id);\n            if (el) {\n                el.addEventListener('input', () => {\n                    state[id === 'operatorName' ? 'operatorName' : id] = el.value;\n                    validateForm();\n                });\n            }\n        });\n        \n        // Send email checkbox\n        document.getElementById('sendEmailCheck').addEventListener('change', (e) => {\n            state.sendEmail = e.target.checked;\n        });\n        \n        // Modal actions\n        document.getElementById('newQuoteBtn').addEventListener('click', newQuote);\n        document.getElementById('copyBtn').addEventListener('click', copyQuoteSummary);\n    }\n    \n    // Locate property\n    function locateProperty() {\n        const address = document.getElementById('address').value.trim();\n        \n        if (!address) {\n            updateMapStatus('⚠️ Enter an address first', 'error');\n            return;\n        }\n        \n        if (typeof google === 'undefined') {\n            // Mock mode\n            const mockSize = Math.floor(Math.random() * 15000) + 3000;\n            state.lawnSizeSqFt = mockSize;\n            state.estimatedAreaSqft = mockSize;\n            state.areaSource = 'estimated';\n            state.address = address;\n            updateAreaDisplay(true);\n            calculatePricing();\n            updateMapStatus('✓ Address saved (maps unavailable)', 'success');\n            return;\n        }\n        \n        // Use selected place if available\n        if (selectedPlace && selectedPlace.geometry) {\n            recenterMapToPlace(selectedPlace);\n            if (!currentPolygon) {\n                estimateAreaFromAddress();\n            }\n            updateMapStatus('✓ Property located', 'success');\n            return;\n        }\n        \n        // Fallback to geocoding\n        document.getElementById('locateBtn').textContent = '⏳ Locating...';\n        document.getElementById('locateBtn').disabled = true;\n        \n        const geocoder = new google.maps.Geocoder();\n        geocoder.geocode({ address: address }, (results, status) => {\n            document.getElementById('locateBtn').textContent = '📍 Locate';\n            document.getElementById('locateBtn').disabled = false;\n            \n            if (status === 'OK' && results && results.length > 0) {\n                const place = {\n                    geometry: results[0].geometry,\n                    formatted_address: results[0].formatted_address,\n                    address_components: results[0].address_components\n                };\n                \n                selectedPlace = place;\n                state.address = place.formatted_address;\n                state.addressSource = 'geocode';\n                \n                extractZipCode(place);\n                recenterMapToPlace(place);\n                \n                if (!currentPolygon) {\n                    estimateAreaFromAddress();\n                }\n                \n                document.getElementById('drawBtn').disabled = false;\n                document.getElementById('clearBtn').disabled = false;\n                \n                updateMapStatus('✓ Property located', 'success');\n            } else {\n                updateMapStatus('❌ Address not found - try selecting from dropdown', 'error');\n            }\n        });\n    }\n    \n    // Enable drawing\n    function enableDrawing() {\n        if (typeof google === 'undefined') return;\n        \n        if (currentPolygon) {\n            currentPolygon.setMap(null);\n            currentPolygon = null;\n        }\n        \n        state.measuredAreaSqft = 0;\n        \n        drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);\n        \n        document.getElementById('drawBtn').textContent = '✏️ Drawing...';\n        updateMapStatus('Draw around the lawn area. Double-click to finish.', '');\n    }\n    \n    // Clear polygon\n    function clearPolygon() {\n        if (currentPolygon) {\n            currentPolygon.setMap(null);\n            currentPolygon = null;\n        }\n        \n        state.measuredAreaSqft = 0;\n        \n        if (state.address) {\n            estimateAreaFromAddress();\n            updateMapStatus('Boundary cleared. Using estimated area.', '');\n        } else {\n            state.lawnSizeSqFt = 0;\n            state.estimatedAreaSqft = 0;\n            state.areaSource = 'none';\n            document.getElementById('areaDisplay').classList.add('hidden');\n            calculatePricing();\n        }\n        \n        document.getElementById('drawBtn').textContent = '✏️ Draw Area';\n    }\n    \n    // Validate form\n    function validateForm() {\n        const isValid = \n            state.firstName.trim() &&\n            state.lastName.trim() &&\n            state.phone.trim() &&\n            state.lawnSizeSqFt > 0 &&\n            state.primaryService &&\n            state.frequency;\n        \n        document.getElementById('saveQuoteBtn').disabled = !isValid;\n    }\n    \n    // Save quote\n    function saveQuote() {\n        console.log('[Pro] Saving quote');\n        \n        document.getElementById('loadingOverlay').classList.remove('hidden');\n        \n        // Capture UTM parameters\n        const urlParams = new URLSearchParams(window.location.search);\n        const trackingData = {\n            utm_source: urlParams.get('utm_source'),\n            utm_medium: urlParams.get('utm_medium'),\n            utm_campaign: urlParams.get('utm_campaign'),\n            ref: urlParams.get('ref')\n        };\n        \n        // Build payload (same structure as widget)\n        const payload = {\n            mode: 'internal',\n            source: 'greenquote_pro',\n            clientId: config.clientId,\n            monthlyQuoteLimit: config.monthlyQuoteLimit || 100,\n            timestamp: new Date().toISOString(),\n            \n            propertyType: state.propertyType,\n            primaryService: state.primaryService,\n            addOns: state.addOns,\n            lawnSizeSqFt: state.lawnSizeSqFt,\n            lawnSizeTier: state.lawnSizeTier ? state.lawnSizeTier.id : 'unknown',\n            frequency: state.frequency,\n            \n            areaData: {\n                measuredAreaSqft: state.measuredAreaSqft,\n                estimatedAreaSqft: state.estimatedAreaSqft,\n                areaSource: state.areaSource,\n                usedForPricing: state.lawnSizeSqFt\n            },\n            \n            pricing: {\n                estimatedPerVisit: state.estimatedPerVisit,\n                estimatedMonthlyTotal: state.estimatedMonthlyTotal,\n                currencySymbol: config.currencySymbol\n            },\n            \n            lead: {\n                firstName: state.firstName,\n                lastName: state.lastName,\n                email: state.email,\n                phone: state.phone,\n                address: state.address,\n                zipCode: state.zipCode,\n                addressSource: state.addressSource,\n                notes: state.notes\n            },\n            \n            operator: {\n                name: state.operatorName || 'Unknown',\n                timestamp: new Date().toISOString()\n            },\n            \n            actions: {\n                sendCustomerEmail: state.sendEmail\n            },\n            \n            tracking: trackingData\n        };\n        \n        // Submit to central webhook\n        const webhookUrl = config.centralWebhookUrl || 'https://mock-webhook.example.com/quotes';\n        \n        fetch(webhookUrl, {\n            method: 'POST',\n            headers: { 'Content-Type': 'application/json' },\n            body: JSON.stringify(payload)\n        })\n            .then(response => response.json())\n            .then(data => {\n                console.log('[Pro] Quote saved:', data);\n                \n                setTimeout(() => {\n                    document.getElementById('loadingOverlay').classList.add('hidden');\n                    showSuccessModal();\n                }, 500);\n            })\n            .catch(error => {\n                console.error('[Pro] Error saving quote:', error);\n                \n                setTimeout(() => {\n                    document.getElementById('loadingOverlay').classList.add('hidden');\n                    // Still show success for demo purposes\n                    showSuccessModal();\n                }, 500);\n            });\n    }\n    \n    // Show success modal\n    function showSuccessModal() {\n        const modal = document.getElementById('successModal');\n        const body = document.getElementById('modalBody');\n        \n        const summary = `\n            <div style=\"margin-bottom: 16px;\">\n                <strong>Customer:</strong> ${state.firstName} ${state.lastName}<br>\n                <strong>Phone:</strong> ${state.phone}<br>\n                ${state.email ? '<strong>Email:</strong> ' + state.email + '<br>' : ''}\n                <strong>Address:</strong> ${state.address || 'Not specified'}\n            </div>\n            <div style=\"margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 8px;\">\n                <strong>Service:</strong> ${state.primaryService}<br>\n                <strong>Frequency:</strong> ${state.frequency}<br>\n                <strong>Area:</strong> ${state.lawnSizeSqFt.toLocaleString()} sq ft (${state.areaSource})\n            </div>\n            <div style=\"padding: 12px; background: var(--accent-color); border-radius: 8px;\">\n                <strong>Per Visit:</strong> ${config.currencySymbol}${state.estimatedPerVisit}<br>\n                <strong>Monthly:</strong> ${config.currencySymbol}${state.estimatedMonthlyTotal}\n            </div>\n            ${state.sendEmail ? '<div style=\"margin-top: 12px; color: var(--success-color);\">✓ Customer will receive quote by email</div>' : ''}\n        `;\n        \n        body.innerHTML = summary;\n        modal.classList.remove('hidden');\n    }\n    \n    // New quote\n    function newQuote() {\n        location.reload();\n    }\n    \n    // Copy quote summary\n    function copyQuoteSummary() {\n        const summary = `\nGreenQuote - ${config.businessName}\n\nCustomer: ${state.firstName} ${state.lastName}\nPhone: ${state.phone}\nEmail: ${state.email || 'N/A'}\nAddress: ${state.address || 'N/A'}\n\nService: ${state.primaryService}\nAdd-ons: ${state.addOns.join(', ') || 'None'}\nFrequency: ${state.frequency}\nLawn Area: ${state.lawnSizeSqFt.toLocaleString()} sq ft (${state.areaSource})\n\nPer Visit: ${config.currencySymbol}${state.estimatedPerVisit}\nEst. Monthly: ${config.currencySymbol}${state.estimatedMonthlyTotal}\n\nCreated by: ${state.operatorName || 'Unknown'}\nDate: ${new Date().toLocaleString()}\n        `.trim();\n        \n        navigator.clipboard.writeText(summary).then(() => {\n            const btn = document.getElementById('copyBtn');\n            const originalText = btn.textContent;\n            btn.textContent = '✓ Copied!';\n            setTimeout(() => {\n                btn.textContent = originalText;\n            }, 2000);\n        }).catch(err => {\n            console.error('[Pro] Failed to copy:', err);\n            alert('Failed to copy to clipboard');\n        });\n    }\n    \n    // Show error\n    function showError(message) {\n        alert('Error: ' + message);\n    }\n    \n    // Initialize on load\n    if (document.readyState === 'loading') {\n        document.addEventListener('DOMContentLoaded', init);\n    } else {\n        init();\n    }\n    \n})();\n
+    // Apply configuration to UI
+    function applyConfig() {
+        // Update branding
+        document.getElementById('business-name').textContent = config.businessName + ' Pro';
+        document.getElementById('client-badge').textContent = config.clientId;
+        
+        // Apply theme
+        if (config.theme) {
+            document.documentElement.style.setProperty('--primary-color', config.theme.primaryColor);
+            document.documentElement.style.setProperty('--primary-dark', adjustColor(config.theme.primaryColor, -20));
+            document.documentElement.style.setProperty('--accent-color', config.theme.accentColor);
+            document.documentElement.style.setProperty('--border-radius', config.theme.borderRadius);
+        }
+        
+        // Populate services
+        populateServices();
+        populateAddOns();
+        populateFrequencies();
+    }
+    
+    // Darken a hex color
+    function adjustColor(hex, percent) {
+        const num = parseInt(hex.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = (num >> 16) + amt;
+        const G = (num >> 8 & 0x00FF) + amt;
+        const B = (num & 0x0000FF) + amt;
+        return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+            (B < 255 ? B < 1 ? 0 : B : 255))
+            .toString(16).slice(1);
+    }
+    
+    // Populate services dropdown
+    function populateServices() {
+        const select = document.getElementById('primaryService');
+        const services = config.services || [
+            { id: 'mowing', label: 'Lawn Mowing' },
+            { id: 'fertilization', label: 'Fertilization' },
+            { id: 'aeration', label: 'Aeration' }
+        ];
+        
+        services.forEach(service => {
+            const option = document.createElement('option');
+            option.value = service.id;
+            option.textContent = service.label;
+            select.appendChild(option);
+        });
+    }
+    
+    // Populate add-ons
+    function populateAddOns() {
+        const container = document.getElementById('addonList');
+        
+        if (!config.addOns || config.addOns.length === 0) {
+            container.innerHTML = '<p style=\"color: #999; font-size: 14px;\">No add-ons available</p>';
+            return;
+        }
+        
+        config.addOns.forEach(addon => {
+            const div = document.createElement('label');
+            div.className = 'addon-item';
+            div.innerHTML = `
+                <input type=\"checkbox\" value=\"${addon.id}\">
+                <div class=\"addon-info\">
+                    <span class=\"addon-name\">${addon.label}</span>
+                    <span class=\"addon-price\">+${config.currencySymbol}${addon.pricePerVisit}</span>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+    
+    // Populate frequencies
+    function populateFrequencies() {
+        const container = document.getElementById('frequencyGrid');
+        const frequencies = {
+            'one_time': 'One-Time',
+            'weekly': 'Weekly',
+            'bi_weekly': 'Bi-Weekly',
+            'monthly': 'Monthly'
+        };
+        
+        Object.entries(frequencies).forEach(([key, label]) => {
+            const div = document.createElement('label');
+            div.className = 'frequency-option';
+            div.innerHTML = `
+                <input type=\"radio\" name=\"frequency\" value=\"${key}\">
+                <span class=\"frequency-label\">${label}</span>
+            `;
+            container.appendChild(div);
+        });
+    }
+    
+    // Load Google Maps API
+    function loadGoogleMapsAPI() {
+        if (!config.googleMapsApiKey) {
+            console.log('[Pro] No Google Maps API key, maps disabled');
+            document.getElementById('mapStatus').textContent = 'Maps unavailable - add API key';
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${config.googleMapsApiKey}&libraries=places,drawing,geometry`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+            console.log('[Pro] Google Maps API loaded');
+            initMap();
+        };
+        script.onerror = () => {
+            console.error('[Pro] Error loading Google Maps API');
+            document.getElementById('mapStatus').textContent = 'Maps failed to load';
+        };
+        document.head.appendChild(script);
+    }
+    
+    // Initialize Google Map
+    function initMap() {
+        if (typeof google === 'undefined') return;
+        
+        try {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 39.8283, lng: -98.5795 },
+                zoom: 4,
+                mapTypeId: 'satellite',
+                disableDefaultUI: true,
+                zoomControl: true,
+                streetViewControl: false,
+                tilt: 0
+            });
+            
+            drawingManager = new google.maps.drawing.DrawingManager({
+                drawingMode: null,
+                drawingControl: false,
+                polygonOptions: {
+                    fillColor: config.theme.primaryColor,
+                    fillOpacity: 0.35,
+                    strokeWeight: 3,
+                    strokeColor: adjustColor(config.theme.primaryColor, -20),
+                    editable: true,
+                    draggable: false
+                }
+            });
+            
+            drawingManager.setMap(map);
+            
+            google.maps.event.addListener(drawingManager, 'polygoncomplete', function(polygon) {
+                if (currentPolygon) {
+                    currentPolygon.setMap(null);
+                }
+                currentPolygon = polygon;
+                drawingManager.setDrawingMode(null);
+                
+                google.maps.event.addListener(polygon.getPath(), 'set_at', calculatePolygonArea);
+                google.maps.event.addListener(polygon.getPath(), 'insert_at', calculatePolygonArea);
+                google.maps.event.addListener(polygon.getPath(), 'remove_at', calculatePolygonArea);
+                
+                calculatePolygonArea();
+                document.getElementById('drawBtn').disabled = false;
+                document.getElementById('clearBtn').disabled = false;
+                
+                updateMapStatus('✓ Area measured! Drag corners to adjust.', 'success');
+            });
+            
+            initAutocomplete();
+            google.maps.event.trigger(map, 'resize');
+            
+            console.log('[Pro] Map initialized');
+        } catch (error) {
+            console.error('[Pro] Error initializing map:', error);
+        }
+    }
+    
+    // Initialize autocomplete
+    function initAutocomplete() {
+        if (typeof google === 'undefined' || !google.maps.places) return;
+        
+        const addressInput = document.getElementById('address');
+        
+        try {
+            autocomplete = new google.maps.places.Autocomplete(addressInput, {
+                types: ['address'],
+                fields: ['address_components', 'geometry', 'formatted_address', 'name']
+            });
+            
+            if (map) {
+                autocomplete.bindTo('bounds', map);
+            }
+            
+            autocomplete.addListener('place_changed', onPlaceChanged);
+            console.log('[Pro] Autocomplete initialized');
+        } catch (error) {
+            console.error('[Pro] Error initializing autocomplete:', error);
+        }
+    }
+    
+    // Handle place changed
+    function onPlaceChanged() {
+        const place = autocomplete.getPlace();
+        
+        if (!place || !place.geometry || !place.geometry.location) {
+            updateMapStatus('⚠️ Please select a complete address from dropdown', 'error');
+            return;
+        }
+        
+        selectedPlace = place;
+        state.address = place.formatted_address || place.name || '';
+        state.addressSource = 'autocomplete';
+        
+        extractZipCode(place);
+        
+        document.getElementById('address').value = state.address;
+        
+        if (map) {
+            recenterMapToPlace(place);
+        }
+        
+        if (!currentPolygon) {
+            estimateAreaFromAddress();
+        }
+        
+        document.getElementById('drawBtn').disabled = false;
+        document.getElementById('clearBtn').disabled = false;
+        
+        updateMapStatus('✓ Property located! Draw boundary for accurate area.', 'success');
+        
+        console.log('[Pro] Place selected:', state.address, 'ZIP:', state.zipCode);
+    }
+    
+    // Extract ZIP code
+    function extractZipCode(place) {
+        state.zipCode = '';
+        if (place.address_components) {
+            for (const component of place.address_components) {
+                if (component.types.includes('postal_code')) {
+                    state.zipCode = component.short_name;
+                    break;
+                }
+            }
+        }
+    }
+    
+    // Recenter map to place
+    function recenterMapToPlace(place) {
+        if (!map || !place || !place.geometry) return;
+        
+        const hasStreetNumber = place.address_components &&
+            place.address_components.some(c => c.types && c.types.includes('street_number'));
+        
+        const hasStreetAddress = place.address_components &&
+            place.address_components.some(c => c.types && c.types.includes('route'));
+        
+        const isFullAddress = hasStreetNumber && hasStreetAddress;
+        
+        if (place.geometry.viewport) {
+            map.fitBounds(place.geometry.viewport);
+            
+            google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+                const currentZoom = map.getZoom();
+                if (isFullAddress && currentZoom < 19) {
+                    map.setZoom(20);
+                } else if (!isFullAddress && currentZoom < 14) {
+                    map.setZoom(14);
+                }
+            });
+        } else if (place.geometry.location) {
+            map.setCenter(place.geometry.location);
+            map.setZoom(isFullAddress ? 20 : (state.zipCode ? 14 : 16));
+        }
+        
+        setTimeout(() => {
+            google.maps.event.trigger(map, 'resize');
+        }, 100);
+    }
+    
+    // Estimate area from address
+    function estimateAreaFromAddress() {
+        if (!config.defaultAreaEstimates) return;
+        
+        let estimatedArea = 0;
+        
+        if (state.zipCode && config.defaultAreaEstimates.zipOverrides) {
+            const zipOverride = config.defaultAreaEstimates.zipOverrides[state.zipCode];
+            if (zipOverride) {
+                estimatedArea = zipOverride;
+            }
+        }
+        
+        if (!estimatedArea) {
+            estimatedArea = state.propertyType === 'commercial'
+                ? (config.defaultAreaEstimates.commercial || 15000)
+                : (config.defaultAreaEstimates.residential || 8000);
+        }
+        
+        state.estimatedAreaSqft = estimatedArea;
+        state.lawnSizeSqFt = estimatedArea;
+        state.areaSource = 'estimated';
+        
+        updateAreaDisplay(true);
+        calculatePricing();
+    }
+    
+    // Calculate polygon area
+    function calculatePolygonArea() {
+        if (!currentPolygon || typeof google === 'undefined') return;
+        
+        try {
+            const area = google.maps.geometry.spherical.computeArea(currentPolygon.getPath());
+            const sqFt = Math.round(area * 10.7639);
+            
+            state.measuredAreaSqft = sqFt;
+            state.lawnSizeSqFt = sqFt;
+            state.estimatedAreaSqft = 0;
+            state.areaSource = 'measured';
+            
+            updateAreaDisplay(false);
+            calculatePricing();
+            
+            console.log('[Pro] Area measured:', sqFt, 'sq ft');
+        } catch (error) {
+            console.error('[Pro] Error calculating area:', error);
+        }
+    }
+    
+    // Update area display
+    function updateAreaDisplay(isEstimated) {
+        const display = document.getElementById('areaDisplay');
+        const value = document.getElementById('areaValue');
+        
+        if (state.lawnSizeSqFt > 0) {
+            const label = isEstimated ? ' (estimated)' : ' (measured)';
+            value.textContent = state.lawnSizeSqFt.toLocaleString() + ' sq ft' + label;
+            
+            if (isEstimated) {
+                display.classList.add('estimated');
+            } else {
+                display.classList.remove('estimated');
+            }
+            
+            display.classList.remove('hidden');
+        } else {
+            display.classList.add('hidden');
+        }
+    }
+    
+    // Update map status
+    function updateMapStatus(message, type = '') {
+        const status = document.getElementById('mapStatus');
+        status.textContent = message;
+        status.className = 'map-status ' + type;
+    }
+    
+    // Calculate pricing (reusing widget logic)
+    function calculatePricing() {
+        if (!state.lawnSizeSqFt || !state.primaryService || !state.frequency) {
+            document.getElementById('quoteSummary').classList.add('hidden');
+            return;
+        }
+        
+        // Determine lawn size tier
+        state.lawnSizeTier = config.lawnSizeTiers.find(tier => {
+            if (tier.id === 'small') return state.lawnSizeSqFt <= 5000;
+            if (tier.id === 'medium') return state.lawnSizeSqFt > 5000 && state.lawnSizeSqFt <= 10000;
+            if (tier.id === 'large') return state.lawnSizeSqFt > 10000 && state.lawnSizeSqFt <= 20000;
+            return state.lawnSizeSqFt > 20000;
+        });
+        
+        if (!state.lawnSizeTier) {
+            console.error('[Pro] Could not determine lawn size tier');
+            return;
+        }
+        
+        // Calculate base visit price
+        let baseVisitPrice = config.baseVisitFee + state.lawnSizeTier.pricePerVisit;
+        
+        // Add add-ons
+        state.addOns.forEach(addonId => {
+            const addon = config.addOns.find(a => a.id === addonId);
+            if (addon) {
+                baseVisitPrice += addon.pricePerVisit;
+            }
+        });
+        
+        // Apply frequency multiplier
+        const frequencyMultiplier = config.frequencyMultipliers[state.frequency] || 1.0;
+        state.estimatedPerVisit = Math.round(baseVisitPrice * frequencyMultiplier);
+        
+        // Calculate monthly total
+        if (state.frequency === 'weekly') {
+            state.estimatedMonthlyTotal = state.estimatedPerVisit * 4;
+        } else if (state.frequency === 'bi_weekly') {
+            state.estimatedMonthlyTotal = state.estimatedPerVisit * 2;
+        } else {
+            state.estimatedMonthlyTotal = state.estimatedPerVisit;
+        }
+        
+        // Update display
+        document.getElementById('perVisitPrice').textContent = config.currencySymbol + state.estimatedPerVisit;
+        document.getElementById('monthlyPrice').textContent = config.currencySymbol + state.estimatedMonthlyTotal;
+        
+        const note = state.areaSource === 'measured'
+            ? 'Based on measured area (' + state.lawnSizeSqFt.toLocaleString() + ' sq ft)'
+            : 'Based on estimated area (' + state.lawnSizeSqFt.toLocaleString() + ' sq ft) - draw boundary for accuracy';
+        document.getElementById('pricingNote').textContent = note;
+        
+        document.getElementById('quoteSummary').classList.remove('hidden');
+        
+        validateForm();
+        
+        console.log('[Pro] Pricing calculated:', state.estimatedPerVisit, state.estimatedMonthlyTotal);
+    }
+    
+    // Setup event listeners
+    function setupEventListeners() {
+        // Property type
+        document.querySelectorAll('input[name=\"propertyType\"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                state.propertyType = e.target.value;
+                if (state.address && !currentPolygon) {
+                    estimateAreaFromAddress();
+                }
+            });
+        });
+        
+        // Service selection
+        document.getElementById('primaryService').addEventListener('change', (e) => {
+            state.primaryService = e.target.value;
+            calculatePricing();
+        });
+        
+        // Add-ons
+        document.getElementById('addonList').addEventListener('change', (e) => {
+            if (e.target.type === 'checkbox') {
+                state.addOns = Array.from(document.querySelectorAll('#addonList input:checked'))
+                    .map(cb => cb.value);
+                calculatePricing();
+            }
+        });
+        
+        // Frequency
+        document.getElementById('frequencyGrid').addEventListener('change', (e) => {
+            if (e.target.name === 'frequency') {
+                state.frequency = e.target.value;
+                calculatePricing();
+            }
+        });
+        
+        // Map tools
+        document.getElementById('locateBtn').addEventListener('click', locateProperty);
+        document.getElementById('drawBtn').addEventListener('click', enableDrawing);
+        document.getElementById('clearBtn').addEventListener('click', clearPolygon);
+        
+        // Save quote
+        document.getElementById('saveQuoteBtn').addEventListener('click', saveQuote);
+        
+        // Form inputs
+        ['firstName', 'lastName', 'phone', 'email', 'notes', 'operatorName'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', () => {
+                    state[id === 'operatorName' ? 'operatorName' : id] = el.value;
+                    validateForm();
+                });
+            }
+        });
+        
+        // Send email checkbox
+        document.getElementById('sendEmailCheck').addEventListener('change', (e) => {
+            state.sendEmail = e.target.checked;
+        });
+        
+        // Modal actions
+        document.getElementById('newQuoteBtn').addEventListener('click', newQuote);
+        document.getElementById('copyBtn').addEventListener('click', copyQuoteSummary);
+    }
+    
+    // Locate property
+    function locateProperty() {
+        const address = document.getElementById('address').value.trim();
+        
+        if (!address) {
+            updateMapStatus('⚠️ Enter an address first', 'error');
+            return;
+        }
+        
+        if (typeof google === 'undefined') {
+            // Mock mode
+            const mockSize = Math.floor(Math.random() * 15000) + 3000;
+            state.lawnSizeSqFt = mockSize;
+            state.estimatedAreaSqft = mockSize;
+            state.areaSource = 'estimated';
+            state.address = address;
+            updateAreaDisplay(true);
+            calculatePricing();
+            updateMapStatus('✓ Address saved (maps unavailable)', 'success');
+            return;
+        }
+        
+        // Use selected place if available
+        if (selectedPlace && selectedPlace.geometry) {
+            recenterMapToPlace(selectedPlace);
+            if (!currentPolygon) {
+                estimateAreaFromAddress();
+            }
+            updateMapStatus('✓ Property located', 'success');
+            return;
+        }
+        
+        // Fallback to geocoding
+        document.getElementById('locateBtn').textContent = '⏳ Locating...';
+        document.getElementById('locateBtn').disabled = true;
+        
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address: address }, (results, status) => {
+            document.getElementById('locateBtn').textContent = '📍 Locate';
+            document.getElementById('locateBtn').disabled = false;
+            
+            if (status === 'OK' && results && results.length > 0) {
+                const place = {
+                    geometry: results[0].geometry,
+                    formatted_address: results[0].formatted_address,
+                    address_components: results[0].address_components
+                };
+                
+                selectedPlace = place;
+                state.address = place.formatted_address;
+                state.addressSource = 'geocode';
+                
+                extractZipCode(place);
+                recenterMapToPlace(place);
+                
+                if (!currentPolygon) {
+                    estimateAreaFromAddress();
+                }
+                
+                document.getElementById('drawBtn').disabled = false;
+                document.getElementById('clearBtn').disabled = false;
+                
+                updateMapStatus('✓ Property located', 'success');
+            } else {
+                updateMapStatus('❌ Address not found - try selecting from dropdown', 'error');
+            }
+        });
+    }
+    
+    // Enable drawing
+    function enableDrawing() {
+        if (typeof google === 'undefined') return;
+        
+        if (currentPolygon) {
+            currentPolygon.setMap(null);
+            currentPolygon = null;
+        }
+        
+        state.measuredAreaSqft = 0;
+        
+        drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+        
+        document.getElementById('drawBtn').textContent = '✏️ Drawing...';
+        updateMapStatus('Draw around the lawn area. Double-click to finish.', '');
+    }
+    
+    // Clear polygon
+    function clearPolygon() {
+        if (currentPolygon) {
+            currentPolygon.setMap(null);
+            currentPolygon = null;
+        }
+        
+        state.measuredAreaSqft = 0;
+        
+        if (state.address) {
+            estimateAreaFromAddress();
+            updateMapStatus('Boundary cleared. Using estimated area.', '');
+        } else {
+            state.lawnSizeSqFt = 0;
+            state.estimatedAreaSqft = 0;
+            state.areaSource = 'none';
+            document.getElementById('areaDisplay').classList.add('hidden');
+            calculatePricing();
+        }
+        
+        document.getElementById('drawBtn').textContent = '✏️ Draw Area';
+    }
+    
+    // Validate form
+    function validateForm() {
+        const isValid = 
+            state.firstName.trim() &&
+            state.lastName.trim() &&
+            state.phone.trim() &&
+            state.lawnSizeSqFt > 0 &&
+            state.primaryService &&
+            state.frequency;
+        
+        document.getElementById('saveQuoteBtn').disabled = !isValid;
+    }
+    
+    // Save quote
+    function saveQuote() {
+        console.log('[Pro] Saving quote');
+        
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+        
+        // Capture UTM parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const trackingData = {
+            utm_source: urlParams.get('utm_source'),
+            utm_medium: urlParams.get('utm_medium'),
+            utm_campaign: urlParams.get('utm_campaign'),
+            ref: urlParams.get('ref')
+        };
+        
+        // Build payload (same structure as widget)
+        const payload = {
+            mode: 'internal',
+            source: 'greenquote_pro',
+            clientId: config.clientId,
+            monthlyQuoteLimit: config.monthlyQuoteLimit || 100,
+            timestamp: new Date().toISOString(),
+            
+            propertyType: state.propertyType,
+            primaryService: state.primaryService,
+            addOns: state.addOns,
+            lawnSizeSqFt: state.lawnSizeSqFt,
+            lawnSizeTier: state.lawnSizeTier ? state.lawnSizeTier.id : 'unknown',
+            frequency: state.frequency,
+            
+            areaData: {
+                measuredAreaSqft: state.measuredAreaSqft,
+                estimatedAreaSqft: state.estimatedAreaSqft,
+                areaSource: state.areaSource,
+                usedForPricing: state.lawnSizeSqFt
+            },
+            
+            pricing: {
+                estimatedPerVisit: state.estimatedPerVisit,
+                estimatedMonthlyTotal: state.estimatedMonthlyTotal,
+                currencySymbol: config.currencySymbol
+            },
+            
+            lead: {
+                firstName: state.firstName,
+                lastName: state.lastName,
+                email: state.email,
+                phone: state.phone,
+                address: state.address,
+                zipCode: state.zipCode,
+                addressSource: state.addressSource,
+                notes: state.notes
+            },
+            
+            operator: {
+                name: state.operatorName || 'Unknown',
+                timestamp: new Date().toISOString()
+            },
+            
+            actions: {
+                sendCustomerEmail: state.sendEmail
+            },
+            
+            tracking: trackingData
+        };
+        
+        // Submit to central webhook
+        const webhookUrl = config.centralWebhookUrl || 'https://mock-webhook.example.com/quotes';
+        
+        fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log('[Pro] Quote saved:', data);
+                
+                setTimeout(() => {
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    showSuccessModal();
+                }, 500);
+            })
+            .catch(error => {
+                console.error('[Pro] Error saving quote:', error);
+                
+                setTimeout(() => {
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    // Still show success for demo purposes
+                    showSuccessModal();
+                }, 500);
+            });
+    }
+    
+    // Show success modal
+    function showSuccessModal() {
+        const modal = document.getElementById('successModal');
+        const body = document.getElementById('modalBody');
+        
+        const summary = `
+            <div style=\"margin-bottom: 16px;\">
+                <strong>Customer:</strong> ${state.firstName} ${state.lastName}<br>
+                <strong>Phone:</strong> ${state.phone}<br>
+                ${state.email ? '<strong>Email:</strong> ' + state.email + '<br>' : ''}
+                <strong>Address:</strong> ${state.address || 'Not specified'}
+            </div>
+            <div style=\"margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 8px;\">
+                <strong>Service:</strong> ${state.primaryService}<br>
+                <strong>Frequency:</strong> ${state.frequency}<br>
+                <strong>Area:</strong> ${state.lawnSizeSqFt.toLocaleString()} sq ft (${state.areaSource})
+            </div>
+            <div style=\"padding: 12px; background: var(--accent-color); border-radius: 8px;\">
+                <strong>Per Visit:</strong> ${config.currencySymbol}${state.estimatedPerVisit}<br>
+                <strong>Monthly:</strong> ${config.currencySymbol}${state.estimatedMonthlyTotal}
+            </div>
+            ${state.sendEmail ? '<div style=\"margin-top: 12px; color: var(--success-color);\">✓ Customer will receive quote by email</div>' : ''}
+        `;
+        
+        body.innerHTML = summary;
+        modal.classList.remove('hidden');
+    }
+    
+    // New quote
+    function newQuote() {
+        location.reload();
+    }
+    
+    // Copy quote summary
+    function copyQuoteSummary() {
+        const summary = `
+GreenQuote - ${config.businessName}
+
+Customer: ${state.firstName} ${state.lastName}
+Phone: ${state.phone}
+Email: ${state.email || 'N/A'}
+Address: ${state.address || 'N/A'}
+
+Service: ${state.primaryService}
+Add-ons: ${state.addOns.join(', ') || 'None'}
+Frequency: ${state.frequency}
+Lawn Area: ${state.lawnSizeSqFt.toLocaleString()} sq ft (${state.areaSource})
+
+Per Visit: ${config.currencySymbol}${state.estimatedPerVisit}
+Est. Monthly: ${config.currencySymbol}${state.estimatedMonthlyTotal}
+
+Created by: ${state.operatorName || 'Unknown'}
+Date: ${new Date().toLocaleString()}
+        `.trim();
+        
+        navigator.clipboard.writeText(summary).then(() => {
+            const btn = document.getElementById('copyBtn');
+            const originalText = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        }).catch(err => {
+            console.error('[Pro] Failed to copy:', err);
+            alert('Failed to copy to clipboard');
+        });
+    }
+    
+    // Show error
+    function showError(message) {
+        alert('Error: ' + message);
+    }
+    
+    // Initialize on load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+    
+})();
