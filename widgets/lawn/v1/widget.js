@@ -23,9 +23,14 @@
         email: '',
         phone: '',
         address: '',
+        zipCode: '',
         preferredTime: '',
         estimatedPerVisit: 0,
-        estimatedMonthlyTotal: 0
+        estimatedMonthlyTotal: 0,
+        measuredAreaSqft: 0,
+        estimatedAreaSqft: 0,
+        areaSource: 'none', // 'measured', 'estimated', or 'none'
+        placeData: null
     };
     
     // Google Maps objects
