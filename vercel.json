@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/server.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/server.py"
+    },
+    {
+      "src": "/widgets/(.*)",
+      "dest": "/widgets/$1"
+    },
+    {
+      "src": "/pro/(.*)",
+      "dest": "/pro/$1"
+    },
+    {
+      "src": "/configs/(.*)",
+      "dest": "/configs/$1"
+    },
+    {
+      "src": "/(.*\\.(html|css|js|json|png|jpg|jpeg|svg|ico|pdf|md))",
+      "dest": "/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/index.html"
+    }
+  ]
+}
