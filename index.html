@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenQuote - Lawn Care Quoting Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 60px 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 48px;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 48px;
+        }
+        
+        .links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .link-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 32px 24px;
+            border-radius: 16px;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .link-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .link-icon {
+            font-size: 48px;
+        }
+        
+        .link-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .link-desc {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 36px;
+            }
+            
+            .card {
+                padding: 40px 24px;
+            }
+            
+            .links {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🌱 GreenQuote</h1>
+            <p class="subtitle">Lawn Care Quoting Platform</p>
+            
+            <div class="links">
+                <a href="/widgets/lawn/v1/index.html?client=default" class="link-card">
+                    <span class="link-icon">🌿</span>
+                    <span class="link-title">Public Widget</span>
+                    <span class="link-desc">Customer-facing quote calculator</span>
+                </a>
+                
+                <a href="/pro/index.html?client=default" class="link-card">
+                    <span class="link-icon">📱</span>
+                    <span class="link-title">Pro Interface</span>
+                    <span class="link-desc">Field quoting for teams</span>
+                </a>
+                
+                <a href="/admin.html" class="link-card">
+                    <span class="link-icon">⚙️</span>
+                    <span class="link-title">Admin Panel</span>
+                    <span class="link-desc">Configure API keys & settings</span>
+                </a>
+            </div>
+            
+            <div class="footer">
+                <p>
+                    <strong>Documentation:</strong> 
+                    <a href="https://github.com" target="_blank">README</a> · 
+                    <a href="/preview.html">Preview</a> · 
+                    <a href="/setup-api-key.html">Setup</a>
+                </p>
+                <p style="margin-top: 12px;">
+                    Choose a client: <code>?client=default</code> or <code>?client=example-lawn</code>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
