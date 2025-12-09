@@ -409,12 +409,12 @@ GreenQuote Pro is an internal quoting interface designed for your field teams (o
 
 **URL Pattern:**
 ```
-https://YOUR-USERNAME.github.io/YOUR-REPO/pro/index.html?client=CLIENT-NAME
+https://app.getgreenquote.com/pro/index.html?client=CLIENT-NAME
 ```
 
 **Example:**
 ```
-https://yourusername.github.io/lawn-widget/pro/index.html?client=example-lawn
+https://app.getgreenquote.com/pro/index.html?client=example-lawn
 ```
 
 ### Pro Interface Features
