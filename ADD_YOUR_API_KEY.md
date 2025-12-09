@@ -98,7 +98,7 @@ python3 -m http.server 8080
 
 ### 2. Open in browser:
 ```
-http://localhost:8080/widgets/lawn/v1/index.html?client=example-lawn
+https://app.getgreenquote.com/widgets/lawn/v1/index.html?client=example-lawn
 ```
 
 ### 3. Test the maps:
