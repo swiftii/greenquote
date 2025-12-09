@@ -24,45 +24,27 @@ This is a static HTML/CSS/JavaScript widget system that:
 ✅ **UTM tracking** - Captures marketing attribution data
 ✅ **Pro Field Interface** - Internal quoting app for field teams
 
-## How to Deploy to GitHub Pages
+## Deployment
 
-### Step 1: Create a GitHub Repository
+This application is deployed on Vercel with a custom domain:
 
-1. Go to [GitHub](https://github.com) and sign in
-2. Click the "+" icon in the top right and select "New repository"
-3. Name your repository (e.g., `lawn-care-widgets`)
-4. Choose "Public" (required for GitHub Pages)
-5. Click "Create repository"
+### Production URL
 
-### Step 2: Upload Files
-
-1. Download all files from this project
-2. In your new GitHub repository, click "Add file" > "Upload files"
-3. Drag and drop all the project files and folders:
-   - `/widgets/` folder
-   - `/configs/` folder
-   - `README.md`
-4. Click "Commit changes"
-
-### Step 3: Enable GitHub Pages
-
-1. In your repository, click "Settings"
-2. Scroll down to "Pages" in the left sidebar
-3. Under "Source", select "main" branch
-4. Click "Save"
-5. Wait 2-3 minutes for deployment
-
-### Step 4: Find Your Widget URL
-
-Your widget will be available at:
+Your widget is accessible at:
 
 ```
-https://YOUR-USERNAME.github.io/YOUR-REPO-NAME/widgets/lawn/v1/index.html?client=default
+https://app.getgreenquote.com/widgets/lawn/v1/index.html?client=default
 ```
 
-Replace:
-- `YOUR-USERNAME` with your GitHub username
-- `YOUR-REPO-NAME` with your repository name
+### Pro Interface URL
+
+The field team interface is available at:
+
+```
+https://app.getgreenquote.com/pro/index.html?client=default
+```
+
+Replace `client=default` with your specific client configuration name.
 
 ## How to Create a New Client Config
 
