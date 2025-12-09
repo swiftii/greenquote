@@ -4,23 +4,16 @@ Get your lawn care widget running in 5 minutes!
 
 ## 🚀 Super Quick Start
 
-### 1. Deploy to GitHub Pages (2 minutes)
+### 1. Production Deployment
 
-```bash
-# Create a new repo on GitHub, then:
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/YOUR-REPO.git
-git push -u origin main
+**Your widget is already live at:**
+```
+https://app.getgreenquote.com/widgets/lawn/v1/index.html?client=default
 ```
 
-Enable GitHub Pages in Settings → Pages → Select "main" branch
-
-**Your widget URL:**
+**Pro Interface:**
 ```
-https://YOUR-USERNAME.github.io/YOUR-REPO/widgets/lawn/v1/index.html?client=default
+https://app.getgreenquote.com/pro/index.html?client=default
 ```
 
 ### 2. Embed Anywhere (30 seconds)
@@ -29,7 +22,7 @@ Copy this code to your website:
 
 ```html
 <iframe
-  src="https://YOUR-USERNAME.github.io/YOUR-REPO/widgets/lawn/v1/index.html?client=default"
+  src="https://app.getgreenquote.com/widgets/lawn/v1/index.html?client=default"
   style="width:100%; max-width:480px; height:850px; border:0;"
   loading="lazy"
 ></iframe>
