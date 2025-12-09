@@ -1,27 +1,29 @@
 {
   "version": 2,
-  "buildCommand": "cd frontend && yarn install && yarn build",
+  "buildCommand": "npm run build",
   "outputDirectory": "frontend/build",
-  "installCommand": "cd frontend && yarn install",
-  "devCommand": "cd frontend && yarn start",
-  "framework": null,
-  "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build"
-      }
-    },
-    {
-      "src": "backend/server.py",
-      "use": "@vercel/python"
-    }
-  ],
+  "installCommand": "npm install && cd frontend && yarn install",
+  "devCommand": "npm run dev",
   "routes": [
     {
       "src": "/api/(.*)",
       "dest": "backend/server.py"
+    },
+    {
+      "src": "/login",
+      "dest": "/frontend/build/index.html"
+    },
+    {
+      "src": "/signup",
+      "dest": "/frontend/build/index.html"
+    },
+    {
+      "src": "/dashboard",
+      "dest": "/frontend/build/index.html"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "/frontend/build/static/$1"
     },
     {
       "src": "/widgets/(.*)",
@@ -36,15 +38,19 @@
       "dest": "/configs/$1"
     },
     {
-      "src": "/(login|signup|dashboard)",
-      "dest": "/frontend/build/index.html"
+      "src": "/manifest.json",
+      "dest": "/frontend/build/manifest.json"
     },
     {
-      "src": "/static/(.*)",
-      "dest": "/frontend/build/static/$1"
+      "src": "/favicon.ico",
+      "dest": "/frontend/build/favicon.ico"
     },
     {
-      "src": "/(.*\\.(html|css|js|json|png|jpg|jpeg|svg|ico|pdf|md))",
+      "src": "/logo(.*)",
+      "dest": "/frontend/build/logo$1"
+    },
+    {
+      "src": "/(.*\\.(html|css|json|png|jpg|jpeg|svg|ico|pdf|md))",
       "dest": "/$1"
     },
     {
