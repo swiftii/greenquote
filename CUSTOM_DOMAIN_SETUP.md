@@ -156,3 +156,5 @@ Your GreenQuote Pro App is now fully configured for the custom domain `app.getgr
 
 **Questions or Issues?**
 Check the main [README.md](./README.md) for detailed documentation.
+
+<!-- Git push test: Tue Dec  9 03:30:56 UTC 2025 -->
