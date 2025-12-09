@@ -344,7 +344,7 @@ cat /app/configs/example-lawn.json | grep googleMapsApiKey
 python3 -m http.server 8080
 
 # 3. Open widget
-# Visit: http://localhost:8080/widgets/lawn/v1/index.html?client=example-lawn
+# Visit: https://app.getgreenquote.com/widgets/lawn/v1/index.html?client=example-lawn
 
 # 4. Test it
 # Step 1: Select "Lawn Mowing"
