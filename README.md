@@ -337,10 +337,10 @@ file:///path/to/widgets/lawn/v1/index.html?client=example-lawn
 
 ### Testing After Deployment
 
-Visit your GitHub Pages URL:
+Visit the production URL:
 
 ```
-https://YOUR-USERNAME.github.io/YOUR-REPO/widgets/lawn/v1/index.html?client=default
+https://app.getgreenquote.com/widgets/lawn/v1/index.html?client=default
 ```
 
 ## Troubleshooting
