@@ -14,9 +14,7 @@ You now have 3 options to add your Google Maps API key. Choose the one that work
 
 1. **Open the setup page:**
    ```
-   Open file: /app/setup-api-key.html
-   
-   Or visit: http://localhost:8080/setup-api-key.html
+   Visit: https://app.getgreenquote.com/setup-api-key.html
    ```
 
 2. **Paste your API key** in the input field
