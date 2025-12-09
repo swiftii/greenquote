@@ -1,0 +1,24 @@
+{
+  "name": "greenquote-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GreenQuote Pro - Lawn Care Quoting Platform",
+  "scripts": {
+    "install:frontend": "cd frontend && yarn install",
+    "build:frontend": "cd frontend && yarn build",
+    "build": "npm run install:frontend && npm run build:frontend",
+    "start": "cd frontend && yarn start",
+    "dev": "cd frontend && yarn start"
+  },
+  "engines": {
+    "node": ">=18.x",
+    "npm": ">=9.x"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/swiftii/greenquote"
+  },
+  "workspaces": [
+    "frontend"
+  ]
+}
