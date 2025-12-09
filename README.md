@@ -138,7 +138,7 @@ Open your new config file and customize:
 
 ```html
 <iframe
-  src="https://YOUR-USERNAME.github.io/YOUR-REPO/widgets/lawn/v1/index.html?client=YOUR-CLIENT"
+  src="https://app.getgreenquote.com/widgets/lawn/v1/index.html?client=YOUR-CLIENT"
   style="width:100%; max-width:480px; height:850px; border:0; overflow:hidden; margin:0 auto; display:block;"
   loading="lazy"
   title="Lawn Care Quote Calculator"
@@ -146,9 +146,7 @@ Open your new config file and customize:
 ```
 
 3. Replace:
-   - `YOUR-USERNAME`: Your GitHub username
-   - `YOUR-REPO`: Your repository name
-   - `YOUR-CLIENT`: Your client config name (e.g., `johnsons-lawn`)
+   - `YOUR-CLIENT`: Your client config name (e.g., `example-lawn`)
 
 ### Method 2: Direct Embed in Page Code
 
