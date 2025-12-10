@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,6 +11,20 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { GoogleMap, useJsApiLoader, Autocomplete, Polygon } from '@react-google-maps/api';
+
+/**
+ * Quote Page - Pro Quote Flow Entry Point
+ * Route: /quote
+ * 
+ * This page allows logged-in users to create quotes for prospects using:
+ * - Their account-specific pricing (min_price_per_visit, price_per_sq_ft)
+ * - Google Maps for address autocomplete and boundary drawing
+ * - Area calculation from polygon for accurate pricing
+ */
+
+// Google Maps libraries to load
+const GOOGLE_MAPS_LIBRARIES = ['places', 'drawing', 'geometry'];
 
 // Service options
 const SERVICES = [
@@ -35,13 +49,39 @@ const PROPERTY_TYPES = [
   { id: 'commercial', label: 'Commercial' },
 ];
 
-// Add-on options (will be merged with user's configured add-ons)
+// Add-on options
 const DEFAULT_ADDONS = [
   { id: 'mulch', label: 'Mulch Installation', pricePerVisit: 75 },
   { id: 'flower_beds', label: 'Flower Bed Maintenance', pricePerVisit: 35 },
   { id: 'hedge_trimming', label: 'Hedge Trimming', pricePerVisit: 45 },
   { id: 'leaf_removal', label: 'Leaf Removal', pricePerVisit: 55 },
 ];
+
+// Map container style
+const mapContainerStyle = {
+  width: '100%',
+  height: '400px',
+  borderRadius: '8px',
+};
+
+// Default map center (US center)
+const defaultCenter = {
+  lat: 39.8283,
+  lng: -98.5795,
+};
+
+// Polygon options
+const polygonOptions = {
+  fillColor: '#22c55e',
+  fillOpacity: 0.3,
+  strokeColor: '#16a34a',
+  strokeOpacity: 1,
+  strokeWeight: 2,
+  clickable: false,
+  editable: false,
+  draggable: false,
+  zIndex: 1,
+};
 
 export default function Quote() {
   const navigate = useNavigate();
@@ -52,6 +92,25 @@ export default function Quote() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  // Google Maps state
+  const [map, setMap] = useState(null);
+  const [mapCenter, setMapCenter] = useState(defaultCenter);
+  const [mapZoom, setMapZoom] = useState(4);
+  const [polygonPath, setPolygonPath] = useState([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [calculatedArea, setCalculatedArea] = useState(0);
+  const autocompleteRef = useRef(null);
+
+  // Check if Google Maps API key is available
+  const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
+  const isMapsConfigured = !!googleMapsApiKey;
+
+  // Load Google Maps
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: googleMapsApiKey,
+    libraries: GOOGLE_MAPS_LIBRARIES,
+  });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -64,7 +123,10 @@ export default function Quote() {
     // Property info
     propertyType: 'residential',
     address: '',
+    latitude: null,
+    longitude: null,
     lawnSizeSqFt: '',
+    areaSource: 'manual', // 'manual' or 'measured'
     // Service info
     primaryService: '',
     selectedAddons: [],
@@ -108,6 +170,44 @@ export default function Quote() {
     }
   };
 
+  // Calculate area from polygon
+  const calculatePolygonArea = useCallback((path) => {
+    if (!path || path.length < 3 || !window.google?.maps?.geometry) {
+      setCalculatedArea(0);
+      return 0;
+    }
+
+    try {
+      // Create a Google Maps LatLng array
+      const latLngArray = path.map(point => 
+        new window.google.maps.LatLng(point.lat, point.lng)
+      );
+      
+      // Create MVCArray for computeArea
+      const mvcArray = new window.google.maps.MVCArray(latLngArray);
+      
+      // Calculate area in square meters
+      const areaInSqMeters = window.google.maps.geometry.spherical.computeArea(mvcArray);
+      
+      // Convert to square feet (1 sq meter = 10.7639 sq feet)
+      const areaInSqFt = Math.round(areaInSqMeters * 10.7639);
+      
+      setCalculatedArea(areaInSqFt);
+      
+      // Update form data with measured area
+      setFormData(prev => ({
+        ...prev,
+        lawnSizeSqFt: areaInSqFt.toString(),
+        areaSource: 'measured',
+      }));
+      
+      return areaInSqFt;
+    } catch (err) {
+      console.error('[Quote] Error calculating area:', err);
+      return 0;
+    }
+  }, []);
+
   // Calculate pricing whenever form changes
   useEffect(() => {
     calculatePricing();
@@ -123,9 +223,15 @@ export default function Quote() {
     const minPrice = parseFloat(settings.min_price_per_visit) || 50;
     const pricePerSqFt = parseFloat(settings.price_per_sq_ft) || 0.01;
 
-    // Base price calculation
-    let basePrice = Math.max(minPrice, sqFt * pricePerSqFt);
-    const breakdown = [{ label: 'Base service', amount: basePrice }];
+    // Base price calculation: use sqFt * pricePerSqFt, but enforce minimum
+    const calculatedFromArea = sqFt * pricePerSqFt;
+    let basePrice = Math.max(calculatedFromArea, minPrice);
+    
+    const breakdown = [{ 
+      label: `Base service (${sqFt.toLocaleString()} sq ft × $${pricePerSqFt.toFixed(4)})`, 
+      amount: calculatedFromArea,
+      note: calculatedFromArea < minPrice ? `(min $${minPrice} applied)` : ''
+    }];
 
     // Add-ons
     let addonsTotal = 0;
@@ -153,8 +259,114 @@ export default function Quote() {
     });
   }, [formData, settings]);
 
+  // Handle map load
+  const onMapLoad = useCallback((mapInstance) => {
+    setMap(mapInstance);
+  }, []);
+
+  // Handle map click for drawing polygon
+  const onMapClick = useCallback((event) => {
+    if (!isDrawing) return;
+
+    const newPoint = {
+      lat: event.latLng.lat(),
+      lng: event.latLng.lng(),
+    };
+
+    setPolygonPath(prev => {
+      const newPath = [...prev, newPoint];
+      // Calculate area if we have at least 3 points
+      if (newPath.length >= 3) {
+        calculatePolygonArea(newPath);
+      }
+      return newPath;
+    });
+  }, [isDrawing, calculatePolygonArea]);
+
+  // Handle autocomplete place selection
+  const onPlaceChanged = useCallback(() => {
+    if (autocompleteRef.current) {
+      const place = autocompleteRef.current.getPlace();
+      
+      if (place && place.geometry && place.geometry.location) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        
+        setFormData(prev => ({
+          ...prev,
+          address: place.formatted_address || place.name || '',
+          latitude: lat,
+          longitude: lng,
+        }));
+        
+        // Center map on selected location
+        setMapCenter({ lat, lng });
+        setMapZoom(19); // Zoom in for property view
+        
+        // Clear existing polygon when address changes
+        setPolygonPath([]);
+        setCalculatedArea(0);
+        setFormData(prev => ({
+          ...prev,
+          lawnSizeSqFt: '',
+          areaSource: 'manual',
+        }));
+      }
+    }
+  }, []);
+
+  // Handle autocomplete load
+  const onAutocompleteLoad = useCallback((autocomplete) => {
+    autocompleteRef.current = autocomplete;
+  }, []);
+
+  // Start drawing mode
+  const startDrawing = () => {
+    setIsDrawing(true);
+    setPolygonPath([]);
+    setCalculatedArea(0);
+  };
+
+  // Finish drawing
+  const finishDrawing = () => {
+    setIsDrawing(false);
+    if (polygonPath.length >= 3) {
+      calculatePolygonArea(polygonPath);
+    }
+  };
+
+  // Clear polygon
+  const clearPolygon = () => {
+    setPolygonPath([]);
+    setCalculatedArea(0);
+    setIsDrawing(false);
+    setFormData(prev => ({
+      ...prev,
+      lawnSizeSqFt: '',
+      areaSource: 'manual',
+    }));
+  };
+
+  // Undo last point
+  const undoLastPoint = () => {
+    setPolygonPath(prev => {
+      const newPath = prev.slice(0, -1);
+      if (newPath.length >= 3) {
+        calculatePolygonArea(newPath);
+      } else {
+        setCalculatedArea(0);
+      }
+      return newPath;
+    });
+  };
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // If manually entering lawn size, update source
+    if (field === 'lawnSizeSqFt') {
+      setFormData(prev => ({ ...prev, areaSource: 'manual' }));
+    }
   };
 
   const handleAddonToggle = (addonId) => {
@@ -190,7 +402,6 @@ export default function Quote() {
     setError(null);
 
     try {
-      // For now, just show success - in a real app, this would save to a database
       console.log('[Quote] Saving quote:', {
         customer: {
           firstName: formData.firstName,
@@ -201,7 +412,11 @@ export default function Quote() {
         property: {
           type: formData.propertyType,
           address: formData.address,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
           lawnSizeSqFt: formData.lawnSizeSqFt,
+          areaSource: formData.areaSource,
+          polygonPath: polygonPath,
         },
         service: {
           primary: formData.primaryService,
@@ -224,11 +439,18 @@ export default function Quote() {
           notes: '',
           propertyType: 'residential',
           address: '',
+          latitude: null,
+          longitude: null,
           lawnSizeSqFt: '',
+          areaSource: 'manual',
           primaryService: '',
           selectedAddons: [],
           frequency: '',
         });
+        setPolygonPath([]);
+        setCalculatedArea(0);
+        setMapCenter(defaultCenter);
+        setMapZoom(4);
         setSuccess(null);
       }, 3000);
 
@@ -284,7 +506,7 @@ export default function Quote() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
           <Alert variant="destructive" className="mb-6">
             <AlertDescription>{error}</AlertDescription>
@@ -294,6 +516,15 @@ export default function Quote() {
         {success && (
           <Alert className="mb-6 bg-green-50 text-green-800 border-green-200">
             <AlertDescription>✅ {success}</AlertDescription>
+          </Alert>
+        )}
+
+        {!isMapsConfigured && (
+          <Alert className="mb-6 bg-yellow-50 text-yellow-800 border-yellow-200">
+            <AlertDescription>
+              ⚠️ Google Maps is not configured. Set REACT_APP_GOOGLE_MAPS_API_KEY in Vercel to enable map features.
+              You can still enter lawn size manually.
+            </AlertDescription>
           </Alert>
         )}
 
@@ -367,23 +598,50 @@ export default function Quote() {
               </CardContent>
             </Card>
 
-            {/* Property Information */}
+            {/* Property Information with Google Maps */}
             <Card>
               <CardHeader>
                 <CardTitle>Property Information</CardTitle>
-                <CardDescription>Property details for accurate pricing</CardDescription>
+                <CardDescription>
+                  Search for the address, then draw the lawn boundary on the map to calculate area
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Address Autocomplete */}
                 <div>
-                  <Label htmlFor="address">Property Address</Label>
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    placeholder="123 Main St, City, State ZIP"
-                    className="mt-1"
-                  />
+                  <Label htmlFor="address">Property Address *</Label>
+                  {isLoaded ? (
+                    <Autocomplete
+                      onLoad={onAutocompleteLoad}
+                      onPlaceChanged={onPlaceChanged}
+                      options={{
+                        types: ['address'],
+                        componentRestrictions: { country: 'us' },
+                      }}
+                    >
+                      <Input
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) => handleInputChange('address', e.target.value)}
+                        placeholder="Start typing an address..."
+                        className="mt-1"
+                      />
+                    </Autocomplete>
+                  ) : (
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => handleInputChange('address', e.target.value)}
+                      placeholder="Enter address manually"
+                      className="mt-1"
+                    />
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select from dropdown for best results
+                  </p>
                 </div>
+
+                {/* Property Type */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="propertyType">Property Type</Label>
@@ -404,17 +662,133 @@ export default function Quote() {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="lawnSizeSqFt">Lawn Size (sq ft) *</Label>
+                    <Label htmlFor="lawnSizeSqFt">
+                      Lawn Size (sq ft) *
+                      {formData.areaSource === 'measured' && (
+                        <span className="text-green-600 text-xs ml-2">(measured from map)</span>
+                      )}
+                    </Label>
                     <Input
                       id="lawnSizeSqFt"
                       type="number"
                       value={formData.lawnSizeSqFt}
                       onChange={(e) => handleInputChange('lawnSizeSqFt', e.target.value)}
-                      placeholder="5000"
+                      placeholder="Draw on map or enter manually"
                       className="mt-1"
                     />
                   </div>
                 </div>
+
+                {/* Google Map */}
+                {isLoaded && isMapsConfigured && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Draw Service Area Boundary</Label>
+                      <div className="flex gap-2">
+                        {!isDrawing ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={startDrawing}
+                            disabled={!formData.address}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            ✏️ Start Drawing
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={undoLastPoint}
+                              disabled={polygonPath.length === 0}
+                            >
+                              ↩️ Undo
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={finishDrawing}
+                              disabled={polygonPath.length < 3}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              ✓ Finish Drawing
+                            </Button>
+                          </>
+                        )}
+                        {polygonPath.length > 0 && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            onClick={clearPolygon}
+                          >
+                            🗑️ Clear
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {isDrawing && (
+                      <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
+                        Click on the map to add boundary points. Add at least 3 points, then click &quot;Finish Drawing&quot;.
+                      </p>
+                    )}
+
+                    <GoogleMap
+                      mapContainerStyle={mapContainerStyle}
+                      center={mapCenter}
+                      zoom={mapZoom}
+                      onLoad={onMapLoad}
+                      onClick={onMapClick}
+                      mapTypeId="satellite"
+                      options={{
+                        disableDefaultUI: true,
+                        zoomControl: true,
+                        streetViewControl: false,
+                        mapTypeControl: true,
+                        fullscreenControl: true,
+                      }}
+                    >
+                      {/* Render polygon */}
+                      {polygonPath.length > 0 && (
+                        <Polygon
+                          paths={polygonPath}
+                          options={polygonOptions}
+                        />
+                      )}
+
+                      {/* Render markers for polygon points */}
+                      {isDrawing && polygonPath.map((point, index) => (
+                        <div key={index}>
+                          {/* Visual markers handled by polygon */}
+                        </div>
+                      ))}
+                    </GoogleMap>
+
+                    {/* Area Display */}
+                    {calculatedArea > 0 && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                        <div>
+                          <span className="text-sm text-gray-600">Measured Area:</span>
+                          <span className="text-xl font-bold text-green-600 ml-2">
+                            {calculatedArea.toLocaleString()} sq ft
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {polygonPath.length} boundary points
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {loadError && (
+                  <p className="text-sm text-red-600">
+                    Error loading Google Maps. Please check your API key configuration.
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -502,7 +876,7 @@ export default function Quote() {
               <CardHeader>
                 <CardTitle>Quote Summary</CardTitle>
                 <CardDescription>
-                  Using your pricing: ${settings?.min_price_per_visit || 50} min, 
+                  Pricing: ${settings?.min_price_per_visit || 50} min, 
                   ${settings?.price_per_sq_ft || 0.01}/sq ft
                 </CardDescription>
               </CardHeader>
@@ -512,7 +886,10 @@ export default function Quote() {
                     <div className="space-y-2">
                       {pricing.breakdown.map((item, index) => (
                         <div key={index} className="flex justify-between text-sm">
-                          <span className="text-gray-600">{item.label}</span>
+                          <span className="text-gray-600">
+                            {item.label}
+                            {item.note && <span className="text-yellow-600 text-xs ml-1">{item.note}</span>}
+                          </span>
                           <span>${item.amount.toFixed(2)}</span>
                         </div>
                       ))}
@@ -528,7 +905,12 @@ export default function Quote() {
                       </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
-                      {formData.lawnSizeSqFt && `Based on ${Number(formData.lawnSizeSqFt).toLocaleString()} sq ft lawn`}
+                      {formData.lawnSizeSqFt && (
+                        <>
+                          Based on {Number(formData.lawnSizeSqFt).toLocaleString()} sq ft
+                          {formData.areaSource === 'measured' && ' (measured from map)'}
+                        </>
+                      )}
                     </p>
                   </div>
                 ) : (
@@ -554,10 +936,11 @@ export default function Quote() {
               </CardHeader>
               <CardContent>
                 <ul className="text-sm text-gray-600 space-y-2">
-                  <li>• Measure lawn with Google Maps for accurate sq ft</li>
-                  <li>• Add-ons increase per-visit price</li>
+                  <li>• Search address, then draw boundary on map</li>
+                  <li>• Click points to outline the lawn area</li>
+                  <li>• Area is auto-calculated from boundary</li>
                   <li>• Weekly service has best per-visit rate</li>
-                  <li>• Edit pricing in Settings</li>
+                  <li>• Edit pricing defaults in Settings</li>
                 </ul>
               </CardContent>
             </Card>
