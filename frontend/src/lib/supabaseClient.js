@@ -32,26 +32,12 @@ if (!isConfigured) {
   );
 }
 
-/**
- * Custom fetch wrapper that prevents "body stream already read" errors
- * by ensuring the response is properly cloned before any parsing
- */
-const customFetch = async (url, options = {}) => {
-  const response = await fetch(url, options);
-  
-  // Clone the response immediately so we can safely read it
-  // This prevents "body stream already read" errors if the body
-  // is accidentally read multiple times (e.g., in error handling)
-  return response.clone();
-};
-
+// Create Supabase client with standard configuration
+// NO custom fetch wrapper - let Supabase handle Response objects internally
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder-key',
   {
-    global: {
-      fetch: customFetch,
-    },
     auth: {
       persistSession: true,
       autoRefreshToken: true,
