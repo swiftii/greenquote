@@ -34,6 +34,7 @@ export default function Signup() {
         email: formData.email,
         password: formData.password,
         options: {
+          emailRedirectTo: `${window.location.origin}/login`,
           data: {
             full_name: formData.fullName,
             business_name: formData.businessName,
