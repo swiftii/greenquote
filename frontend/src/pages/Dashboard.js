@@ -83,17 +83,74 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
             Welcome back{user?.user_metadata?.full_name ? `, ${user.user_metadata.full_name}` : ''}!
           </h2>
           <p className="text-gray-600">
-            {user?.user_metadata?.business_name 
-              ? `Managing ${user.user_metadata.business_name}` 
-              : 'Ready to manage your lawn care business'}
+            {account?.name || 'Ready to manage your lawn care business'}
           </p>
         </div>
+
+        {/* Pricing Settings Card */}
+        {settings && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Current Pricing Settings</span>
+                <Button
+                  onClick={() => navigate('/settings')}
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50"
+                >
+                  Edit Settings
+                </Button>
+              </CardTitle>
+              <CardDescription>Your default pricing configuration</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Min Price Per Visit</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    ${Number(settings.min_price_per_visit).toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Price Per Sq Ft</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    ${Number(settings.price_per_sq_ft).toFixed(4)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Enabled Add-ons</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {settings.addons?.length || 0}
+                  </p>
+                  {settings.addons && settings.addons.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {settings.addons.map((addon, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800"
+                        >
+                          {addon}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
