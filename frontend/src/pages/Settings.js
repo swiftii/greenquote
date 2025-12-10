@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import { ensureUserAccount, updateAccountSettings, updateAccountName } from '@/services/accountService';
 import { Button } from '@/components/ui/button';
