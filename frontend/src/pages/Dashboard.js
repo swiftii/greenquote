@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import { ensureUserAccount } from '@/services/accountService';
 import { Button } from '@/components/ui/button';
@@ -18,48 +18,53 @@ export default function Dashboard() {
   useEffect(() => {
     if (user && !loading) {
       loadAccountData();
+    } else if (!loading && !user) {
+      setAccountLoading(false);
     }
   }, [user, loading]);
 
   const loadAccountData = async () => {
+    // Check if Supabase is configured
+    if (!isSupabaseConfigured) {
+      setError('Supabase is not configured. Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY environment variables.');
+      setAccountLoading(false);
+      return;
+    }
+
     try {
       setAccountLoading(true);
       setError(null);
       
       console.log('[Dashboard] Loading account data for user:', user?.id);
       
-      const { account: userAccount, settings: userSettings } = await ensureUserAccount(user);
+      const result = await ensureUserAccount(user);
       
-      console.log('[Dashboard] Account loaded:', userAccount);
-      console.log('[Dashboard] Settings loaded:', userSettings);
+      console.log('[Dashboard] Account loaded:', result?.account);
+      console.log('[Dashboard] Settings loaded:', result?.settings);
       
-      setAccount(userAccount);
-      setSettings(userSettings);
+      setAccount(result?.account || null);
+      setSettings(result?.settings || null);
     } catch (err) {
+      // Create a clean error message from whatever error we received
       console.error('[Dashboard] Error loading account data:', err);
+      console.error('[Dashboard] Error stack:', err?.stack);
       
-      // Show detailed error message
       let errorMessage = 'Failed to load account data. ';
       
-      if (err.message) {
-        errorMessage += err.message;
+      // Safely extract error information
+      if (err && typeof err === 'object') {
+        if (err.message) {
+          errorMessage += String(err.message);
+        }
+        if (err.code) {
+          errorMessage += ` (Error code: ${String(err.code)})`;
+        }
+        if (err.hint) {
+          errorMessage += ` Hint: ${String(err.hint)}`;
+        }
+      } else if (typeof err === 'string') {
+        errorMessage += err;
       }
-      
-      if (err.code) {
-        errorMessage += ` (Error code: ${err.code})`;
-      }
-      
-      if (err.hint) {
-        errorMessage += ` Hint: ${err.hint}`;
-      }
-      
-      console.error('[Dashboard] Full error details:', {
-        message: err.message,
-        code: err.code,
-        details: err.details,
-        hint: err.hint,
-        stack: err.stack
-      });
       
       setError(errorMessage);
     } finally {
