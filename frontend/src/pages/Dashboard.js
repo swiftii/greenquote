@@ -25,12 +25,43 @@ export default function Dashboard() {
     try {
       setAccountLoading(true);
       setError(null);
+      
+      console.log('[Dashboard] Loading account data for user:', user?.id);
+      
       const { account: userAccount, settings: userSettings } = await ensureUserAccount(user);
+      
+      console.log('[Dashboard] Account loaded:', userAccount);
+      console.log('[Dashboard] Settings loaded:', userSettings);
+      
       setAccount(userAccount);
       setSettings(userSettings);
     } catch (err) {
-      console.error('Error loading account data:', err);
-      setError('Failed to load account data. Please try refreshing the page.');
+      console.error('[Dashboard] Error loading account data:', err);
+      
+      // Show detailed error message
+      let errorMessage = 'Failed to load account data. ';
+      
+      if (err.message) {
+        errorMessage += err.message;
+      }
+      
+      if (err.code) {
+        errorMessage += ` (Error code: ${err.code})`;
+      }
+      
+      if (err.hint) {
+        errorMessage += ` Hint: ${err.hint}`;
+      }
+      
+      console.error('[Dashboard] Full error details:', {
+        message: err.message,
+        code: err.code,
+        details: err.details,
+        hint: err.hint,
+        stack: err.stack
+      });
+      
+      setError(errorMessage);
     } finally {
       setAccountLoading(false);
     }
