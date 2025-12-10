@@ -3,45 +3,35 @@ import { supabase } from '@/lib/supabaseClient';
 /**
  * Account Service
  * Handles all account and account_settings operations
+ * 
+ * IMPORTANT: This service uses defensive error handling to avoid
+ * "body stream already read" errors that can occur when accessing
+ * certain properties of Supabase error objects.
  */
 
 /**
- * Helper function to safely extract error details from Supabase errors
- * This prevents "body stream already read" errors by extracting primitive values only
- * 
- * @param {Object} error - Supabase error object
- * @returns {Object} - Safe error object with primitive values
+ * Safely get error message without triggering Response body issues
+ * @param {any} error - Error object
+ * @returns {string} - Safe error message
  */
-function extractErrorDetails(error) {
-  if (!error) return null;
+function getSafeErrorMessage(error) {
+  if (!error) return 'Unknown error';
   
-  // Extract only primitive values to avoid Response object issues
-  return {
-    message: String(error.message || 'Unknown error'),
-    code: String(error.code || ''),
-    details: error.details ? String(error.details) : null,
-    hint: error.hint ? String(error.hint) : null,
-  };
-}
-
-/**
- * Helper function to create a new Error with extracted details
- * 
- * @param {Object} supabaseError - Original Supabase error
- * @param {string} context - Context message for the error
- * @returns {Error} - Standard JavaScript Error object
- */
-function createSafeError(supabaseError, context) {
-  const details = extractErrorDetails(supabaseError);
-  const errorMessage = details 
-    ? `${context}: ${details.message}${details.code ? ` (code: ${details.code})` : ''}${details.hint ? ` - ${details.hint}` : ''}`
-    : context;
-  
-  const error = new Error(errorMessage);
-  error.code = details?.code || null;
-  error.details = details?.details || null;
-  error.hint = details?.hint || null;
-  return error;
+  // Try to get message as a simple string without accessing complex properties
+  try {
+    // If it's a simple string, return it
+    if (typeof error === 'string') return error;
+    
+    // If it has a message property that's a string, use it
+    if (error.message && typeof error.message === 'string') {
+      return error.message;
+    }
+    
+    // Fallback to stringifying (safely)
+    return 'Database operation failed';
+  } catch {
+    return 'Database operation failed';
+  }
 }
 
 /**
@@ -52,42 +42,46 @@ function createSafeError(supabaseError, context) {
  * @returns {Promise<{account: Object, settings: Object}>}
  */
 export async function ensureUserAccount(user) {
-  if (!user) {
+  if (!user || !user.id) {
     throw new Error('User not authenticated');
   }
 
   console.log('[AccountService] Ensuring account for user:', user.id);
 
-  // Check if account already exists
-  console.log('[AccountService] Checking for existing account...');
-  const accountResult = await supabase
-    .from('accounts')
-    .select('*')
-    .eq('owner_user_id', user.id)
-    .single();
-
-  // Extract data and error immediately (read response only once)
-  const existingAccount = accountResult.data;
-  const accountError = accountResult.error;
-
-  if (accountError) {
-    const errorDetails = extractErrorDetails(accountError);
-    console.log('[AccountService] Account query result:', errorDetails);
-  }
-
-  // PGRST116 = no rows returned (expected if account doesn't exist)
-  if (accountError && accountError.code !== 'PGRST116') {
-    console.error('[AccountService] Unexpected error fetching account');
-    throw createSafeError(accountError, 'Failed to fetch account');
-  }
-
-  let account = existingAccount;
+  // Step 1: Try to get existing account
+  let account = null;
+  let accountError = null;
   
-  if (existingAccount) {
-    console.log('[AccountService] Found existing account:', existingAccount.id);
+  try {
+    const result = await supabase
+      .from('accounts')
+      .select('*')
+      .eq('owner_user_id', user.id)
+      .single();
+    
+    account = result.data;
+    accountError = result.error;
+  } catch (e) {
+    console.error('[AccountService] Exception fetching account:', getSafeErrorMessage(e));
+    throw new Error('Failed to fetch account: ' + getSafeErrorMessage(e));
   }
 
-  // Create account if it doesn't exist
+  // Check for error (PGRST116 means no rows, which is expected for new users)
+  if (accountError) {
+    const errorCode = accountError.code;
+    console.log('[AccountService] Account query returned error code:', errorCode);
+    
+    if (errorCode !== 'PGRST116') {
+      // Real error, not just "no rows found"
+      throw new Error('Failed to fetch account: ' + getSafeErrorMessage(accountError));
+    }
+  }
+
+  if (account) {
+    console.log('[AccountService] Found existing account:', account.id);
+  }
+
+  // Step 2: Create account if it doesn't exist
   if (!account) {
     console.log('[AccountService] No account found, creating new account...');
     
@@ -97,85 +91,87 @@ export async function ensureUserAccount(user) {
       user.email?.split('@')[0] || 
       'My Account';
 
-    console.log('[AccountService] Creating account with name:', accountName);
-
-    const createAccountResult = await supabase
-      .from('accounts')
-      .insert([
-        {
-          owner_user_id: user.id,
-          name: accountName,
-        },
-      ])
-      .select()
-      .single();
-
-    const newAccount = createAccountResult.data;
-    const createAccountError = createAccountResult.error;
-
-    if (createAccountError) {
-      console.error('[AccountService] Error creating account:', extractErrorDetails(createAccountError));
-      throw createSafeError(createAccountError, 'Failed to create account');
+    try {
+      const result = await supabase
+        .from('accounts')
+        .insert([{ owner_user_id: user.id, name: accountName }])
+        .select()
+        .single();
+      
+      if (result.error) {
+        throw new Error('Failed to create account: ' + getSafeErrorMessage(result.error));
+      }
+      
+      account = result.data;
+      console.log('[AccountService] Account created successfully:', account?.id);
+    } catch (e) {
+      console.error('[AccountService] Exception creating account:', getSafeErrorMessage(e));
+      throw new Error('Failed to create account: ' + getSafeErrorMessage(e));
     }
-    
-    console.log('[AccountService] Account created successfully:', newAccount.id);
-    account = newAccount;
   }
 
-  // Check if settings exist
-  console.log('[AccountService] Checking for account settings...');
-  const settingsResult = await supabase
-    .from('account_settings')
-    .select('*')
-    .eq('account_id', account.id)
-    .single();
-
-  const existingSettings = settingsResult.data;
-  const settingsError = settingsResult.error;
-
-  if (settingsError) {
-    const errorDetails = extractErrorDetails(settingsError);
-    console.log('[AccountService] Settings query result:', errorDetails);
+  if (!account || !account.id) {
+    throw new Error('Failed to get or create account');
   }
 
-  if (settingsError && settingsError.code !== 'PGRST116') {
-    console.error('[AccountService] Unexpected error fetching settings');
-    throw createSafeError(settingsError, 'Failed to fetch account settings');
-  }
-
-  let settings = existingSettings;
+  // Step 3: Try to get existing settings
+  let settings = null;
+  let settingsError = null;
   
-  if (existingSettings) {
+  try {
+    const result = await supabase
+      .from('account_settings')
+      .select('*')
+      .eq('account_id', account.id)
+      .single();
+    
+    settings = result.data;
+    settingsError = result.error;
+  } catch (e) {
+    console.error('[AccountService] Exception fetching settings:', getSafeErrorMessage(e));
+    throw new Error('Failed to fetch settings: ' + getSafeErrorMessage(e));
+  }
+
+  // Check for error (PGRST116 means no rows, which is expected for new accounts)
+  if (settingsError) {
+    const errorCode = settingsError.code;
+    console.log('[AccountService] Settings query returned error code:', errorCode);
+    
+    if (errorCode !== 'PGRST116') {
+      throw new Error('Failed to fetch settings: ' + getSafeErrorMessage(settingsError));
+    }
+  }
+
+  if (settings) {
     console.log('[AccountService] Found existing settings');
   }
 
-  // Create default settings if they don't exist
+  // Step 4: Create default settings if they don't exist
   if (!settings) {
     console.log('[AccountService] No settings found, creating default settings...');
     
-    const createSettingsResult = await supabase
-      .from('account_settings')
-      .insert([
-        {
+    try {
+      const result = await supabase
+        .from('account_settings')
+        .insert([{
           account_id: account.id,
           min_price_per_visit: 50.00,
           price_per_sq_ft: 0.10,
           addons: [],
-        },
-      ])
-      .select()
-      .single();
-
-    const newSettings = createSettingsResult.data;
-    const createSettingsError = createSettingsResult.error;
-
-    if (createSettingsError) {
-      console.error('[AccountService] Error creating settings:', extractErrorDetails(createSettingsError));
-      throw createSafeError(createSettingsError, 'Failed to create account settings');
+        }])
+        .select()
+        .single();
+      
+      if (result.error) {
+        throw new Error('Failed to create settings: ' + getSafeErrorMessage(result.error));
+      }
+      
+      settings = result.data;
+      console.log('[AccountService] Settings created successfully');
+    } catch (e) {
+      console.error('[AccountService] Exception creating settings:', getSafeErrorMessage(e));
+      throw new Error('Failed to create settings: ' + getSafeErrorMessage(e));
     }
-    
-    console.log('[AccountService] Settings created successfully');
-    settings = newSettings;
   }
 
   console.log('[AccountService] Returning account and settings');
@@ -187,18 +183,24 @@ export async function ensureUserAccount(user) {
  * @returns {Promise<{account: Object, settings: Object}>}
  */
 export async function getCurrentUserAccountSettings() {
-  const userResult = await supabase.auth.getUser();
-  const user = userResult.data?.user;
-  const userError = userResult.error;
+  let user = null;
   
-  if (userError) {
-    throw createSafeError(userError, 'Failed to get authenticated user');
+  try {
+    const result = await supabase.auth.getUser();
+    user = result.data?.user;
+    
+    if (result.error) {
+      throw new Error('Failed to get user: ' + getSafeErrorMessage(result.error));
+    }
+  } catch (e) {
+    throw new Error('Failed to get authenticated user: ' + getSafeErrorMessage(e));
   }
+  
   if (!user) {
     throw new Error('No authenticated user');
   }
 
-  return await ensureUserAccount(user);
+  return ensureUserAccount(user);
 }
 
 /**
@@ -208,20 +210,22 @@ export async function getCurrentUserAccountSettings() {
  * @returns {Promise<Object>} - Updated settings
  */
 export async function updateAccountSettings(accountId, updates) {
-  const result = await supabase
-    .from('account_settings')
-    .update(updates)
-    .eq('account_id', accountId)
-    .select()
-    .single();
+  try {
+    const result = await supabase
+      .from('account_settings')
+      .update(updates)
+      .eq('account_id', accountId)
+      .select()
+      .single();
 
-  const data = result.data;
-  const error = result.error;
-
-  if (error) {
-    throw createSafeError(error, 'Failed to update account settings');
+    if (result.error) {
+      throw new Error('Failed to update settings: ' + getSafeErrorMessage(result.error));
+    }
+    
+    return result.data;
+  } catch (e) {
+    throw new Error('Failed to update account settings: ' + getSafeErrorMessage(e));
   }
-  return data;
 }
 
 /**
@@ -231,20 +235,22 @@ export async function updateAccountSettings(accountId, updates) {
  * @returns {Promise<Object>} - Updated account
  */
 export async function updateAccountName(accountId, name) {
-  const result = await supabase
-    .from('accounts')
-    .update({ name })
-    .eq('id', accountId)
-    .select()
-    .single();
+  try {
+    const result = await supabase
+      .from('accounts')
+      .update({ name })
+      .eq('id', accountId)
+      .select()
+      .single();
 
-  const data = result.data;
-  const error = result.error;
-
-  if (error) {
-    throw createSafeError(error, 'Failed to update account name');
+    if (result.error) {
+      throw new Error('Failed to update account: ' + getSafeErrorMessage(result.error));
+    }
+    
+    return result.data;
+  } catch (e) {
+    throw new Error('Failed to update account name: ' + getSafeErrorMessage(e));
   }
-  return data;
 }
 
 /**
@@ -253,19 +259,21 @@ export async function updateAccountName(accountId, name) {
  * @returns {Promise<Object>} - Account object
  */
 export async function getAccountByUserId(userId) {
-  const result = await supabase
-    .from('accounts')
-    .select('*')
-    .eq('owner_user_id', userId)
-    .single();
+  try {
+    const result = await supabase
+      .from('accounts')
+      .select('*')
+      .eq('owner_user_id', userId)
+      .single();
 
-  const data = result.data;
-  const error = result.error;
-
-  if (error) {
-    throw createSafeError(error, 'Failed to get account');
+    if (result.error) {
+      throw new Error('Failed to get account: ' + getSafeErrorMessage(result.error));
+    }
+    
+    return result.data;
+  } catch (e) {
+    throw new Error('Failed to get account: ' + getSafeErrorMessage(e));
   }
-  return data;
 }
 
 /**
@@ -274,17 +282,19 @@ export async function getAccountByUserId(userId) {
  * @returns {Promise<Object>} - Settings object
  */
 export async function getSettingsByAccountId(accountId) {
-  const result = await supabase
-    .from('account_settings')
-    .select('*')
-    .eq('account_id', accountId)
-    .single();
+  try {
+    const result = await supabase
+      .from('account_settings')
+      .select('*')
+      .eq('account_id', accountId)
+      .single();
 
-  const data = result.data;
-  const error = result.error;
-
-  if (error) {
-    throw createSafeError(error, 'Failed to get account settings');
+    if (result.error) {
+      throw new Error('Failed to get settings: ' + getSafeErrorMessage(result.error));
+    }
+    
+    return result.data;
+  } catch (e) {
+    throw new Error('Failed to get account settings: ' + getSafeErrorMessage(e));
   }
-  return data;
 }
