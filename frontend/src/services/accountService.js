@@ -51,11 +51,15 @@ export async function ensureUserAccount(user) {
 
     // Create account if it doesn't exist
     if (!account) {
+      console.log('[AccountService] No account found, creating new account...');
+      
       const accountName = 
         user.user_metadata?.business_name || 
         user.user_metadata?.full_name || 
         user.email?.split('@')[0] || 
         'My Account';
+
+      console.log('[AccountService] Creating account with name:', accountName);
 
       const { data: newAccount, error: createAccountError } = await supabase
         .from('accounts')
@@ -68,7 +72,17 @@ export async function ensureUserAccount(user) {
         .select()
         .single();
 
-      if (createAccountError) throw createAccountError;
+      if (createAccountError) {
+        console.error('[AccountService] Error creating account:', {
+          code: createAccountError.code,
+          message: createAccountError.message,
+          details: createAccountError.details,
+          hint: createAccountError.hint
+        });
+        throw createAccountError;
+      }
+      
+      console.log('[AccountService] Account created successfully:', newAccount.id);
       account = newAccount;
     }
 
