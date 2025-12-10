@@ -67,6 +67,13 @@ export default function Dashboard() {
             </h1>
           </div>
           <div className="flex items-center gap-4">
+            <Button
+              onClick={() => navigate('/settings')}
+              variant="ghost"
+              className="text-gray-700 hover:text-green-600"
+            >
+              Settings
+            </Button>
             <span className="text-sm text-gray-600">
               {user?.user_metadata?.full_name || user?.email}
             </span>
