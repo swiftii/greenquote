@@ -304,7 +304,7 @@ export default function Quote() {
             <Card>
               <CardHeader>
                 <CardTitle>Customer Information</CardTitle>
-                <CardDescription>Enter the prospect's contact details</CardDescription>
+                <CardDescription>Enter the prospect&apos;s contact details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
