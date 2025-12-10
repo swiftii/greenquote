@@ -187,10 +187,16 @@ export async function ensureUserAccount(user) {
  * @returns {Promise<{account: Object, settings: Object}>}
  */
 export async function getCurrentUserAccountSettings() {
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  const userResult = await supabase.auth.getUser();
+  const user = userResult.data?.user;
+  const userError = userResult.error;
   
-  if (userError) throw userError;
-  if (!user) throw new Error('No authenticated user');
+  if (userError) {
+    throw createSafeError(userError, 'Failed to get authenticated user');
+  }
+  if (!user) {
+    throw new Error('No authenticated user');
+  }
 
   return await ensureUserAccount(user);
 }
@@ -202,14 +208,19 @@ export async function getCurrentUserAccountSettings() {
  * @returns {Promise<Object>} - Updated settings
  */
 export async function updateAccountSettings(accountId, updates) {
-  const { data, error } = await supabase
+  const result = await supabase
     .from('account_settings')
     .update(updates)
     .eq('account_id', accountId)
     .select()
     .single();
 
-  if (error) throw error;
+  const data = result.data;
+  const error = result.error;
+
+  if (error) {
+    throw createSafeError(error, 'Failed to update account settings');
+  }
   return data;
 }
 
@@ -220,14 +231,19 @@ export async function updateAccountSettings(accountId, updates) {
  * @returns {Promise<Object>} - Updated account
  */
 export async function updateAccountName(accountId, name) {
-  const { data, error } = await supabase
+  const result = await supabase
     .from('accounts')
     .update({ name })
     .eq('id', accountId)
     .select()
     .single();
 
-  if (error) throw error;
+  const data = result.data;
+  const error = result.error;
+
+  if (error) {
+    throw createSafeError(error, 'Failed to update account name');
+  }
   return data;
 }
 
@@ -237,13 +253,18 @@ export async function updateAccountName(accountId, name) {
  * @returns {Promise<Object>} - Account object
  */
 export async function getAccountByUserId(userId) {
-  const { data, error } = await supabase
+  const result = await supabase
     .from('accounts')
     .select('*')
     .eq('owner_user_id', userId)
     .single();
 
-  if (error) throw error;
+  const data = result.data;
+  const error = result.error;
+
+  if (error) {
+    throw createSafeError(error, 'Failed to get account');
+  }
   return data;
 }
 
@@ -253,12 +274,17 @@ export async function getAccountByUserId(userId) {
  * @returns {Promise<Object>} - Settings object
  */
 export async function getSettingsByAccountId(accountId) {
-  const { data, error } = await supabase
+  const result = await supabase
     .from('account_settings')
     .select('*')
     .eq('account_id', accountId)
     .single();
 
-  if (error) throw error;
+  const data = result.data;
+  const error = result.error;
+
+  if (error) {
+    throw createSafeError(error, 'Failed to get account settings');
+  }
   return data;
 }
