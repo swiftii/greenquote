@@ -17,20 +17,37 @@ export async function ensureUserAccount(user) {
     throw new Error('User not authenticated');
   }
 
+  console.log('[AccountService] Ensuring account for user:', user.id);
+
   try {
     // Check if account already exists
+    console.log('[AccountService] Checking for existing account...');
     const { data: existingAccount, error: accountError } = await supabase
       .from('accounts')
       .select('*')
       .eq('owner_user_id', user.id)
       .single();
 
+    if (accountError) {
+      console.log('[AccountService] Account query error:', {
+        code: accountError.code,
+        message: accountError.message,
+        details: accountError.details,
+        hint: accountError.hint
+      });
+    }
+
     if (accountError && accountError.code !== 'PGRST116') {
       // PGRST116 = no rows returned (expected if account doesn't exist)
+      console.error('[AccountService] Unexpected error fetching account:', accountError);
       throw accountError;
     }
 
     let account = existingAccount;
+    
+    if (existingAccount) {
+      console.log('[AccountService] Found existing account:', existingAccount.id);
+    }
 
     // Create account if it doesn't exist
     if (!account) {
