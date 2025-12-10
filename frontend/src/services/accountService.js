@@ -4,9 +4,9 @@ import { supabase } from '@/lib/supabaseClient';
  * Account Service
  * Handles all account and account_settings operations
  * 
- * IMPORTANT: This service uses defensive error handling to avoid
- * "body stream already read" errors that can occur when accessing
- * certain properties of Supabase error objects.
+ * NOTE: With the Supabase trigger in place, accounts and account_settings
+ * are auto-created when a user signs up. This service is now primarily
+ * for READING data, with fallback creation logic just in case.
  */
 
 /**
@@ -16,18 +16,11 @@ import { supabase } from '@/lib/supabaseClient';
  */
 function getSafeErrorMessage(error) {
   if (!error) return 'Unknown error';
-  
-  // Try to get message as a simple string without accessing complex properties
   try {
-    // If it's a simple string, return it
     if (typeof error === 'string') return error;
-    
-    // If it has a message property that's a string, use it
     if (error.message && typeof error.message === 'string') {
       return error.message;
     }
-    
-    // Fallback to stringifying (safely)
     return 'Database operation failed';
   } catch {
     return 'Database operation failed';
@@ -35,8 +28,10 @@ function getSafeErrorMessage(error) {
 }
 
 /**
- * Get or create account for the current user
- * This ensures every user has an account + settings on first access
+ * Get account and settings for the current user
+ * 
+ * With the Supabase trigger, these should already exist.
+ * If they don't (edge case), we create them as a fallback.
  * 
  * @param {Object} user - Supabase user object
  * @returns {Promise<{account: Object, settings: Object}>}
@@ -46,11 +41,10 @@ export async function ensureUserAccount(user) {
     throw new Error('User not authenticated');
   }
 
-  console.log('[AccountService] Ensuring account for user:', user.id);
+  console.log('[AccountService] Getting account for user:', user.id);
 
-  // Step 1: Try to get existing account
+  // Step 1: Get existing account (should exist from trigger)
   let account = null;
-  let accountError = null;
   
   try {
     const result = await supabase
@@ -60,30 +54,23 @@ export async function ensureUserAccount(user) {
       .single();
     
     account = result.data;
-    accountError = result.error;
+    
+    // If no account found (PGRST116), we'll create one below
+    if (result.error && result.error.code !== 'PGRST116') {
+      throw new Error('Failed to fetch account: ' + getSafeErrorMessage(result.error));
+    }
   } catch (e) {
+    // Re-throw if it's our custom error
+    if (e.message && e.message.includes('Failed to fetch')) {
+      throw e;
+    }
     console.error('[AccountService] Exception fetching account:', getSafeErrorMessage(e));
     throw new Error('Failed to fetch account: ' + getSafeErrorMessage(e));
   }
 
-  // Check for error (PGRST116 means no rows, which is expected for new users)
-  if (accountError) {
-    const errorCode = accountError.code;
-    console.log('[AccountService] Account query returned error code:', errorCode);
-    
-    if (errorCode !== 'PGRST116') {
-      // Real error, not just "no rows found"
-      throw new Error('Failed to fetch account: ' + getSafeErrorMessage(accountError));
-    }
-  }
-
-  if (account) {
-    console.log('[AccountService] Found existing account:', account.id);
-  }
-
-  // Step 2: Create account if it doesn't exist
+  // Step 2: Create account if missing (fallback - trigger should handle this)
   if (!account) {
-    console.log('[AccountService] No account found, creating new account...');
+    console.warn('[AccountService] Account missing - creating fallback. Check if trigger is working.');
     
     const accountName = 
       user.user_metadata?.business_name || 
@@ -103,20 +90,24 @@ export async function ensureUserAccount(user) {
       }
       
       account = result.data;
-      console.log('[AccountService] Account created successfully:', account?.id);
+      console.log('[AccountService] Fallback account created:', account?.id);
     } catch (e) {
+      if (e.message && e.message.includes('Failed to create')) {
+        throw e;
+      }
       console.error('[AccountService] Exception creating account:', getSafeErrorMessage(e));
       throw new Error('Failed to create account: ' + getSafeErrorMessage(e));
     }
+  } else {
+    console.log('[AccountService] Found existing account:', account.id);
   }
 
   if (!account || !account.id) {
-    throw new Error('Failed to get or create account');
+    throw new Error('Unable to get or create account');
   }
 
-  // Step 3: Try to get existing settings
+  // Step 3: Get existing settings (should exist from trigger)
   let settings = null;
-  let settingsError = null;
   
   try {
     const result = await supabase
@@ -126,29 +117,22 @@ export async function ensureUserAccount(user) {
       .single();
     
     settings = result.data;
-    settingsError = result.error;
+    
+    // If no settings found (PGRST116), we'll create them below
+    if (result.error && result.error.code !== 'PGRST116') {
+      throw new Error('Failed to fetch settings: ' + getSafeErrorMessage(result.error));
+    }
   } catch (e) {
+    if (e.message && e.message.includes('Failed to fetch')) {
+      throw e;
+    }
     console.error('[AccountService] Exception fetching settings:', getSafeErrorMessage(e));
     throw new Error('Failed to fetch settings: ' + getSafeErrorMessage(e));
   }
 
-  // Check for error (PGRST116 means no rows, which is expected for new accounts)
-  if (settingsError) {
-    const errorCode = settingsError.code;
-    console.log('[AccountService] Settings query returned error code:', errorCode);
-    
-    if (errorCode !== 'PGRST116') {
-      throw new Error('Failed to fetch settings: ' + getSafeErrorMessage(settingsError));
-    }
-  }
-
-  if (settings) {
-    console.log('[AccountService] Found existing settings');
-  }
-
-  // Step 4: Create default settings if they don't exist
+  // Step 4: Create settings if missing (fallback - trigger should handle this)
   if (!settings) {
-    console.log('[AccountService] No settings found, creating default settings...');
+    console.warn('[AccountService] Settings missing - creating fallback. Check if trigger is working.');
     
     try {
       const result = await supabase
@@ -167,11 +151,16 @@ export async function ensureUserAccount(user) {
       }
       
       settings = result.data;
-      console.log('[AccountService] Settings created successfully');
+      console.log('[AccountService] Fallback settings created');
     } catch (e) {
+      if (e.message && e.message.includes('Failed to create')) {
+        throw e;
+      }
       console.error('[AccountService] Exception creating settings:', getSafeErrorMessage(e));
       throw new Error('Failed to create settings: ' + getSafeErrorMessage(e));
     }
+  } else {
+    console.log('[AccountService] Found existing settings');
   }
 
   console.log('[AccountService] Returning account and settings');
@@ -193,6 +182,9 @@ export async function getCurrentUserAccountSettings() {
       throw new Error('Failed to get user: ' + getSafeErrorMessage(result.error));
     }
   } catch (e) {
+    if (e.message && e.message.includes('Failed to get user')) {
+      throw e;
+    }
     throw new Error('Failed to get authenticated user: ' + getSafeErrorMessage(e));
   }
   
@@ -224,6 +216,9 @@ export async function updateAccountSettings(accountId, updates) {
     
     return result.data;
   } catch (e) {
+    if (e.message && e.message.includes('Failed to update')) {
+      throw e;
+    }
     throw new Error('Failed to update account settings: ' + getSafeErrorMessage(e));
   }
 }
@@ -249,6 +244,9 @@ export async function updateAccountName(accountId, name) {
     
     return result.data;
   } catch (e) {
+    if (e.message && e.message.includes('Failed to update')) {
+      throw e;
+    }
     throw new Error('Failed to update account name: ' + getSafeErrorMessage(e));
   }
 }
@@ -272,6 +270,9 @@ export async function getAccountByUserId(userId) {
     
     return result.data;
   } catch (e) {
+    if (e.message && e.message.includes('Failed to get')) {
+      throw e;
+    }
     throw new Error('Failed to get account: ' + getSafeErrorMessage(e));
   }
 }
@@ -295,6 +296,9 @@ export async function getSettingsByAccountId(accountId) {
     
     return result.data;
   } catch (e) {
+    if (e.message && e.message.includes('Failed to get')) {
+      throw e;
+    }
     throw new Error('Failed to get account settings: ' + getSafeErrorMessage(e));
   }
 }
