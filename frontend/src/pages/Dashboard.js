@@ -236,7 +236,10 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button className="h-auto py-6 flex flex-col items-start bg-green-600 hover:bg-green-700">
+              <Button 
+                onClick={() => navigate('/quote')}
+                className="h-auto py-6 flex flex-col items-start bg-green-600 hover:bg-green-700"
+              >
                 <span className="text-lg font-semibold mb-1">Create New Quote</span>
                 <span className="text-sm opacity-90">Generate a quote for a customer</span>
               </Button>
@@ -244,7 +247,11 @@ export default function Dashboard() {
                 <span className="text-lg font-semibold mb-1">Manage Clients</span>
                 <span className="text-sm opacity-90">View and edit client configurations</span>
               </Button>
-              <Button variant="outline" className="h-auto py-6 flex flex-col items-start border-green-600 text-green-600 hover:bg-green-50">
+              <Button 
+                onClick={() => navigate('/settings')}
+                variant="outline" 
+                className="h-auto py-6 flex flex-col items-start border-green-600 text-green-600 hover:bg-green-50"
+              >
                 <span className="text-lg font-semibold mb-1">Widget Settings</span>
                 <span className="text-sm opacity-90">Configure your quote widgets</span>
               </Button>
