@@ -87,6 +87,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          {/* Quote page - Pro quote flow */}
+          <Route
+            path="/quote"
+            element={
+              <ProtectedRoute>
+                <Quote />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Legacy home route for reference */}
           <Route path="/home" element={<Home />} />
