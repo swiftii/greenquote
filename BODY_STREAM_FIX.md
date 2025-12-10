@@ -12,82 +12,64 @@ This prevented the dashboard from loading account data from Supabase.
 
 ## Root Cause
 
-The error occurred because the Supabase error objects were being passed around and potentially accessed multiple times. When the Supabase SDK encounters an error, it creates an error object that may contain Response-related data. If this error object is:
+The error occurred because the Supabase JS client internally reads the Response body to parse data or errors. When an error occurs (like when tables don't exist or RLS blocks access), the error handling code might try to read the body again, causing the "body stream already read" error.
 
-1. Logged to the console (which may access internal properties)
-2. Then re-thrown and caught again
-3. And accessed again in error handling code
-
-...the Response body could be read more than once, causing the "body stream already read" error.
+This is a known issue that can happen with fetch-based libraries when:
+1. The response body stream is consumed once (e.g., by `.json()`)
+2. Error handling code or logging attempts to read it again
+3. The error object contains references to the original Response
 
 ## Solution
 
-Refactored `/frontend/src/services/accountService.js` to:
+Applied a two-part fix:
 
-### 1. Extract Error Data Immediately
+### 1. Custom Fetch Wrapper with Response Cloning
 
-Created helper functions that extract primitive values from Supabase errors immediately, preventing any later attempts to read Response data:
-
-```javascript
-function extractErrorDetails(error) {
-  if (!error) return null;
-  return {
-    message: String(error.message || 'Unknown error'),
-    code: String(error.code || ''),
-    details: error.details ? String(error.details) : null,
-    hint: error.hint ? String(error.hint) : null,
-  };
-}
-```
-
-### 2. Create Safe Error Objects
-
-Instead of re-throwing the original Supabase error, we now create new standard JavaScript Error objects with the extracted details:
+Modified `/frontend/src/lib/supabaseClient.js` to use a custom fetch function that clones responses:
 
 ```javascript
-function createSafeError(supabaseError, context) {
-  const details = extractErrorDetails(supabaseError);
-  const errorMessage = details 
-    ? `${context}: ${details.message}...`
-    : context;
-  return new Error(errorMessage);
-}
+const customFetch = async (url, options = {}) => {
+  const response = await fetch(url, options);
+  // Clone the response immediately so we can safely read it
+  // This prevents "body stream already read" errors if the body
+  // is accidentally read multiple times
+  return response.clone();
+};
+
+export const supabase = createClient(url, key, {
+  global: {
+    fetch: customFetch,
+  },
+});
 ```
 
-### 3. Read Response Data Once
+### 2. Safe Error Handling in Account Service
 
-Changed the pattern for handling Supabase responses to extract `data` and `error` immediately into separate variables:
+Updated `/frontend/src/services/accountService.js` to:
+- Extract error data into primitive values immediately
+- Create new standard JavaScript Error objects instead of re-throwing Supabase errors
+- Never access Response-related properties after initial extraction
 
-```javascript
-// BEFORE (potentially problematic)
-const { data, error } = await supabase.from('accounts')...;
-if (error) {
-  console.log(error); // Might read Response body
-  throw error; // Passes error object that gets read again elsewhere
-}
+### 3. Improved Dashboard/Settings Error Handling
 
-// AFTER (safe)
-const result = await supabase.from('accounts')...;
-const data = result.data;
-const error = result.error;
-
-if (error) {
-  const errorDetails = extractErrorDetails(error); // Extract once
-  console.log('[AccountService] Error:', errorDetails);
-  throw createSafeError(error, 'Context message'); // Throw new Error
-}
-```
+Updated both Dashboard and Settings pages to:
+- Check if Supabase is properly configured before making requests
+- Use defensive error extraction that handles all error types safely
+- Never access potentially problematic error object properties
 
 ## Files Modified
 
-- `frontend/src/services/accountService.js` - Complete refactor of error handling
+- `frontend/src/lib/supabaseClient.js` - Added custom fetch wrapper with response cloning
+- `frontend/src/services/accountService.js` - Safe error extraction and handling
+- `frontend/src/pages/Dashboard.js` - Added Supabase config check and improved error handling
+- `frontend/src/pages/Settings.js` - Added Supabase config check
 
 ## Testing
 
 After this fix:
 1. The `TypeError: body stream already read` error no longer appears
 2. Dashboard loads correctly for logged-in users (assuming Supabase tables exist)
-3. Error messages are now cleaner and more informative
+3. Clear error messages are shown if Supabase is not configured
 
 ## Related Issues
 
