@@ -4,26 +4,28 @@
   "outputDirectory": "frontend/build",
   "installCommand": "cd frontend && yarn install",
   "devCommand": "npm run dev",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/widgets/(.*)",
+      "destination": "/widgets/$1"
+    },
+    {
+      "source": "/pro/(.*)",
+      "destination": "/pro/$1"
+    },
+    {
+      "source": "/configs/(.*)",
+      "destination": "/configs/$1"
+    }
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
       "dest": "backend/server.py"
-    },
-    {
-      "src": "/login",
-      "dest": "/frontend/build/index.html"
-    },
-    {
-      "src": "/signup",
-      "dest": "/frontend/build/index.html"
-    },
-    {
-      "src": "/dashboard",
-      "dest": "/frontend/build/index.html"
-    },
-    {
-      "src": "/static/(.*)",
-      "dest": "/frontend/build/static/$1"
     },
     {
       "src": "/widgets/(.*)",
@@ -38,20 +40,7 @@
       "dest": "/configs/$1"
     },
     {
-      "src": "/manifest.json",
-      "dest": "/frontend/build/manifest.json"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/frontend/build/favicon.ico"
-    },
-    {
-      "src": "/logo(.*)",
-      "dest": "/frontend/build/logo$1"
-    },
-    {
-      "src": "/(.*\\.(html|css|json|png|jpg|jpeg|svg|ico|pdf|md))",
-      "dest": "/$1"
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
