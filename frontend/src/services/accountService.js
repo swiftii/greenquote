@@ -87,20 +87,37 @@ export async function ensureUserAccount(user) {
     }
 
     // Check if settings exist
+    console.log('[AccountService] Checking for account settings...');
     const { data: existingSettings, error: settingsError } = await supabase
       .from('account_settings')
       .select('*')
       .eq('account_id', account.id)
       .single();
 
+    if (settingsError) {
+      console.log('[AccountService] Settings query error:', {
+        code: settingsError.code,
+        message: settingsError.message,
+        details: settingsError.details,
+        hint: settingsError.hint
+      });
+    }
+
     if (settingsError && settingsError.code !== 'PGRST116') {
+      console.error('[AccountService] Unexpected error fetching settings:', settingsError);
       throw settingsError;
     }
 
     let settings = existingSettings;
+    
+    if (existingSettings) {
+      console.log('[AccountService] Found existing settings');
+    }
 
     // Create default settings if they don't exist
     if (!settings) {
+      console.log('[AccountService] No settings found, creating default settings...');
+      
       const { data: newSettings, error: createSettingsError } = await supabase
         .from('account_settings')
         .insert([
@@ -114,13 +131,30 @@ export async function ensureUserAccount(user) {
         .select()
         .single();
 
-      if (createSettingsError) throw createSettingsError;
+      if (createSettingsError) {
+        console.error('[AccountService] Error creating settings:', {
+          code: createSettingsError.code,
+          message: createSettingsError.message,
+          details: createSettingsError.details,
+          hint: createSettingsError.hint
+        });
+        throw createSettingsError;
+      }
+      
+      console.log('[AccountService] Settings created successfully');
       settings = newSettings;
     }
 
+    console.log('[AccountService] Returning account and settings');
     return { account, settings };
   } catch (error) {
-    console.error('Error ensuring user account:', error);
+    console.error('[AccountService] Error ensuring user account:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      name: error.name
+    });
     throw error;
   }
 }
