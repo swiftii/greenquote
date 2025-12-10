@@ -42,19 +42,29 @@ export default function Settings() {
   }, [user, loading]);
 
   const loadAccountData = async () => {
+    // Check if Supabase is configured
+    if (!isSupabaseConfigured) {
+      setError('Supabase is not configured. Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY environment variables.');
+      setAccountLoading(false);
+      return;
+    }
+
     try {
       setAccountLoading(true);
       setError(null);
-      const { account: userAccount, settings: userSettings } = await ensureUserAccount(user);
+      const result = await ensureUserAccount(user);
+      const userAccount = result?.account;
+      const userSettings = result?.settings;
+      
       setAccount(userAccount);
       setSettings(userSettings);
       
       // Populate form with existing data
       setFormData({
-        accountName: userAccount.name || '',
-        minPricePerVisit: userSettings.min_price_per_visit || '',
-        pricePerSqFt: userSettings.price_per_sq_ft || '',
-        selectedAddons: userSettings.addons || [],
+        accountName: userAccount?.name || '',
+        minPricePerVisit: userSettings?.min_price_per_visit || '',
+        pricePerSqFt: userSettings?.price_per_sq_ft || '',
+        selectedAddons: userSettings?.addons || [],
       });
     } catch (err) {
       console.error('Error loading account data:', err);
