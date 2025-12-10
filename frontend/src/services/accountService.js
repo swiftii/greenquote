@@ -6,6 +6,45 @@ import { supabase } from '@/lib/supabaseClient';
  */
 
 /**
+ * Helper function to safely extract error details from Supabase errors
+ * This prevents "body stream already read" errors by extracting primitive values only
+ * 
+ * @param {Object} error - Supabase error object
+ * @returns {Object} - Safe error object with primitive values
+ */
+function extractErrorDetails(error) {
+  if (!error) return null;
+  
+  // Extract only primitive values to avoid Response object issues
+  return {
+    message: String(error.message || 'Unknown error'),
+    code: String(error.code || ''),
+    details: error.details ? String(error.details) : null,
+    hint: error.hint ? String(error.hint) : null,
+  };
+}
+
+/**
+ * Helper function to create a new Error with extracted details
+ * 
+ * @param {Object} supabaseError - Original Supabase error
+ * @param {string} context - Context message for the error
+ * @returns {Error} - Standard JavaScript Error object
+ */
+function createSafeError(supabaseError, context) {
+  const details = extractErrorDetails(supabaseError);
+  const errorMessage = details 
+    ? `${context}: ${details.message}${details.code ? ` (code: ${details.code})` : ''}${details.hint ? ` - ${details.hint}` : ''}`
+    : context;
+  
+  const error = new Error(errorMessage);
+  error.code = details?.code || null;
+  error.details = details?.details || null;
+  error.hint = details?.hint || null;
+  return error;
+}
+
+/**
  * Get or create account for the current user
  * This ensures every user has an account + settings on first access
  * 
@@ -19,144 +58,128 @@ export async function ensureUserAccount(user) {
 
   console.log('[AccountService] Ensuring account for user:', user.id);
 
-  try {
-    // Check if account already exists
-    console.log('[AccountService] Checking for existing account...');
-    const { data: existingAccount, error: accountError } = await supabase
-      .from('accounts')
-      .select('*')
-      .eq('owner_user_id', user.id)
-      .single();
+  // Check if account already exists
+  console.log('[AccountService] Checking for existing account...');
+  const accountResult = await supabase
+    .from('accounts')
+    .select('*')
+    .eq('owner_user_id', user.id)
+    .single();
 
-    if (accountError) {
-      console.log('[AccountService] Account query error:', {
-        code: accountError.code,
-        message: accountError.message,
-        details: accountError.details,
-        hint: accountError.hint
-      });
-    }
+  // Extract data and error immediately (read response only once)
+  const existingAccount = accountResult.data;
+  const accountError = accountResult.error;
 
-    if (accountError && accountError.code !== 'PGRST116') {
-      // PGRST116 = no rows returned (expected if account doesn't exist)
-      console.error('[AccountService] Unexpected error fetching account:', accountError);
-      throw accountError;
-    }
-
-    let account = existingAccount;
-    
-    if (existingAccount) {
-      console.log('[AccountService] Found existing account:', existingAccount.id);
-    }
-
-    // Create account if it doesn't exist
-    if (!account) {
-      console.log('[AccountService] No account found, creating new account...');
-      
-      const accountName = 
-        user.user_metadata?.business_name || 
-        user.user_metadata?.full_name || 
-        user.email?.split('@')[0] || 
-        'My Account';
-
-      console.log('[AccountService] Creating account with name:', accountName);
-
-      const { data: newAccount, error: createAccountError } = await supabase
-        .from('accounts')
-        .insert([
-          {
-            owner_user_id: user.id,
-            name: accountName,
-          },
-        ])
-        .select()
-        .single();
-
-      if (createAccountError) {
-        console.error('[AccountService] Error creating account:', {
-          code: createAccountError.code,
-          message: createAccountError.message,
-          details: createAccountError.details,
-          hint: createAccountError.hint
-        });
-        throw createAccountError;
-      }
-      
-      console.log('[AccountService] Account created successfully:', newAccount.id);
-      account = newAccount;
-    }
-
-    // Check if settings exist
-    console.log('[AccountService] Checking for account settings...');
-    const { data: existingSettings, error: settingsError } = await supabase
-      .from('account_settings')
-      .select('*')
-      .eq('account_id', account.id)
-      .single();
-
-    if (settingsError) {
-      console.log('[AccountService] Settings query error:', {
-        code: settingsError.code,
-        message: settingsError.message,
-        details: settingsError.details,
-        hint: settingsError.hint
-      });
-    }
-
-    if (settingsError && settingsError.code !== 'PGRST116') {
-      console.error('[AccountService] Unexpected error fetching settings:', settingsError);
-      throw settingsError;
-    }
-
-    let settings = existingSettings;
-    
-    if (existingSettings) {
-      console.log('[AccountService] Found existing settings');
-    }
-
-    // Create default settings if they don't exist
-    if (!settings) {
-      console.log('[AccountService] No settings found, creating default settings...');
-      
-      const { data: newSettings, error: createSettingsError } = await supabase
-        .from('account_settings')
-        .insert([
-          {
-            account_id: account.id,
-            min_price_per_visit: 50.00,
-            price_per_sq_ft: 0.10,
-            addons: [],
-          },
-        ])
-        .select()
-        .single();
-
-      if (createSettingsError) {
-        console.error('[AccountService] Error creating settings:', {
-          code: createSettingsError.code,
-          message: createSettingsError.message,
-          details: createSettingsError.details,
-          hint: createSettingsError.hint
-        });
-        throw createSettingsError;
-      }
-      
-      console.log('[AccountService] Settings created successfully');
-      settings = newSettings;
-    }
-
-    console.log('[AccountService] Returning account and settings');
-    return { account, settings };
-  } catch (error) {
-    console.error('[AccountService] Error ensuring user account:', {
-      message: error.message,
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-      name: error.name
-    });
-    throw error;
+  if (accountError) {
+    const errorDetails = extractErrorDetails(accountError);
+    console.log('[AccountService] Account query result:', errorDetails);
   }
+
+  // PGRST116 = no rows returned (expected if account doesn't exist)
+  if (accountError && accountError.code !== 'PGRST116') {
+    console.error('[AccountService] Unexpected error fetching account');
+    throw createSafeError(accountError, 'Failed to fetch account');
+  }
+
+  let account = existingAccount;
+  
+  if (existingAccount) {
+    console.log('[AccountService] Found existing account:', existingAccount.id);
+  }
+
+  // Create account if it doesn't exist
+  if (!account) {
+    console.log('[AccountService] No account found, creating new account...');
+    
+    const accountName = 
+      user.user_metadata?.business_name || 
+      user.user_metadata?.full_name || 
+      user.email?.split('@')[0] || 
+      'My Account';
+
+    console.log('[AccountService] Creating account with name:', accountName);
+
+    const createAccountResult = await supabase
+      .from('accounts')
+      .insert([
+        {
+          owner_user_id: user.id,
+          name: accountName,
+        },
+      ])
+      .select()
+      .single();
+
+    const newAccount = createAccountResult.data;
+    const createAccountError = createAccountResult.error;
+
+    if (createAccountError) {
+      console.error('[AccountService] Error creating account:', extractErrorDetails(createAccountError));
+      throw createSafeError(createAccountError, 'Failed to create account');
+    }
+    
+    console.log('[AccountService] Account created successfully:', newAccount.id);
+    account = newAccount;
+  }
+
+  // Check if settings exist
+  console.log('[AccountService] Checking for account settings...');
+  const settingsResult = await supabase
+    .from('account_settings')
+    .select('*')
+    .eq('account_id', account.id)
+    .single();
+
+  const existingSettings = settingsResult.data;
+  const settingsError = settingsResult.error;
+
+  if (settingsError) {
+    const errorDetails = extractErrorDetails(settingsError);
+    console.log('[AccountService] Settings query result:', errorDetails);
+  }
+
+  if (settingsError && settingsError.code !== 'PGRST116') {
+    console.error('[AccountService] Unexpected error fetching settings');
+    throw createSafeError(settingsError, 'Failed to fetch account settings');
+  }
+
+  let settings = existingSettings;
+  
+  if (existingSettings) {
+    console.log('[AccountService] Found existing settings');
+  }
+
+  // Create default settings if they don't exist
+  if (!settings) {
+    console.log('[AccountService] No settings found, creating default settings...');
+    
+    const createSettingsResult = await supabase
+      .from('account_settings')
+      .insert([
+        {
+          account_id: account.id,
+          min_price_per_visit: 50.00,
+          price_per_sq_ft: 0.10,
+          addons: [],
+        },
+      ])
+      .select()
+      .single();
+
+    const newSettings = createSettingsResult.data;
+    const createSettingsError = createSettingsResult.error;
+
+    if (createSettingsError) {
+      console.error('[AccountService] Error creating settings:', extractErrorDetails(createSettingsError));
+      throw createSafeError(createSettingsError, 'Failed to create account settings');
+    }
+    
+    console.log('[AccountService] Settings created successfully');
+    settings = newSettings;
+  }
+
+  console.log('[AccountService] Returning account and settings');
+  return { account, settings };
 }
 
 /**
