@@ -1,12 +1,40 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
+import { ensureUserAccount } from '@/services/accountService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const [account, setAccount] = useState(null);
+  const [settings, setSettings] = useState(null);
+  const [accountLoading, setAccountLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (user && !loading) {
+      loadAccountData();
+    }
+  }, [user, loading]);
+
+  const loadAccountData = async () => {
+    try {
+      setAccountLoading(true);
+      setError(null);
+      const { account: userAccount, settings: userSettings } = await ensureUserAccount(user);
+      setAccount(userAccount);
+      setSettings(userSettings);
+    } catch (err) {
+      console.error('Error loading account data:', err);
+      setError('Failed to load account data. Please try refreshing the page.');
+    } finally {
+      setAccountLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -17,7 +45,7 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
+  if (loading || accountLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
         <div className="text-center">
