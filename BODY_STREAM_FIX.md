@@ -1,79 +1,95 @@
-# Fix: TypeError "body stream already read" on Dashboard
+# Fix: TypeError "body stream already read" / "Response body is already used" on Dashboard
 
 ## Problem
 
-When logged-in users visited the `/dashboard` page, they encountered this error:
+When logged-in users visited the `/dashboard` page, they encountered these errors:
 
 ```
 TypeError: Failed to execute 'text' on 'Response': body stream already read
+TypeError: Failed to execute 'clone' on 'Response': Response body is already used
 ```
 
 This prevented the dashboard from loading account data from Supabase.
 
 ## Root Cause
 
-The error occurred because the Supabase JS client internally reads the Response body to parse data or errors. When an error occurs (like when tables don't exist or RLS blocks access), the error handling code might try to read the body again, causing the "body stream already read" error.
-
-This is a known issue that can happen with fetch-based libraries when:
-1. The response body stream is consumed once (e.g., by `.json()`)
-2. Error handling code or logging attempts to read it again
-3. The error object contains references to the original Response
+The error occurred because:
+1. The Supabase JS client internally reads the Response body to parse data/errors
+2. Accessing certain error object properties (like `error.details`, `error.hint`) can trigger additional body reads
+3. Using `Response.clone()` after the body has been consumed fails
 
 ## Solution
 
-Applied a two-part fix:
+### 1. Removed Custom Fetch Wrapper
 
-### 1. Custom Fetch Wrapper with Response Cloning
+The previous attempt to use `response.clone()` in a custom fetch wrapper caused the "Response body is already used" error. Removed this and use the default Supabase client configuration.
 
-Modified `/frontend/src/lib/supabaseClient.js` to use a custom fetch function that clones responses:
+**File:** `/frontend/src/lib/supabaseClient.js`
 
 ```javascript
-const customFetch = async (url, options = {}) => {
-  const response = await fetch(url, options);
-  // Clone the response immediately so we can safely read it
-  // This prevents "body stream already read" errors if the body
-  // is accidentally read multiple times
-  return response.clone();
-};
-
+// NO custom fetch wrapper - let Supabase handle Response objects internally
 export const supabase = createClient(url, key, {
-  global: {
-    fetch: customFetch,
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
   },
 });
 ```
 
-### 2. Safe Error Handling in Account Service
+### 2. Defensive Error Handling
 
-Updated `/frontend/src/services/accountService.js` to:
-- Extract error data into primitive values immediately
-- Create new standard JavaScript Error objects instead of re-throwing Supabase errors
-- Never access Response-related properties after initial extraction
+Completely rewrote `/frontend/src/services/accountService.js` to:
+- Wrap all Supabase calls in try/catch blocks
+- Only access simple string properties on errors (`.message`, `.code`)
+- Use a `getSafeErrorMessage()` helper that won't trigger body reads
+- Create new plain Error objects instead of re-throwing Supabase errors
 
-### 3. Improved Dashboard/Settings Error Handling
+```javascript
+function getSafeErrorMessage(error) {
+  if (!error) return 'Unknown error';
+  try {
+    if (typeof error === 'string') return error;
+    if (error.message && typeof error.message === 'string') {
+      return error.message;
+    }
+    return 'Database operation failed';
+  } catch {
+    return 'Database operation failed';
+  }
+}
+```
 
-Updated both Dashboard and Settings pages to:
-- Check if Supabase is properly configured before making requests
-- Use defensive error extraction that handles all error types safely
-- Never access potentially problematic error object properties
+### 3. Supabase Client Only (No Manual Fetch)
+
+All database operations use the Supabase client directly:
+```javascript
+const result = await supabase
+  .from('accounts')
+  .select('*')
+  .eq('owner_user_id', user.id)
+  .single();
+```
+
+This avoids dealing with raw `Response` objects entirely.
 
 ## Files Modified
 
-- `frontend/src/lib/supabaseClient.js` - Added custom fetch wrapper with response cloning
-- `frontend/src/services/accountService.js` - Safe error extraction and handling
-- `frontend/src/pages/Dashboard.js` - Added Supabase config check and improved error handling
+- `frontend/src/lib/supabaseClient.js` - Removed custom fetch wrapper
+- `frontend/src/services/accountService.js` - Complete rewrite with defensive error handling
+- `frontend/src/pages/Dashboard.js` - Added Supabase config check
 - `frontend/src/pages/Settings.js` - Added Supabase config check
 
 ## Testing
 
 After this fix:
-1. The `TypeError: body stream already read` error no longer appears
-2. Dashboard loads correctly for logged-in users (assuming Supabase tables exist)
-3. Clear error messages are shown if Supabase is not configured
+1. No more "body stream already read" errors
+2. No more "Response body is already used" errors  
+3. Dashboard loads correctly for logged-in users (assuming Supabase is configured)
 
-## Related Issues
+## Prerequisites
 
-If you still see errors after this fix, verify:
+Before testing, ensure:
 1. The SQL migration from `SUPABASE_SCHEMA.sql` has been run in your Supabase project
-2. Row Level Security (RLS) policies are properly configured
-3. Environment variables `REACT_APP_SUPABASE_URL` and `REACT_APP_SUPABASE_ANON_KEY` are set in Vercel
+2. Environment variables are set in Vercel:
+   - `REACT_APP_SUPABASE_URL`
+   - `REACT_APP_SUPABASE_ANON_KEY`
