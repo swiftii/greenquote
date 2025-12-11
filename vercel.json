@@ -1,13 +1,17 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "cd frontend && yarn install && yarn build",
   "outputDirectory": "frontend/build",
   "installCommand": "cd frontend && yarn install",
-  "devCommand": "npm run dev",
+  "functions": {
+    "api/*.js": {
+      "runtime": "@vercel/node@3"
+    }
+  },
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "backend/server.py"
+      "src": "/api/send-quote-email",
+      "dest": "/api/send-quote-email.js"
     },
     {
       "src": "/widgets/(.*)",
@@ -42,7 +46,7 @@
       "dest": "/$1"
     },
     {
-      "src": "/(login|signup|dashboard).*",
+      "src": "/(login|signup|dashboard|settings|quote).*",
       "dest": "/index.html"
     },
     {
