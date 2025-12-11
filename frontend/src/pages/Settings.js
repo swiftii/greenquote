@@ -3,20 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import { ensureUserAccount, updateAccountSettings, updateAccountName } from '@/services/accountService';
+import { getAccountAddons, createAddon, updateAddon, deleteAddon, createDefaultAddons } from '@/services/addonsService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
 
-const AVAILABLE_ADDONS = [
-  { id: 'mulch', label: 'Mulch Installation', description: 'Add mulch to garden beds' },
-  { id: 'flower_beds', label: 'Flower Bed Maintenance', description: 'Weeding and edging flower beds' },
-  { id: 'hedge_trimming', label: 'Hedge Trimming', description: 'Trim and shape hedges' },
-  { id: 'leaf_removal', label: 'Leaf Removal', description: 'Fall leaf cleanup service' },
-  { id: 'aeration', label: 'Lawn Aeration', description: 'Core aeration service' },
-  { id: 'fertilization', label: 'Fertilization', description: 'Lawn fertilizer application' },
-];
+/**
+ * Settings Page
+ * Route: /settings
+ * 
+ * Allows users to configure:
+ * - Account information (business name)
+ * - Pricing settings (min price, price per sq ft)
+ * - Custom add-ons with per-visit pricing
+ */
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -28,11 +31,17 @@ export default function Settings() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
+  // Add-ons state
+  const [addons, setAddons] = useState([]);
+  const [addonsLoading, setAddonsLoading] = useState(true);
+  const [editingAddon, setEditingAddon] = useState(null);
+  const [newAddon, setNewAddon] = useState({ name: '', price_per_visit: '', description: '' });
+  const [showNewAddonForm, setShowNewAddonForm] = useState(false);
+
   const [formData, setFormData] = useState({
     accountName: '',
     minPricePerVisit: '',
     pricePerSqFt: '',
-    selectedAddons: [],
   });
 
   useEffect(() => {
@@ -42,16 +51,18 @@ export default function Settings() {
   }, [user, loading]);
 
   const loadAccountData = async () => {
-    // Check if Supabase is configured
     if (!isSupabaseConfigured) {
-      setError('Supabase is not configured. Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY environment variables.');
+      setError('Supabase is not configured. Please set environment variables.');
       setAccountLoading(false);
+      setAddonsLoading(false);
       return;
     }
 
     try {
       setAccountLoading(true);
+      setAddonsLoading(true);
       setError(null);
+      
       const result = await ensureUserAccount(user);
       const userAccount = result?.account;
       const userSettings = result?.settings;
@@ -62,15 +73,21 @@ export default function Settings() {
       // Populate form with existing data
       setFormData({
         accountName: userAccount?.name || '',
-        minPricePerVisit: userSettings?.min_price_per_visit || '',
-        pricePerSqFt: userSettings?.price_per_sq_ft || '',
-        selectedAddons: userSettings?.addons || [],
+        minPricePerVisit: userSettings?.min_price_per_visit || '50',
+        pricePerSqFt: userSettings?.price_per_sq_ft || '0.01',
       });
+
+      // Load add-ons for this account
+      if (userAccount?.id) {
+        const accountAddons = await getAccountAddons(userAccount.id);
+        setAddons(accountAddons);
+      }
     } catch (err) {
       console.error('Error loading account data:', err);
       setError('Failed to load account data. Please try refreshing the page.');
     } finally {
       setAccountLoading(false);
+      setAddonsLoading(false);
     }
   };
 
@@ -82,23 +99,13 @@ export default function Settings() {
     }));
   };
 
-  const handleAddonToggle = (addonId) => {
-    setFormData((prev) => ({
-      ...prev,
-      selectedAddons: prev.selectedAddons.includes(addonId)
-        ? prev.selectedAddons.filter((id) => id !== addonId)
-        : [...prev.selectedAddons, addonId],
-    }));
-  };
-
-  const handleSubmit = async (e) => {
+  const handleSubmitSettings = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
     setSuccess(null);
 
     try {
-      // Validate inputs
       const minPrice = parseFloat(formData.minPricePerVisit);
       const pricePerSqFt = parseFloat(formData.pricePerSqFt);
 
@@ -118,21 +125,104 @@ export default function Settings() {
       await updateAccountSettings(account.id, {
         min_price_per_visit: minPrice,
         price_per_sq_ft: pricePerSqFt,
-        addons: formData.selectedAddons,
       });
 
       setSuccess('Settings saved successfully!');
-      
-      // Reload data to reflect changes
       await loadAccountData();
-
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error('Error saving settings:', err);
-      setError(err.message || 'Failed to save settings. Please try again.');
+      setError(err.message || 'Failed to save settings.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Add-on CRUD handlers
+  const handleAddAddon = async () => {
+    if (!newAddon.name.trim()) {
+      setError('Please enter an add-on name');
+      return;
+    }
+    if (!newAddon.price_per_visit || parseFloat(newAddon.price_per_visit) < 0) {
+      setError('Please enter a valid price');
+      return;
+    }
+
+    try {
+      setError(null);
+      const created = await createAddon(account.id, {
+        name: newAddon.name.trim(),
+        description: newAddon.description.trim() || null,
+        price_per_visit: parseFloat(newAddon.price_per_visit),
+        is_active: true,
+        sort_order: addons.length,
+      });
+
+      setAddons([...addons, created]);
+      setNewAddon({ name: '', price_per_visit: '', description: '' });
+      setShowNewAddonForm(false);
+      setSuccess('Add-on created!');
+      setTimeout(() => setSuccess(null), 2000);
+    } catch (err) {
+      console.error('Error creating add-on:', err);
+      setError('Failed to create add-on: ' + (err.message || ''));
+    }
+  };
+
+  const handleUpdateAddon = async (addonId, updates) => {
+    try {
+      setError(null);
+      const updated = await updateAddon(addonId, updates);
+      setAddons(addons.map(a => a.id === addonId ? updated : a));
+      setEditingAddon(null);
+      setSuccess('Add-on updated!');
+      setTimeout(() => setSuccess(null), 2000);
+    } catch (err) {
+      console.error('Error updating add-on:', err);
+      setError('Failed to update add-on: ' + (err.message || ''));
+    }
+  };
+
+  const handleToggleActive = async (addon) => {
+    try {
+      const updated = await updateAddon(addon.id, { is_active: !addon.is_active });
+      setAddons(addons.map(a => a.id === addon.id ? updated : a));
+    } catch (err) {
+      console.error('Error toggling add-on:', err);
+      setError('Failed to update add-on');
+    }
+  };
+
+  const handleDeleteAddon = async (addonId) => {
+    if (!window.confirm('Are you sure you want to delete this add-on?')) return;
+
+    try {
+      setError(null);
+      await deleteAddon(addonId);
+      setAddons(addons.filter(a => a.id !== addonId));
+      setSuccess('Add-on deleted!');
+      setTimeout(() => setSuccess(null), 2000);
+    } catch (err) {
+      console.error('Error deleting add-on:', err);
+      setError('Failed to delete add-on: ' + (err.message || ''));
+    }
+  };
+
+  const handleCreateDefaults = async () => {
+    if (addons.length > 0) {
+      if (!window.confirm('This will add default add-ons. Continue?')) return;
+    }
+
+    try {
+      setError(null);
+      const created = await createDefaultAddons(account.id);
+      setAddons([...addons, ...created]);
+      setSuccess(`Created ${created.length} default add-ons!`);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      console.error('Error creating defaults:', err);
+      setError('Failed to create default add-ons');
     }
   };
 
@@ -198,12 +288,12 @@ export default function Settings() {
 
         {success && (
           <Alert className="mb-6 bg-green-50 text-green-800 border-green-200">
-            <AlertDescription>{success}</AlertDescription>
+            <AlertDescription>✅ {success}</AlertDescription>
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit}>
-          {/* Account Information */}
+        {/* Account Information */}
+        <form onSubmit={handleSubmitSettings}>
           <Card className="mb-6">
             <CardHeader>
               <CardTitle>Account Information</CardTitle>
@@ -239,7 +329,7 @@ export default function Settings() {
               <CardDescription>Set your default pricing for quotes</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="minPricePerVisit">Minimum Price Per Visit ($)</Label>
                   <Input
@@ -255,7 +345,7 @@ export default function Settings() {
                     required
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    The minimum amount charged per visit, regardless of lawn size
+                    Minimum amount charged regardless of lawn size
                   </p>
                 </div>
                 <div>
@@ -268,73 +358,275 @@ export default function Settings() {
                     min="0"
                     value={formData.pricePerSqFt}
                     onChange={handleInputChange}
-                    placeholder="0.10"
+                    placeholder="0.01"
                     className="mt-1"
                     required
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Price charged per square foot of lawn area
+                    Price per square foot of lawn area
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Add-ons */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Service Add-ons</CardTitle>
-              <CardDescription>Select which additional services you offer</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {AVAILABLE_ADDONS.map((addon) => (
-                  <div
-                    key={addon.id}
-                    className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                      formData.selectedAddons.includes(addon.id)
-                        ? 'border-green-600 bg-green-50'
-                        : 'border-gray-200 hover:border-green-300'
-                    }`}
-                    onClick={() => handleAddonToggle(addon.id)}
-                  >
-                    <div className="flex items-start">
-                      <input
-                        type="checkbox"
-                        checked={formData.selectedAddons.includes(addon.id)}
-                        onChange={() => handleAddonToggle(addon.id)}
-                        className="mt-1 mr-3 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                      />
-                      <div>
-                        <p className="font-medium text-gray-900">{addon.label}</p>
-                        <p className="text-sm text-gray-600">{addon.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="mt-4 flex justify-end">
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {saving ? 'Saving...' : 'Save Pricing'}
+                </Button>
               </div>
             </CardContent>
           </Card>
-
-          {/* Save Button */}
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate('/dashboard')}
-              disabled={saving}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={saving}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              {saving ? 'Saving...' : 'Save Settings'}
-            </Button>
-          </div>
         </form>
+
+        {/* Add-ons Management */}
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Service Add-ons</CardTitle>
+                <CardDescription>
+                  Configure add-on services with custom pricing. These will appear in your quote flow.
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                {addons.length === 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCreateDefaults}
+                  >
+                    Create Defaults
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setShowNewAddonForm(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  + Add New
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* New Add-on Form */}
+            {showNewAddonForm && (
+              <div className="mb-4 p-4 border border-green-200 rounded-lg bg-green-50">
+                <h4 className="font-medium mb-3">New Add-on</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <Label htmlFor="newAddonName">Name *</Label>
+                    <Input
+                      id="newAddonName"
+                      value={newAddon.name}
+                      onChange={(e) => setNewAddon({ ...newAddon, name: e.target.value })}
+                      placeholder="e.g., Mulch Installation"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="newAddonPrice">Price Per Visit ($) *</Label>
+                    <Input
+                      id="newAddonPrice"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={newAddon.price_per_visit}
+                      onChange={(e) => setNewAddon({ ...newAddon, price_per_visit: e.target.value })}
+                      placeholder="25.00"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="newAddonDesc">Description</Label>
+                    <Input
+                      id="newAddonDesc"
+                      value={newAddon.description}
+                      onChange={(e) => setNewAddon({ ...newAddon, description: e.target.value })}
+                      placeholder="Optional description"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddAddon}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    Save Add-on
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setShowNewAddonForm(false);
+                      setNewAddon({ name: '', price_per_visit: '', description: '' });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Add-ons List */}
+            {addonsLoading ? (
+              <p className="text-gray-500">Loading add-ons...</p>
+            ) : addons.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No add-ons configured yet.</p>
+                <p className="text-sm mt-2">
+                  Click &quot;Create Defaults&quot; to start with common add-ons, or add your own.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {addons.map((addon) => (
+                  <div
+                    key={addon.id}
+                    className={`border rounded-lg p-4 transition-all ${
+                      addon.is_active ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50 opacity-60'
+                    }`}
+                  >
+                    {editingAddon === addon.id ? (
+                      // Edit mode
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div>
+                            <Label>Name</Label>
+                            <Input
+                              value={addon.name}
+                              onChange={(e) => setAddons(addons.map(a => 
+                                a.id === addon.id ? { ...a, name: e.target.value } : a
+                              ))}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label>Price Per Visit ($)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={addon.price_per_visit}
+                              onChange={(e) => setAddons(addons.map(a => 
+                                a.id === addon.id ? { ...a, price_per_visit: e.target.value } : a
+                              ))}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label>Description</Label>
+                            <Input
+                              value={addon.description || ''}
+                              onChange={(e) => setAddons(addons.map(a => 
+                                a.id === addon.id ? { ...a, description: e.target.value } : a
+                              ))}
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => handleUpdateAddon(addon.id, {
+                              name: addon.name,
+                              price_per_visit: addon.price_per_visit,
+                              description: addon.description,
+                            })}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingAddon(null);
+                              loadAccountData(); // Reset changes
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      // View mode
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <h4 className="font-medium text-gray-900">{addon.name}</h4>
+                            <span className="text-green-600 font-semibold">
+                              ${parseFloat(addon.price_per_visit).toFixed(2)}/visit
+                            </span>
+                            {!addon.is_active && (
+                              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          {addon.description && (
+                            <p className="text-sm text-gray-500 mt-1">{addon.description}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`active-${addon.id}`} className="text-sm text-gray-600">
+                              Active
+                            </Label>
+                            <Switch
+                              id={`active-${addon.id}`}
+                              checked={addon.is_active}
+                              onCheckedChange={() => handleToggleActive(addon)}
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingAddon(addon.id)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDeleteAddon(addon.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Back to Dashboard */}
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate('/dashboard')}
+            className="border-green-600 text-green-600 hover:bg-green-50"
+          >
+            ← Back to Dashboard
+          </Button>
+        </div>
       </main>
     </div>
   );
