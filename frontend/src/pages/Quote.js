@@ -407,6 +407,10 @@ export default function Quote() {
         return addon ? { id: addon.id, name: addon.name, price: addon.price_per_visit } : null;
       }).filter(Boolean);
 
+      // Get frequency label for email
+      const frequencyOption = FREQUENCIES.find(f => f.id === formData.frequency);
+      const frequencyLabel = frequencyOption?.label || formData.frequency;
+
       console.log('[Quote] Saving quote:', {
         customer: {
           firstName: formData.firstName,
@@ -432,7 +436,41 @@ export default function Quote() {
         accountId: account?.id,
       });
 
-      setSuccess(`Quote saved! ${formData.firstName} ${formData.lastName} - $${pricing.perVisit}/visit`);
+      let emailSent = false;
+      let emailError = null;
+
+      // Send email if customer email is provided
+      if (formData.email) {
+        try {
+          await sendQuoteEmail({
+            customerEmail: formData.email,
+            customerName: `${formData.firstName} ${formData.lastName}`,
+            businessName: account?.name || 'GreenQuote Pro',
+            replyToEmail: user?.email,
+            propertyAddress: formData.address,
+            areaSqFt: formData.lawnSizeSqFt,
+            basePrice: pricing.basePrice,
+            addons: selectedAddonsDetails,
+            totalPerVisit: pricing.perVisit,
+            frequency: frequencyLabel,
+            monthlyEstimate: pricing.monthly,
+          });
+          emailSent = true;
+          console.log('[Quote] Email sent successfully');
+        } catch (err) {
+          console.error('[Quote] Failed to send email:', err);
+          emailError = err.message || 'Failed to send email';
+        }
+      }
+
+      // Show success message
+      if (emailSent) {
+        setSuccess(`Quote saved and emailed to ${formData.email}! ${formData.firstName} ${formData.lastName} - $${pricing.perVisit}/visit`);
+      } else if (formData.email && emailError) {
+        setSuccess(`Quote saved! ${formData.firstName} ${formData.lastName} - $${pricing.perVisit}/visit (Note: Email could not be sent: ${emailError})`);
+      } else {
+        setSuccess(`Quote saved! ${formData.firstName} ${formData.lastName} - $${pricing.perVisit}/visit`);
+      }
       
       setTimeout(() => {
         setFormData({
@@ -456,7 +494,7 @@ export default function Quote() {
         setMapCenter(defaultCenter);
         setMapZoom(4);
         setSuccess(null);
-      }, 3000);
+      }, 5000);
 
     } catch (err) {
       console.error('[Quote] Error saving quote:', err);
