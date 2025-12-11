@@ -4,6 +4,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import { ensureUserAccount } from '@/services/accountService';
 import { getActiveAddons } from '@/services/addonsService';
+import { sendQuoteEmail } from '@/services/emailService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
