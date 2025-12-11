@@ -614,7 +614,10 @@ export default function Quote() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">
+                      Email
+                      <span className="text-xs text-gray-500 ml-1">(quote will be emailed)</span>
+                    </Label>
                     <Input
                       id="email"
                       type="email"
