@@ -997,8 +997,13 @@ export default function Quote() {
                   disabled={saving || pricing.perVisit === 0}
                   className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white"
                 >
-                  {saving ? 'Saving...' : '💾 Save Quote'}
+                  {saving ? 'Sending...' : formData.email ? '📧 Save & Email Quote' : '💾 Save Quote'}
                 </Button>
+                {formData.email && (
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    Quote will be emailed to {formData.email}
+                  </p>
+                )}
               </CardContent>
             </Card>
 
