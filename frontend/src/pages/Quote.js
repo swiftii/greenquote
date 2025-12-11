@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import { ensureUserAccount } from '@/services/accountService';
+import { getActiveAddons } from '@/services/addonsService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +20,7 @@ import { GoogleMap, useJsApiLoader, Autocomplete, Polygon } from '@react-google-
  * 
  * This page allows logged-in users to create quotes for prospects using:
  * - Their account-specific pricing (min_price_per_visit, price_per_sq_ft)
+ * - Their custom add-ons from account_addons table
  * - Google Maps for address autocomplete and boundary drawing
  * - Area calculation from polygon for accurate pricing
  */
@@ -47,14 +49,6 @@ const FREQUENCIES = [
 const PROPERTY_TYPES = [
   { id: 'residential', label: 'Residential' },
   { id: 'commercial', label: 'Commercial' },
-];
-
-// Add-on options
-const DEFAULT_ADDONS = [
-  { id: 'mulch', label: 'Mulch Installation', pricePerVisit: 75 },
-  { id: 'flower_beds', label: 'Flower Bed Maintenance', pricePerVisit: 35 },
-  { id: 'hedge_trimming', label: 'Hedge Trimming', pricePerVisit: 45 },
-  { id: 'leaf_removal', label: 'Leaf Removal', pricePerVisit: 55 },
 ];
 
 // Map container style
@@ -93,6 +87,9 @@ export default function Quote() {
   const [success, setSuccess] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  // Account-specific add-ons
+  const [availableAddons, setAvailableAddons] = useState([]);
+
   // Google Maps state
   const [map, setMap] = useState(null);
   const [mapCenter, setMapCenter] = useState(defaultCenter);
@@ -129,7 +126,7 @@ export default function Quote() {
     areaSource: 'manual', // 'manual' or 'measured'
     // Service info
     primaryService: '',
-    selectedAddons: [],
+    selectedAddonIds: [], // IDs of selected add-ons from account_addons
     frequency: '',
   });
 
@@ -137,10 +134,12 @@ export default function Quote() {
   const [pricing, setPricing] = useState({
     perVisit: 0,
     monthly: 0,
+    basePrice: 0,
+    addonsTotal: 0,
     breakdown: [],
   });
 
-  // Load account data
+  // Load account data and add-ons
   useEffect(() => {
     if (user && !loading) {
       loadAccountData();
@@ -159,9 +158,21 @@ export default function Quote() {
     try {
       setAccountLoading(true);
       setError(null);
+      
+      // Load account and settings
       const result = await ensureUserAccount(user);
-      setAccount(result?.account || null);
-      setSettings(result?.settings || null);
+      const userAccount = result?.account;
+      const userSettings = result?.settings;
+      
+      setAccount(userAccount);
+      setSettings(userSettings);
+
+      // Load account-specific active add-ons
+      if (userAccount?.id) {
+        const addons = await getActiveAddons(userAccount.id);
+        setAvailableAddons(addons);
+        console.log('[Quote] Loaded', addons.length, 'active add-ons for account');
+      }
     } catch (err) {
       console.error('[Quote] Error loading account data:', err);
       setError('Failed to load account data. ' + (err?.message || ''));
@@ -178,23 +189,14 @@ export default function Quote() {
     }
 
     try {
-      // Create a Google Maps LatLng array
       const latLngArray = path.map(point => 
         new window.google.maps.LatLng(point.lat, point.lng)
       );
-      
-      // Create MVCArray for computeArea
       const mvcArray = new window.google.maps.MVCArray(latLngArray);
-      
-      // Calculate area in square meters
       const areaInSqMeters = window.google.maps.geometry.spherical.computeArea(mvcArray);
-      
-      // Convert to square feet (1 sq meter = 10.7639 sq feet)
       const areaInSqFt = Math.round(areaInSqMeters * 10.7639);
       
       setCalculatedArea(areaInSqFt);
-      
-      // Update form data with measured area
       setFormData(prev => ({
         ...prev,
         lawnSizeSqFt: areaInSqFt.toString(),
@@ -208,14 +210,14 @@ export default function Quote() {
     }
   }, []);
 
-  // Calculate pricing whenever form changes
+  // Calculate pricing whenever form or add-ons change
   useEffect(() => {
     calculatePricing();
-  }, [formData, settings]);
+  }, [formData, settings, availableAddons]);
 
   const calculatePricing = useCallback(() => {
     if (!settings || !formData.lawnSizeSqFt || !formData.primaryService || !formData.frequency) {
-      setPricing({ perVisit: 0, monthly: 0, breakdown: [] });
+      setPricing({ perVisit: 0, monthly: 0, basePrice: 0, addonsTotal: 0, breakdown: [] });
       return;
     }
 
@@ -223,9 +225,9 @@ export default function Quote() {
     const minPrice = parseFloat(settings.min_price_per_visit) || 50;
     const pricePerSqFt = parseFloat(settings.price_per_sq_ft) || 0.01;
 
-    // Base price calculation: use sqFt * pricePerSqFt, but enforce minimum
+    // Base price calculation: sqFt × pricePerSqFt, enforcing minimum
     const calculatedFromArea = sqFt * pricePerSqFt;
-    let basePrice = Math.max(calculatedFromArea, minPrice);
+    const basePrice = Math.max(calculatedFromArea, minPrice);
     
     const breakdown = [{ 
       label: `Base service (${sqFt.toLocaleString()} sq ft × $${pricePerSqFt.toFixed(4)})`, 
@@ -233,13 +235,17 @@ export default function Quote() {
       note: calculatedFromArea < minPrice ? `(min $${minPrice} applied)` : ''
     }];
 
-    // Add-ons
+    // Calculate add-ons total using account-specific add-ons
     let addonsTotal = 0;
-    formData.selectedAddons.forEach(addonId => {
-      const addon = DEFAULT_ADDONS.find(a => a.id === addonId);
+    formData.selectedAddonIds.forEach(addonId => {
+      const addon = availableAddons.find(a => a.id === addonId);
       if (addon) {
-        addonsTotal += addon.pricePerVisit;
-        breakdown.push({ label: addon.label, amount: addon.pricePerVisit });
+        const addonPrice = parseFloat(addon.price_per_visit) || 0;
+        addonsTotal += addonPrice;
+        breakdown.push({ 
+          label: addon.name, 
+          amount: addonPrice 
+        });
       }
     });
 
@@ -255,9 +261,11 @@ export default function Quote() {
     setPricing({
       perVisit,
       monthly,
+      basePrice: Math.round(basePrice),
+      addonsTotal: Math.round(addonsTotal),
       breakdown,
     });
-  }, [formData, settings]);
+  }, [formData, settings, availableAddons]);
 
   // Handle map load
   const onMapLoad = useCallback((mapInstance) => {
@@ -275,7 +283,6 @@ export default function Quote() {
 
     setPolygonPath(prev => {
       const newPath = [...prev, newPoint];
-      // Calculate area if we have at least 3 points
       if (newPath.length >= 3) {
         calculatePolygonArea(newPath);
       }
@@ -299,11 +306,10 @@ export default function Quote() {
           longitude: lng,
         }));
         
-        // Center map on selected location
         setMapCenter({ lat, lng });
-        setMapZoom(19); // Zoom in for property view
+        setMapZoom(19);
         
-        // Clear existing polygon when address changes
+        // Clear existing polygon
         setPolygonPath([]);
         setCalculatedArea(0);
         setFormData(prev => ({
@@ -315,19 +321,16 @@ export default function Quote() {
     }
   }, []);
 
-  // Handle autocomplete load
   const onAutocompleteLoad = useCallback((autocomplete) => {
     autocompleteRef.current = autocomplete;
   }, []);
 
-  // Start drawing mode
   const startDrawing = () => {
     setIsDrawing(true);
     setPolygonPath([]);
     setCalculatedArea(0);
   };
 
-  // Finish drawing
   const finishDrawing = () => {
     setIsDrawing(false);
     if (polygonPath.length >= 3) {
@@ -335,7 +338,6 @@ export default function Quote() {
     }
   };
 
-  // Clear polygon
   const clearPolygon = () => {
     setPolygonPath([]);
     setCalculatedArea(0);
@@ -347,7 +349,6 @@ export default function Quote() {
     }));
   };
 
-  // Undo last point
   const undoLastPoint = () => {
     setPolygonPath(prev => {
       const newPath = prev.slice(0, -1);
@@ -362,8 +363,6 @@ export default function Quote() {
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // If manually entering lawn size, update source
     if (field === 'lawnSizeSqFt') {
       setFormData(prev => ({ ...prev, areaSource: 'manual' }));
     }
@@ -372,9 +371,9 @@ export default function Quote() {
   const handleAddonToggle = (addonId) => {
     setFormData(prev => ({
       ...prev,
-      selectedAddons: prev.selectedAddons.includes(addonId)
-        ? prev.selectedAddons.filter(id => id !== addonId)
-        : [...prev.selectedAddons, addonId],
+      selectedAddonIds: prev.selectedAddonIds.includes(addonId)
+        ? prev.selectedAddonIds.filter(id => id !== addonId)
+        : [...prev.selectedAddonIds, addonId],
     }));
   };
 
@@ -388,7 +387,6 @@ export default function Quote() {
   };
 
   const handleSaveQuote = async () => {
-    // Validate required fields
     if (!formData.firstName || !formData.lastName || !formData.phone) {
       setError('Please fill in customer name and phone number.');
       return;
@@ -402,6 +400,12 @@ export default function Quote() {
     setError(null);
 
     try {
+      // Get selected add-on details for saving
+      const selectedAddonsDetails = formData.selectedAddonIds.map(id => {
+        const addon = availableAddons.find(a => a.id === id);
+        return addon ? { id: addon.id, name: addon.name, price: addon.price_per_visit } : null;
+      }).filter(Boolean);
+
       console.log('[Quote] Saving quote:', {
         customer: {
           firstName: formData.firstName,
@@ -420,7 +424,7 @@ export default function Quote() {
         },
         service: {
           primary: formData.primaryService,
-          addons: formData.selectedAddons,
+          addons: selectedAddonsDetails,
           frequency: formData.frequency,
         },
         pricing: pricing,
@@ -429,7 +433,6 @@ export default function Quote() {
 
       setSuccess(`Quote saved! ${formData.firstName} ${formData.lastName} - $${pricing.perVisit}/visit`);
       
-      // Clear form after short delay
       setTimeout(() => {
         setFormData({
           firstName: '',
@@ -444,7 +447,7 @@ export default function Quote() {
           lawnSizeSqFt: '',
           areaSource: 'manual',
           primaryService: '',
-          selectedAddons: [],
+          selectedAddonIds: [],
           frequency: '',
         });
         setPolygonPath([]);
@@ -522,8 +525,7 @@ export default function Quote() {
         {!isMapsConfigured && (
           <Alert className="mb-6 bg-yellow-50 text-yellow-800 border-yellow-200">
             <AlertDescription>
-              ⚠️ Google Maps is not configured. Set REACT_APP_GOOGLE_MAPS_API_KEY in Vercel to enable map features.
-              You can still enter lawn size manually.
+              ⚠️ Google Maps is not configured. You can still enter lawn size manually.
             </AlertDescription>
           </Alert>
         )}
@@ -603,7 +605,7 @@ export default function Quote() {
               <CardHeader>
                 <CardTitle>Property Information</CardTitle>
                 <CardDescription>
-                  Search for the address, then draw the lawn boundary on the map to calculate area
+                  Search for the address, then draw the lawn boundary on the map
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -636,12 +638,9 @@ export default function Quote() {
                       className="mt-1"
                     />
                   )}
-                  <p className="text-xs text-gray-500 mt-1">
-                    Select from dropdown for best results
-                  </p>
                 </div>
 
-                {/* Property Type */}
+                {/* Property Type & Lawn Size */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="propertyType">Property Type</Label>
@@ -665,7 +664,7 @@ export default function Quote() {
                     <Label htmlFor="lawnSizeSqFt">
                       Lawn Size (sq ft) *
                       {formData.areaSource === 'measured' && (
-                        <span className="text-green-600 text-xs ml-2">(measured from map)</span>
+                        <span className="text-green-600 text-xs ml-2">(measured)</span>
                       )}
                     </Label>
                     <Input
@@ -713,7 +712,7 @@ export default function Quote() {
                               disabled={polygonPath.length < 3}
                               className="bg-green-600 hover:bg-green-700"
                             >
-                              ✓ Finish Drawing
+                              ✓ Finish
                             </Button>
                           </>
                         )}
@@ -732,7 +731,7 @@ export default function Quote() {
 
                     {isDrawing && (
                       <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
-                        Click on the map to add boundary points. Add at least 3 points, then click &quot;Finish Drawing&quot;.
+                        Click on the map to add boundary points (min 3), then click &quot;Finish&quot;.
                       </p>
                     )}
 
@@ -746,28 +745,15 @@ export default function Quote() {
                       options={{
                         disableDefaultUI: true,
                         zoomControl: true,
-                        streetViewControl: false,
                         mapTypeControl: true,
                         fullscreenControl: true,
                       }}
                     >
-                      {/* Render polygon */}
                       {polygonPath.length > 0 && (
-                        <Polygon
-                          paths={polygonPath}
-                          options={polygonOptions}
-                        />
+                        <Polygon paths={polygonPath} options={polygonOptions} />
                       )}
-
-                      {/* Render markers for polygon points */}
-                      {isDrawing && polygonPath.map((point, index) => (
-                        <div key={index}>
-                          {/* Visual markers handled by polygon */}
-                        </div>
-                      ))}
                     </GoogleMap>
 
-                    {/* Area Display */}
                     {calculatedArea > 0 && (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
                         <div>
@@ -776,27 +762,22 @@ export default function Quote() {
                             {calculatedArea.toLocaleString()} sq ft
                           </span>
                         </div>
-                        <span className="text-xs text-gray-500">
-                          {polygonPath.length} boundary points
-                        </span>
                       </div>
                     )}
                   </div>
                 )}
 
                 {loadError && (
-                  <p className="text-sm text-red-600">
-                    Error loading Google Maps. Please check your API key configuration.
-                  </p>
+                  <p className="text-sm text-red-600">Error loading Google Maps.</p>
                 )}
               </CardContent>
             </Card>
 
-            {/* Service & Pricing */}
+            {/* Service & Add-ons */}
             <Card>
               <CardHeader>
-                <CardTitle>Service & Pricing</CardTitle>
-                <CardDescription>Select service options</CardDescription>
+                <CardTitle>Service & Add-ons</CardTitle>
+                <CardDescription>Select service options and add-ons</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -818,34 +799,64 @@ export default function Quote() {
                   </Select>
                 </div>
 
+                {/* Account-Specific Add-ons */}
                 <div>
-                  <Label>Add-ons</Label>
-                  <div className="grid grid-cols-2 gap-3 mt-2">
-                    {DEFAULT_ADDONS.map((addon) => (
-                      <div
-                        key={addon.id}
-                        className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                          formData.selectedAddons.includes(addon.id)
-                            ? 'border-green-600 bg-green-50'
-                            : 'border-gray-200 hover:border-green-300'
-                        }`}
-                        onClick={() => handleAddonToggle(addon.id)}
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Add-ons</Label>
+                    <Link 
+                      to="/settings" 
+                      className="text-xs text-green-600 hover:underline"
+                    >
+                      Configure in Settings →
+                    </Link>
+                  </div>
+                  
+                  {availableAddons.length === 0 ? (
+                    <div className="text-center py-6 border border-dashed border-gray-300 rounded-lg">
+                      <p className="text-gray-500 text-sm">No add-ons configured yet.</p>
+                      <Link 
+                        to="/settings" 
+                        className="text-sm text-green-600 hover:underline mt-1 inline-block"
                       >
-                        <div className="flex items-start gap-2">
-                          <Checkbox
-                            checked={formData.selectedAddons.includes(addon.id)}
-                            onCheckedChange={() => handleAddonToggle(addon.id)}
-                          />
-                          <div>
-                            <p className="font-medium text-sm">{addon.label}</p>
-                            <p className="text-xs text-gray-500">+${addon.pricePerVisit}/visit</p>
+                        Add your first add-on in Settings
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {availableAddons.map((addon) => (
+                        <div
+                          key={addon.id}
+                          className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                            formData.selectedAddonIds.includes(addon.id)
+                              ? 'border-green-600 bg-green-50'
+                              : 'border-gray-200 hover:border-green-300'
+                          }`}
+                          onClick={() => handleAddonToggle(addon.id)}
+                        >
+                          <div className="flex items-start gap-2">
+                            <Checkbox
+                              checked={formData.selectedAddonIds.includes(addon.id)}
+                              onCheckedChange={() => handleAddonToggle(addon.id)}
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <p className="font-medium text-sm">{addon.name}</p>
+                                <span className="text-green-600 font-semibold text-sm">
+                                  +${parseFloat(addon.price_per_visit).toFixed(2)}
+                                </span>
+                              </div>
+                              {addon.description && (
+                                <p className="text-xs text-gray-500 mt-0.5">{addon.description}</p>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
+                {/* Frequency */}
                 <div>
                   <Label>Frequency *</Label>
                   <div className="grid grid-cols-4 gap-2 mt-2">
@@ -871,7 +882,6 @@ export default function Quote() {
 
           {/* Right Column - Quote Summary */}
           <div className="space-y-6">
-            {/* Pricing Summary */}
             <Card className="sticky top-4">
               <CardHeader>
                 <CardTitle>Quote Summary</CardTitle>
@@ -883,6 +893,7 @@ export default function Quote() {
               <CardContent>
                 {pricing.perVisit > 0 ? (
                   <div className="space-y-4">
+                    {/* Breakdown */}
                     <div className="space-y-2">
                       {pricing.breakdown.map((item, index) => (
                         <div key={index} className="flex justify-between text-sm">
@@ -894,7 +905,23 @@ export default function Quote() {
                         </div>
                       ))}
                     </div>
-                    <div className="border-t pt-4 space-y-2">
+
+                    {/* Subtotals */}
+                    <div className="border-t pt-3 space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Base Price</span>
+                        <span>${pricing.basePrice}</span>
+                      </div>
+                      {pricing.addonsTotal > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Add-ons</span>
+                          <span>+${pricing.addonsTotal}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Totals */}
+                    <div className="border-t pt-3 space-y-2">
                       <div className="flex justify-between">
                         <span className="font-medium">Per Visit</span>
                         <span className="text-xl font-bold text-green-600">${pricing.perVisit}</span>
@@ -904,12 +931,16 @@ export default function Quote() {
                         <span className="text-2xl font-bold text-green-600">${pricing.monthly}</span>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
+
+                    <p className="text-xs text-gray-500">
                       {formData.lawnSizeSqFt && (
                         <>
-                          Based on {Number(formData.lawnSizeSqFt).toLocaleString()} sq ft
-                          {formData.areaSource === 'measured' && ' (measured from map)'}
+                          {Number(formData.lawnSizeSqFt).toLocaleString()} sq ft
+                          {formData.areaSource === 'measured' && ' (measured)'}
                         </>
+                      )}
+                      {formData.selectedAddonIds.length > 0 && (
+                        <> • {formData.selectedAddonIds.length} add-on{formData.selectedAddonIds.length > 1 ? 's' : ''}</>
                       )}
                     </p>
                   </div>
@@ -937,10 +968,9 @@ export default function Quote() {
               <CardContent>
                 <ul className="text-sm text-gray-600 space-y-2">
                   <li>• Search address, then draw boundary on map</li>
-                  <li>• Click points to outline the lawn area</li>
                   <li>• Area is auto-calculated from boundary</li>
+                  <li>• Add-ons are configured in Settings</li>
                   <li>• Weekly service has best per-visit rate</li>
-                  <li>• Edit pricing defaults in Settings</li>
                 </ul>
               </CardContent>
             </Card>
