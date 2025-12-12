@@ -325,6 +325,41 @@ export default function Settings() {
             </CardContent>
           </Card>
 
+          {/* Email Settings */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Email Settings</CardTitle>
+              <CardDescription>
+                Configure how customers can reply to your quote emails
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="customerReplyEmail">
+                    Customer Reply-To Email
+                    <span className="text-xs text-gray-500 ml-1">(optional)</span>
+                  </Label>
+                  <Input
+                    id="customerReplyEmail"
+                    name="customerReplyEmail"
+                    type="email"
+                    value={formData.customerReplyEmail}
+                    onChange={handleInputChange}
+                    placeholder={user?.email || 'replies@yourbusiness.com'}
+                    className="mt-1"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    When customers reply to quote emails, responses will be sent to this address.
+                    {!formData.customerReplyEmail && (
+                      <span className="text-green-600"> Defaults to: {user?.email}</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Pricing Settings */}
           <Card className="mb-6">
             <CardHeader>
