@@ -55,13 +55,13 @@ export default function BillingSettings() {
   }, [user, authLoading, loadData, navigate]);
 
   const handleManageBilling = async () => {
-    if (!account) return;
+    if (!account || !user) return;
 
     try {
       setPortalLoading(true);
       setError(null);
 
-      const { url } = await createPortalSession(account.id);
+      const { url } = await createPortalSession(account.id, user.email, account.name);
 
       if (url) {
         window.location.href = url;
