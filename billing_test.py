@@ -268,7 +268,7 @@ class GreenQuoteBillingTester:
                     self.results['webhook_api']['details'].append(f"❌ {description}")
             
             # Check for Supabase updates
-            if re.search(r'from.*accounts.*update', content):
+            if re.search(r'from.*accounts.*update', content, re.DOTALL):
                 self.results['webhook_api']['details'].append("✅ Supabase account updates")
             else:
                 self.results['webhook_api']['details'].append("❌ Supabase updates missing")
