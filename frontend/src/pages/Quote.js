@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ensureUserAccount } from '@/services/accountService';
 import { getActiveAddons } from '@/services/addonsService';
 import { sendQuoteEmail } from '@/services/emailService';
+import { saveQuote, markQuoteEmailSent } from '@/services/quoteService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
