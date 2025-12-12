@@ -233,10 +233,7 @@ metadata:
   run_ui: true
 
 test_plan:
-  current_focus:
-    - "Quote page - Save quote to Supabase on every Save Quote click"
-    - "Dashboard - Show real Quotes This Month count"
-    - "Quote service - CRUD operations for quotes"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
