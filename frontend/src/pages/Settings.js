@@ -127,6 +127,7 @@ export default function Settings() {
       await updateAccountSettings(account.id, {
         min_price_per_visit: minPrice,
         price_per_sq_ft: pricePerSqFt,
+        customer_reply_email: formData.customerReplyEmail.trim() || null,
       });
 
       setSuccess('Settings saved successfully!');
