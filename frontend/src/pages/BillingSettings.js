@@ -55,25 +55,32 @@ export default function BillingSettings() {
   }, [user, authLoading, loadData, navigate]);
 
   const handleManageBilling = async () => {
-    if (!account || !user) return;
+    if (!account || !user) {
+      console.error('[BillingSettings] Cannot open portal - missing account or user');
+      setError('Unable to open billing portal. Please refresh and try again.');
+      return;
+    }
 
     try {
       setPortalLoading(true);
       setError(null);
 
-      const { url } = await createPortalSession(account.id, user.email, account.name);
+      console.log('[BillingSettings] Opening portal for account:', account.id);
+      const result = await createPortalSession(account.id, user.email, account.name);
+      console.log('[BillingSettings] Portal result:', result);
 
-      if (url) {
-        window.location.href = url;
+      if (result?.url) {
+        console.log('[BillingSettings] Redirecting to:', result.url);
+        window.location.assign(result.url);
       } else {
         throw new Error('No portal URL returned');
       }
     } catch (err) {
       console.error('[BillingSettings] Error opening portal:', err);
-      setError(err.message || 'Failed to open billing portal');
-    } finally {
+      setError(err.message || 'Failed to open billing portal. Please try again.');
       setPortalLoading(false);
     }
+    // Note: Don't set portalLoading to false on success - we're navigating away
   };
 
   if (authLoading || loading) {
