@@ -129,6 +129,8 @@ export default function Quote() {
     primaryService: '',
     selectedAddonIds: [], // IDs of selected add-ons from account_addons
     frequency: '',
+    // Email option
+    sendQuoteToCustomer: true, // Default to sending email
   });
 
   // Calculated pricing
