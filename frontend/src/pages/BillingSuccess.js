@@ -117,7 +117,7 @@ export default function BillingSuccess() {
               </div>
               <CardTitle className="text-2xl text-red-600">Something went wrong</CardTitle>
               <CardDescription>
-                We couldn't confirm your subscription. Please contact support.
+                We couldn&apos;t confirm your subscription. Please contact support.
               </CardDescription>
             </>
           )}
