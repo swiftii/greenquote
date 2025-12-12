@@ -151,3 +151,35 @@ export function getStatusLabel(status) {
   };
   return labels[status] || status;
 }
+
+/**
+ * Create a Stripe Customer Portal session
+ * Returns the portal URL to redirect to
+ */
+export async function createPortalSession(accountId) {
+  const baseUrl = getApiBaseUrl();
+  const originUrl = typeof window !== 'undefined' ? window.location.origin : baseUrl;
+  
+  try {
+    const response = await fetch(`${baseUrl}/api/billing/portal`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        accountId,
+        originUrl,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('[BillingService] Error creating portal session:', error);
+    throw error;
+  }
+}
