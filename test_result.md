@@ -116,6 +116,9 @@ backend:
       - working: true
         agent: "main"
         comment: "API already accepts and uses replyToEmail parameter in reply_to header. No changes needed."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Vercel function properly extracts replyToEmail from request body, conditionally sets reply_to header, and includes it in email options. All logic is correct."
 
 frontend:
   - task: "Settings page - Customer Reply-To Email input field"
