@@ -21,33 +21,52 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-// Initialize Supabase with service role key
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
 export default async function handler(req, res) {
+  // Diagnostic logging (safe - no secrets)
+  console.log('[Portal] Request method:', req.method);
+  console.log('[Portal] STRIPE_SECRET_KEY exists:', !!process.env.STRIPE_SECRET_KEY);
+  console.log('[Portal] APP_BASE_URL:', process.env.APP_BASE_URL || 'NOT SET');
+  console.log('[Portal] SUPABASE_URL exists:', !!process.env.SUPABASE_URL);
+  console.log('[Portal] REACT_APP_SUPABASE_URL exists:', !!process.env.REACT_APP_SUPABASE_URL);
+  console.log('[Portal] SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
+  // Validate environment variables
   if (!process.env.STRIPE_SECRET_KEY) {
     console.error('[Portal] STRIPE_SECRET_KEY is not configured');
-    return res.status(500).json({ error: 'Stripe is not configured' });
+    return res.status(500).json({ ok: false, error: 'Server configuration error: STRIPE_SECRET_KEY not set' });
   }
 
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl) {
+    console.error('[Portal] SUPABASE_URL is not configured');
+    return res.status(500).json({ ok: false, error: 'Server configuration error: SUPABASE_URL not set' });
+  }
+
+  if (!serviceRoleKey) {
+    console.error('[Portal] SUPABASE_SERVICE_ROLE_KEY is not configured');
+    return res.status(500).json({ ok: false, error: 'Server configuration error: SUPABASE_SERVICE_ROLE_KEY not set' });
+  }
+
+  // Initialize Stripe and Supabase inside handler
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
   try {
-    const { accountId, userEmail, accountName, originUrl } = req.body;
+    const { accountId, userEmail, accountName, originUrl } = req.body || {};
+
+    console.log('[Portal] Account ID:', accountId);
+    console.log('[Portal] User email provided:', !!userEmail);
+    console.log('[Portal] Origin URL:', originUrl);
 
     if (!accountId) {
-      return res.status(400).json({ error: 'Account ID is required' });
+      return res.status(400).json({ ok: false, error: 'Account ID is required' });
     }
-
-    console.log('[Portal] Creating portal session for account:', accountId);
 
     // Get account from Supabase
     const { data: account, error: fetchError } = await supabase
@@ -56,10 +75,20 @@ export default async function handler(req, res) {
       .eq('id', accountId)
       .single();
 
-    if (fetchError || !account) {
-      console.error('[Portal] Error fetching account:', fetchError);
-      return res.status(404).json({ error: 'Account not found' });
+    if (fetchError) {
+      console.error('[Portal] Supabase fetch error:', fetchError);
+      return res.status(404).json({ 
+        ok: false, 
+        error: 'Account not found or database error',
+        details: fetchError.message 
+      });
     }
+
+    if (!account) {
+      return res.status(404).json({ ok: false, error: 'Account not found' });
+    }
+
+    console.log('[Portal] Account found, stripe_customer_id exists:', !!account.stripe_customer_id);
 
     let customerId = account.stripe_customer_id;
 
@@ -69,6 +98,7 @@ export default async function handler(req, res) {
       
       if (!userEmail) {
         return res.status(400).json({ 
+          ok: false,
           error: 'User email is required to create billing account',
           code: 'EMAIL_REQUIRED'
         });
@@ -102,8 +132,9 @@ export default async function handler(req, res) {
       } catch (createError) {
         console.error('[Portal] Error creating Stripe customer:', createError);
         return res.status(500).json({
+          ok: false,
           error: 'Failed to create billing account. Please try again.',
-          details: createError.message,
+          details: String(createError?.message || createError),
         });
       }
     }
@@ -122,25 +153,29 @@ export default async function handler(req, res) {
     });
 
     console.log('[Portal] Session created:', session.id);
+    console.log('[Portal] Session URL exists:', !!session.url);
 
     return res.status(200).json({
+      ok: true,
       url: session.url,
     });
 
   } catch (error) {
-    console.error('[Portal] Error:', error);
+    console.error('[Portal] Unexpected error:', error);
     
     // Handle specific Stripe errors
     if (error.type === 'StripeInvalidRequestError') {
       return res.status(400).json({
+        ok: false,
         error: 'Unable to open billing portal. Please contact support.',
-        details: error.message,
+        details: String(error?.message || error),
       });
     }
     
     return res.status(500).json({
+      ok: false,
       error: 'Failed to create portal session',
-      details: error.message,
+      details: String(error?.message || error),
     });
   }
 }
