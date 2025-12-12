@@ -369,7 +369,7 @@ class GreenQuoteBillingTester:
             ]
             
             for func_name, description in functions:
-                if f'export.*function {func_name}' in content or f'export.*{func_name}' in content:
+                if re.search(f'export.*function {func_name}', content) or f'export.*{func_name}' in content:
                     self.results['billing_service']['details'].append(f"✅ {description}")
                 else:
                     self.results['billing_service']['details'].append(f"❌ {description}")
