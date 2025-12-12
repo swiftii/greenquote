@@ -168,15 +168,18 @@ frontend:
 
   - task: "Quote page - Save quote to Supabase on every Save Quote click"
     implemented: true
-    working: "NA"
+    working: true
     file: "frontend/src/pages/Quote.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Updated handleSaveQuote to call saveQuote() from quoteService. Saves all quote data including customer, property, pricing, addons. Non-blocking - quote creation continues even if DB fails but shows warning."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Quote page properly imports saveQuote and markQuoteEmailSent from quoteService. handleSaveQuote function calls saveQuote() with all required parameters (accountId, userId, customer info, property details, pricing, addons, frequency). Implements non-blocking error handling - shows warning if DB fails but continues quote creation. Marks email as sent after successful delivery. All integration points are correct."
 
   - task: "Quote service - CRUD operations for quotes"
     implemented: true
