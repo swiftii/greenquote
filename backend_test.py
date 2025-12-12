@@ -150,9 +150,9 @@ class GreenQuoteReplyToTester:
             
             # Check for customer_reply_email field handling
             checks = [
-                ('customerReplyEmail.*formData', 'customerReplyEmail in form state'),
-                ('customer_reply_email.*settings', 'customer_reply_email loaded from settings'),
-                ('customer_reply_email.*updateAccountSettings', 'customer_reply_email saved to settings'),
+                ('customerReplyEmail:', 'customerReplyEmail in form state'),
+                ('customer_reply_email.*userSettings', 'customer_reply_email loaded from settings'),
+                ('customer_reply_email.*formData\.customerReplyEmail', 'customer_reply_email saved to settings'),
                 ('Customer Reply-To Email', 'Proper field label'),
                 ('type="email"', 'Email input type validation'),
                 ('placeholder.*user.*email', 'Fallback placeholder showing user email')
