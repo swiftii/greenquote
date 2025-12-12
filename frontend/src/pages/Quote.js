@@ -441,9 +441,10 @@ export default function Quote() {
       let emailSent = false;
       let emailError = null;
 
-      // Send email if customer email is provided
-      if (formData.email) {
+      // Send email if customer email is provided AND sendQuoteToCustomer is checked
+      if (formData.email && formData.sendQuoteToCustomer) {
         try {
+          console.log('[Quote] Sending quote email to:', formData.email);
           await sendQuoteEmail({
             customerEmail: formData.email,
             customerName: `${formData.firstName} ${formData.lastName}`,
@@ -468,7 +469,7 @@ export default function Quote() {
       // Show success message
       if (emailSent) {
         setSuccess(`Quote saved and emailed to ${formData.email}! ${formData.firstName} ${formData.lastName} - $${pricing.perVisit}/visit`);
-      } else if (formData.email && emailError) {
+      } else if (formData.email && formData.sendQuoteToCustomer && emailError) {
         setSuccess(`Quote saved! ${formData.firstName} ${formData.lastName} - $${pricing.perVisit}/visit (Note: Email could not be sent: ${emailError})`);
       } else {
         setSuccess(`Quote saved! ${formData.firstName} ${formData.lastName} - $${pricing.perVisit}/visit`);
