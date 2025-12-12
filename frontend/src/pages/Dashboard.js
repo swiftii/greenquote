@@ -142,59 +142,6 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Pricing Settings Card */}
-        {settings && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Current Pricing Settings</span>
-                <Button
-                  onClick={() => navigate('/settings')}
-                  variant="outline"
-                  className="border-green-600 text-green-600 hover:bg-green-50"
-                >
-                  Edit Settings
-                </Button>
-              </CardTitle>
-              <CardDescription>Your default pricing configuration</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Min Price Per Visit</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    ${Number(settings.min_price_per_visit).toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Price Per Sq Ft</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    ${Number(settings.price_per_sq_ft).toFixed(4)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Enabled Add-ons</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {settings.addons?.length || 0}
-                  </p>
-                  {settings.addons && settings.addons.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {settings.addons.map((addon, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800"
-                        >
-                          {addon}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
@@ -262,6 +209,59 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Pricing Settings Card */}
+        {settings && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Current Pricing Settings</span>
+                <Button
+                  onClick={() => navigate('/settings')}
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50"
+                >
+                  Edit Settings
+                </Button>
+              </CardTitle>
+              <CardDescription>Your default pricing configuration</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Min Price Per Visit</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    ${Number(settings.min_price_per_visit).toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Price Per Sq Ft</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    ${Number(settings.price_per_sq_ft).toFixed(4)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Enabled Add-ons</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {settings.addons?.length || 0}
+                  </p>
+                  {settings.addons && settings.addons.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {settings.addons.map((addon, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800"
+                        >
+                          {addon}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Account Info */}
         <Card>
