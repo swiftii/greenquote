@@ -76,6 +76,7 @@ export default function Settings() {
         accountName: userAccount?.name || '',
         minPricePerVisit: userSettings?.min_price_per_visit || '50',
         pricePerSqFt: userSettings?.price_per_sq_ft || '0.01',
+        customerReplyEmail: userSettings?.customer_reply_email || '',
       });
 
       // Load add-ons for this account
