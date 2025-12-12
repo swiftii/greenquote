@@ -3,11 +3,6 @@
   "buildCommand": "cd frontend && yarn install && yarn build",
   "outputDirectory": "frontend/build",
   "installCommand": "cd frontend && yarn install",
-  "functions": {
-    "api/*.js": {
-      "runtime": "@vercel/node@3"
-    }
-  },
   "routes": [
     {
       "src": "/api/send-quote-email",
