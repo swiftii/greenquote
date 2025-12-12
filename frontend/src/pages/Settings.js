@@ -42,6 +42,7 @@ export default function Settings() {
     accountName: '',
     minPricePerVisit: '',
     pricePerSqFt: '',
+    customerReplyEmail: '',
   });
 
   useEffect(() => {
