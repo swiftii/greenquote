@@ -133,67 +133,52 @@ backend:
         comment: "✅ VERIFIED: Basic FastAPI backend with status endpoints working correctly. Note: Billing functionality is implemented as separate Vercel serverless functions, not FastAPI routes."
 
 frontend:
-  - task: "Settings page - Customer Reply-To Email input field"
+  - task: "BillingSettings Page - Subscription Status and Portal Management"
     implemented: true
     working: true
-    file: "frontend/src/pages/Settings.js"
+    file: "frontend/src/pages/BillingSettings.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Added new Email Settings card with customer_reply_email input field. Shows fallback to user's auth email. Saves to account_settings table."
+        comment: "Created comprehensive billing settings page with subscription status display, trial info, billing warnings, and Stripe Customer Portal integration."
       - working: true
         agent: "testing"
-        comment: "✅ VERIFIED: Email Settings card properly implemented with customerReplyEmail field. Form state correctly initialized from userSettings.customer_reply_email, saves to account_settings via updateAccountSettings, includes proper validation, help text, and fallback placeholder."
+        comment: "✅ VERIFIED: BillingSettings page properly imports all required services, implements state management, displays subscription status with proper styling, shows trial/active/past_due/canceled states, handles portal session creation, and includes comprehensive error handling and loading states."
 
-  - task: "Quote page - Use customer_reply_email from settings"
+  - task: "BillingBanner Component - Trial Countdown and Billing Warnings"
     implemented: true
     working: true
-    file: "frontend/src/pages/Quote.js"
+    file: "frontend/src/components/BillingBanner.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Updated sendQuoteEmail call to use settings.customer_reply_email with fallback to user.email"
+        comment: "Created billing banner component that shows trial countdown, past due warnings, and canceled subscription alerts with appropriate CTAs."
       - working: true
         agent: "testing"
-        comment: "✅ VERIFIED: Quote page correctly implements 'settings?.customer_reply_email || user?.email' fallback logic, passes replyToEmail parameter to sendQuoteEmail, includes debug logging, and properly imports email service."
+        comment: "✅ VERIFIED: BillingBanner component properly loads billing data, displays different banners based on subscription status (trialing/past_due/canceled), includes proper styling and CTAs, handles portal session creation, and returns null for active subscriptions."
 
-  - task: "Quote page - Save quote to Supabase on every Save Quote click"
+  - task: "BillingService - Portal Session Creation"
     implemented: true
     working: true
-    file: "frontend/src/pages/Quote.js"
+    file: "frontend/src/services/billingService.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Updated handleSaveQuote to call saveQuote() from quoteService. Saves all quote data including customer, property, pricing, addons. Non-blocking - quote creation continues even if DB fails but shows warning."
+        comment: "Added createPortalSession function to billingService for Stripe Customer Portal integration."
       - working: true
         agent: "testing"
-        comment: "✅ VERIFIED: Quote page properly imports saveQuote and markQuoteEmailSent from quoteService. handleSaveQuote function calls saveQuote() with all required parameters (accountId, userId, customer info, property details, pricing, addons, frequency). Implements non-blocking error handling - shows warning if DB fails but continues quote creation. Marks email as sent after successful delivery. All integration points are correct."
+        comment: "✅ VERIFIED: BillingService includes createPortalSession function with proper API endpoint connection, error handling, and parameter passing. Function correctly calls /api/billing/portal with accountId and originUrl."
 
-  - task: "Quote service - CRUD operations for quotes"
-    implemented: true
-    working: true
-    file: "frontend/src/services/quoteService.js"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Created new quoteService.js with saveQuote(), getQuotesThisMonth(), calculateOverage(), markQuoteEmailSent(), PLAN_LIMITS config."
-      - working: true
-        agent: "testing"
-        comment: "✅ VERIFIED: Quote service has all required functions with correct logic. saveQuote() properly validates accountId, maps all fields correctly, handles numeric parsing. getQuotesThisMonth() uses correct UTC month boundaries and Supabase count query with proper filters. calculateOverage() correctly computes plan limits, overage counts, and usage percentages. PLAN_LIMITS config has starter (25), professional (100), enterprise (unlimited) tiers. All function signatures and error handling are correct."
-
-  - task: "Dashboard - Show real Quotes This Month count"
+  - task: "Dashboard Integration - BillingBanner Display"
     implemented: true
     working: true
     file: "frontend/src/pages/Dashboard.js"
@@ -203,25 +188,40 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Updated Dashboard to call getQuotesThisMonth() and display real count. Shows plan info, included limit, and overage warnings."
+        comment: "Integrated BillingBanner component at the top of Dashboard to show trial countdown and billing warnings."
       - working: true
         agent: "testing"
-        comment: "✅ VERIFIED: Dashboard properly imports getQuotesThisMonth, calculateOverage, and DEFAULT_PLAN_TIER from quoteService. Implements proper state management for quotesThisMonth, quotesLoading, and overageInfo. Calls getQuotesThisMonth() with account ID and displays real count with loading state. Shows plan name, included limit, remaining quotes, and overage warnings with proper styling (amber-600 for warnings). All UI components and logic are correctly implemented."
+        comment: "✅ VERIFIED: Dashboard properly imports and displays BillingBanner component at the top of the page layout, maintaining proper styling and responsive design."
 
-  - task: "accountService - Update settings includes customer_reply_email"
+  - task: "Settings Integration - Billing Settings Card"
     implemented: true
     working: true
-    file: "frontend/src/services/accountService.js"
+    file: "frontend/src/pages/Settings.js"
     stuck_count: 0
-    priority: "medium"
+    priority: "high"
     needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "accountService already handles generic updates. Settings form now includes customer_reply_email field."
+        comment: "Added Billing & Subscription card to Settings page with link to dedicated billing settings page."
       - working: true
         agent: "testing"
-        comment: "✅ VERIFIED: accountService.updateAccountSettings() properly handles customer_reply_email field updates. Generic update mechanism works correctly for the new field."
+        comment: "✅ VERIFIED: Settings page includes Billing & Subscription card with proper title, description, and navigation to /settings/billing route. Button styling matches design system."
+
+  - task: "App Routing - Billing Settings Route Protection"
+    implemented: true
+    working: true
+    file: "frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added /settings/billing route with proper ProtectedRoute and SubscriptionGuard protection."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: App.js properly imports BillingSettings component, configures /settings/billing route with ProtectedRoute and SubscriptionGuard protection, maintaining consistency with other protected routes."
 
 metadata:
   created_by: "main_agent"
