@@ -491,6 +491,7 @@ export default function Quote() {
           primaryService: '',
           selectedAddonIds: [],
           frequency: '',
+          sendQuoteToCustomer: true,
         });
         setPolygonPath([]);
         setCalculatedArea(0);
