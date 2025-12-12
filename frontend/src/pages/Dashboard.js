@@ -7,6 +7,7 @@ import { getQuotesThisMonth, calculateOverage, DEFAULT_PLAN_TIER } from '@/servi
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import BillingBanner from '@/components/BillingBanner';
 
 export default function Dashboard() {
   const navigate = useNavigate();
