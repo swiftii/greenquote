@@ -45,19 +45,29 @@ export default function BillingBanner() {
   }, [loadBillingData]);
 
   const handleManageBilling = async () => {
-    if (!account || !user) return;
+    if (!account || !user) {
+      console.error('[BillingBanner] Cannot open portal - missing account or user');
+      return;
+    }
 
     try {
       setPortalLoading(true);
-      const { url } = await createPortalSession(account.id, user.email, account.name);
-      if (url) {
-        window.location.href = url;
+      console.log('[BillingBanner] Opening portal for account:', account.id);
+      const result = await createPortalSession(account.id, user.email, account.name);
+      console.log('[BillingBanner] Portal result:', result);
+      
+      if (result?.url) {
+        console.log('[BillingBanner] Redirecting to:', result.url);
+        window.location.assign(result.url);
+      } else {
+        console.error('[BillingBanner] No URL in response');
+        setPortalLoading(false);
       }
     } catch (err) {
       console.error('[BillingBanner] Error opening portal:', err);
-    } finally {
       setPortalLoading(false);
     }
+    // Note: Don't set portalLoading to false on success - we're navigating away
   };
 
   // Don't show anything while loading or if no billing data
