@@ -439,6 +439,40 @@ export default function Quote() {
         accountId: account?.id,
       });
 
+      // ========================================
+      // STEP 1: Save quote to Supabase (BILLABLE EVENT)
+      // This happens on EVERY save, regardless of email checkbox
+      // ========================================
+      let savedQuote = null;
+      let dbError = null;
+      
+      try {
+        savedQuote = await saveQuote({
+          accountId: account?.id,
+          userId: user?.id,
+          customerName: `${formData.firstName} ${formData.lastName}`,
+          customerEmail: formData.email || null,
+          customerPhone: formData.phone || null,
+          propertyAddress: formData.address || null,
+          propertyType: formData.propertyType || null,
+          areaSqFt: formData.lawnSizeSqFt,
+          basePricePerVisit: pricing.basePrice,
+          addons: selectedAddonsDetails,
+          totalPricePerVisit: pricing.perVisit,
+          frequency: formData.frequency,
+          monthlyEstimate: pricing.monthly,
+          sendToCustomer: formData.email && formData.sendQuoteToCustomer,
+        });
+        console.log('[Quote] Quote saved to database:', savedQuote?.id);
+      } catch (err) {
+        console.error('[Quote] Failed to save quote to database:', err);
+        dbError = err.message || 'Database error';
+        // Continue - don't block quote creation if DB fails
+      }
+
+      // ========================================
+      // STEP 2: Send email if checkbox is checked
+      // ========================================
       let emailSent = false;
       let emailError = null;
 
@@ -464,20 +498,40 @@ export default function Quote() {
           });
           emailSent = true;
           console.log('[Quote] Email sent successfully');
+
+          // Mark quote as email sent in database
+          if (savedQuote?.id) {
+            try {
+              await markQuoteEmailSent(savedQuote.id);
+            } catch (updateErr) {
+              console.warn('[Quote] Failed to mark email sent:', updateErr);
+              // Non-critical, don't show error to user
+            }
+          }
         } catch (err) {
           console.error('[Quote] Failed to send email:', err);
           emailError = err.message || 'Failed to send email';
         }
       }
 
-      // Show success message
+      // ========================================
+      // STEP 3: Show success message with appropriate info
+      // ========================================
+      let successMessage = `Quote saved! ${formData.firstName} ${formData.lastName} - $${pricing.perVisit}/visit`;
+      
       if (emailSent) {
-        setSuccess(`Quote saved and emailed to ${formData.email}! ${formData.firstName} ${formData.lastName} - $${pricing.perVisit}/visit`);
+        successMessage = `Quote saved and emailed to ${formData.email}! ${formData.firstName} ${formData.lastName} - $${pricing.perVisit}/visit`;
       } else if (formData.email && formData.sendQuoteToCustomer && emailError) {
-        setSuccess(`Quote saved! ${formData.firstName} ${formData.lastName} - $${pricing.perVisit}/visit (Note: Email could not be sent: ${emailError})`);
-      } else {
-        setSuccess(`Quote saved! ${formData.firstName} ${formData.lastName} - $${pricing.perVisit}/visit`);
+        successMessage += ` (Note: Email could not be sent: ${emailError})`;
       }
+      
+      // Add DB error warning if quote tracking failed
+      if (dbError) {
+        successMessage += ' ⚠️ Usage tracking failed. Please contact support.';
+        console.error('[Quote] CRITICAL: Quote usage not tracked!', dbError);
+      }
+      
+      setSuccess(successMessage);
       
       setTimeout(() => {
         setFormData({
