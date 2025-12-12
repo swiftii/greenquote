@@ -149,7 +149,7 @@ class GreenQuoteBillingTester:
                 ('stripe.customers.create', 'Stripe customer creation'),
                 ('stripe.subscriptions.create', 'Stripe subscription creation'),
                 ('trial_period_days: 14', '14-day trial period'),
-                ('supabase.from(\'accounts\')', 'Supabase account updates'),
+                ('supabase.*from.*accounts', 'Supabase account updates'),
                 ('subscription_status', 'Subscription status handling')
             ]
             
