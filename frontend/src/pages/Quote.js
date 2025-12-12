@@ -445,11 +445,14 @@ export default function Quote() {
       if (formData.email && formData.sendQuoteToCustomer) {
         try {
           console.log('[Quote] Sending quote email to:', formData.email);
+          // Use custom reply-to email from settings, fallback to user's auth email
+          const replyToEmail = settings?.customer_reply_email || user?.email;
+          console.log('[Quote] Using Reply-To email:', replyToEmail);
           await sendQuoteEmail({
             customerEmail: formData.email,
             customerName: `${formData.firstName} ${formData.lastName}`,
             businessName: account?.name || 'GreenQuote Pro',
-            replyToEmail: user?.email,
+            replyToEmail: replyToEmail,
             propertyAddress: formData.address,
             areaSqFt: formData.lawnSizeSqFt,
             basePrice: pricing.basePrice,
