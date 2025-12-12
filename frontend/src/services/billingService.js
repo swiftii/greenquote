@@ -155,8 +155,12 @@ export function getStatusLabel(status) {
 /**
  * Create a Stripe Customer Portal session
  * Returns the portal URL to redirect to
+ * 
+ * @param {string} accountId - The account ID
+ * @param {string} userEmail - User's email (for auto-creating Stripe customer if needed)
+ * @param {string} accountName - Account/business name (optional)
  */
-export async function createPortalSession(accountId) {
+export async function createPortalSession(accountId, userEmail, accountName) {
   const baseUrl = getApiBaseUrl();
   const originUrl = typeof window !== 'undefined' ? window.location.origin : baseUrl;
   
@@ -168,6 +172,8 @@ export async function createPortalSession(accountId) {
       },
       body: JSON.stringify({
         accountId,
+        userEmail,
+        accountName,
         originUrl,
       }),
     });
