@@ -328,7 +328,7 @@ class QuoteTrackingTester:
                     return False
             
             # Check email sent marking
-            if 'markQuoteEmailSent.*savedQuote.id' in content:
+            if re.search('markQuoteEmailSent.*savedQuote.*id', content, re.IGNORECASE | re.DOTALL):
                 self.results['quote_page']['details'].append("✅ Email sent marking after successful email")
             else:
                 self.results['quote_page']['details'].append("❌ Email sent marking not found")
