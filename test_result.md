@@ -101,3 +101,87 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: Implement per-account configurable Reply-To email address for quote emails sent to customers
+
+backend:
+  - task: "Vercel serverless function accepts replyToEmail parameter"
+    implemented: true
+    working: true
+    file: "api/send-quote-email.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "API already accepts and uses replyToEmail parameter in reply_to header. No changes needed."
+
+frontend:
+  - task: "Settings page - Customer Reply-To Email input field"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Settings.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added new Email Settings card with customer_reply_email input field. Shows fallback to user's auth email. Saves to account_settings table."
+
+  - task: "Quote page - Use customer_reply_email from settings"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Quote.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated sendQuoteEmail call to use settings.customer_reply_email with fallback to user.email"
+
+  - task: "accountService - Update settings includes customer_reply_email"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/services/accountService.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "accountService already handles generic updates. Settings form now includes customer_reply_email field."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: true
+
+test_plan:
+  current_focus:
+    - "Settings page - Customer Reply-To Email input field"
+    - "Quote page - Use customer_reply_email from settings"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Implemented Reply-To email feature:
+      1. Created SQL migration file: SUPABASE_REPLY_TO_MIGRATION.sql
+      2. Updated Settings.js with new Email Settings card containing customer_reply_email input
+      3. Updated Quote.js to use settings.customer_reply_email with fallback to user.email
+      
+      NOTE: This is a Vercel-deployed app using Supabase. Local testing is limited because:
+      - Supabase requires user-provided API keys (not available locally)
+      - The app redirects to login without valid Supabase config
+      
+      The implementation is complete. User needs to:
+      1. Run the SQL migration in their Supabase dashboard
+      2. Deploy to Vercel to test the feature end-to-end
+      
+      Code changes verified via linting (no errors, only pre-existing warnings).
