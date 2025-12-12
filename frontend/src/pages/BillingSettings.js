@@ -248,7 +248,7 @@ export default function BillingSettings() {
               
               <Button
                 onClick={handleManageBilling}
-                disabled={portalLoading || !billingStatus?.hasStripeCustomer}
+                disabled={portalLoading}
                 className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
               >
                 {portalLoading ? (
@@ -260,12 +260,6 @@ export default function BillingSettings() {
                   'Manage Billing'
                 )}
               </Button>
-
-              {!billingStatus?.hasStripeCustomer && (
-                <p className="text-sm text-amber-600">
-                  No billing account found. Start a subscription first.
-                </p>
-              )}
             </div>
           </CardContent>
         </Card>
