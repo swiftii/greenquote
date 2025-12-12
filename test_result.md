@@ -198,15 +198,18 @@ frontend:
 
   - task: "Dashboard - Show real Quotes This Month count"
     implemented: true
-    working: "NA"
+    working: true
     file: "frontend/src/pages/Dashboard.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Updated Dashboard to call getQuotesThisMonth() and display real count. Shows plan info, included limit, and overage warnings."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Dashboard properly imports getQuotesThisMonth, calculateOverage, and DEFAULT_PLAN_TIER from quoteService. Implements proper state management for quotesThisMonth, quotesLoading, and overageInfo. Calls getQuotesThisMonth() with account ID and displays real count with loading state. Shows plan name, included limit, remaining quotes, and overage warnings with proper styling (amber-600 for warnings). All UI components and logic are correctly implemented."
 
   - task: "accountService - Update settings includes customer_reply_email"
     implemented: true
