@@ -172,6 +172,10 @@ export async function createPortalSession(accountId, userEmail, accountName) {
   const baseUrl = getApiBaseUrl();
   const originUrl = typeof window !== 'undefined' ? window.location.origin : baseUrl;
   
+  console.log('[BillingService] Creating portal session for account:', accountId);
+  console.log('[BillingService] API base URL:', baseUrl);
+  console.log('[BillingService] Origin URL:', originUrl);
+  
   try {
     const response = await fetch(`${baseUrl}/api/billing/portal`, {
       method: 'POST',
@@ -186,12 +190,22 @@ export async function createPortalSession(accountId, userEmail, accountName) {
       }),
     });
 
+    const data = await response.json().catch(() => ({}));
+    
+    console.log('[BillingService] Portal response:', response.status, data);
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP error ${response.status}`);
+      const errorMessage = data.error || data.details || `HTTP error ${response.status}`;
+      console.error('[BillingService] Portal API error:', errorMessage);
+      throw new Error(errorMessage);
     }
 
-    return await response.json();
+    if (!data.url) {
+      console.error('[BillingService] No URL in portal response:', data);
+      throw new Error('No portal URL returned from server');
+    }
+
+    return data;
   } catch (error) {
     console.error('[BillingService] Error creating portal session:', error);
     throw error;
