@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: Implement per-account configurable Reply-To email address for quote emails sent to customers AND track quotes per account with Quotes This Month metric
+user_problem_statement: Test the Trial Countdown Banner and Billing Settings feature for GreenQuote Pro
 
 backend:
   - task: "Vercel serverless function accepts replyToEmail parameter"
