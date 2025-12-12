@@ -654,6 +654,30 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        {/* Billing Settings Card */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Billing & Subscription</CardTitle>
+            <CardDescription>
+              Manage your subscription, payment method, and view invoices
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                View your current plan, update payment methods, or manage your subscription.
+              </p>
+              <Button
+                type="button"
+                onClick={() => navigate('/settings/billing')}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                Manage Billing
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Back to Dashboard */}
         <div className="flex justify-center">
           <Button
