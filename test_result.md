@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: Implement per-account configurable Reply-To email address for quote emails sent to customers
+user_problem_statement: Implement per-account configurable Reply-To email address for quote emails sent to customers AND track quotes per account with Quotes This Month metric
 
 backend:
   - task: "Vercel serverless function accepts replyToEmail parameter"
@@ -119,6 +119,18 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ VERIFIED: Vercel function properly extracts replyToEmail from request body, conditionally sets reply_to header, and includes it in email options. All logic is correct."
+
+  - task: "Supabase quotes table for tracking"
+    implemented: true
+    working: "NA"
+    file: "SUPABASE_QUOTES_TABLE.sql"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created SQL migration with quotes table, RLS policies, and indexes. User needs to run in Supabase."
 
 frontend:
   - task: "Settings page - Customer Reply-To Email input field"
@@ -151,6 +163,42 @@ frontend:
         agent: "testing"
         comment: "✅ VERIFIED: Quote page correctly implements 'settings?.customer_reply_email || user?.email' fallback logic, passes replyToEmail parameter to sendQuoteEmail, includes debug logging, and properly imports email service."
 
+  - task: "Quote page - Save quote to Supabase on every Save Quote click"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Quote.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated handleSaveQuote to call saveQuote() from quoteService. Saves all quote data including customer, property, pricing, addons. Non-blocking - quote creation continues even if DB fails but shows warning."
+
+  - task: "Quote service - CRUD operations for quotes"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/services/quoteService.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created new quoteService.js with saveQuote(), getQuotesThisMonth(), calculateOverage(), markQuoteEmailSent(), PLAN_LIMITS config."
+
+  - task: "Dashboard - Show real Quotes This Month count"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Dashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated Dashboard to call getQuotesThisMonth() and display real count. Shows plan info, included limit, and overage warnings."
+
   - task: "accountService - Update settings includes customer_reply_email"
     implemented: true
     working: true
@@ -169,13 +217,14 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 1
+  test_sequence: 2
   run_ui: true
 
 test_plan:
   current_focus:
-    - "Settings page - Customer Reply-To Email input field"
-    - "Quote page - Use customer_reply_email from settings"
+    - "Quote page - Save quote to Supabase on every Save Quote click"
+    - "Dashboard - Show real Quotes This Month count"
+    - "Quote service - CRUD operations for quotes"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -183,57 +232,30 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: |
-      Implemented Reply-To email feature:
-      1. Created SQL migration file: SUPABASE_REPLY_TO_MIGRATION.sql
-      2. Updated Settings.js with new Email Settings card containing customer_reply_email input
-      3. Updated Quote.js to use settings.customer_reply_email with fallback to user.email
+      Implemented Quote Tracking Feature:
       
-      NOTE: This is a Vercel-deployed app using Supabase. Local testing is limited because:
-      - Supabase requires user-provided API keys (not available locally)
-      - The app redirects to login without valid Supabase config
+      1. SQL Migration (SUPABASE_QUOTES_TABLE.sql):
+         - Created quotes table with all required columns
+         - RLS policies for account-based access
+         - Index on (account_id, created_at) for fast monthly counting
       
-      The implementation is complete. User needs to:
-      1. Run the SQL migration in their Supabase dashboard
-      2. Deploy to Vercel to test the feature end-to-end
+      2. Quote Service (quoteService.js):
+         - saveQuote() - Persists quote to Supabase
+         - getQuotesThisMonth() - Counts quotes in current UTC month
+         - calculateOverage() - Computes plan limits and overage
+         - markQuoteEmailSent() - Updates email_sent_at timestamp
+         - PLAN_LIMITS config (starter: 25, professional: 100, enterprise: unlimited)
       
-      Code changes verified via linting (no errors, only pre-existing warnings).
-  - agent: "testing"
-    message: |
-      ✅ COMPREHENSIVE TESTING COMPLETED - ALL TESTS PASSED (6/6)
+      3. Quote.js Updates:
+         - Calls saveQuote() on EVERY "Save Quote" click (billable event)
+         - DB insert happens before email send
+         - Non-blocking: shows warning if DB fails but doesn't block quote creation
+         - Marks email_sent_at if email succeeds
       
-      Verified Reply-To email feature implementation:
+      4. Dashboard.js Updates:
+         - Loads real quote count via getQuotesThisMonth()
+         - Shows plan name, included limit, remaining quotes
+         - Displays overage warning if over limit
       
-      1. ✅ SQL Migration (SUPABASE_REPLY_TO_MIGRATION.sql):
-         - Proper ALTER TABLE with customer_reply_email column
-         - Correct data type (TEXT DEFAULT NULL)
-         - Safe IF NOT EXISTS clause
-         - Documentation and verification query included
-      
-      2. ✅ Vercel Function (api/send-quote-email.js):
-         - Correctly extracts replyToEmail from request body
-         - Conditionally sets reply_to header when replyToEmail provided
-         - Proper email options configuration
-      
-      3. ✅ Settings Page (frontend/src/pages/Settings.js):
-         - Email Settings card with customer_reply_email input field
-         - Form state properly initialized from settings
-         - Saves to account_settings via updateAccountSettings
-         - Email validation and helpful placeholder text
-      
-      4. ✅ Quote Page (frontend/src/pages/Quote.js):
-         - Correct fallback logic: settings?.customer_reply_email || user?.email
-         - Passes replyToEmail parameter to sendQuoteEmail
-         - Debug logging for transparency
-      
-      5. ✅ Email Service (frontend/src/services/emailService.js):
-         - Accepts replyToEmail parameter in function signature
-         - Includes replyToEmail in API request body
-         - Proper JSDoc documentation
-      
-      6. ✅ Integration Flow:
-         - Complete end-to-end parameter passing verified
-         - All components properly connected
-         - Fallback mechanisms working correctly
-      
-      IMPLEMENTATION STATUS: ✅ READY FOR DEPLOYMENT
-      The Reply-To email feature is correctly implemented and ready for production use.
+      USER ACTION REQUIRED:
+      Run SUPABASE_QUOTES_TABLE.sql in Supabase SQL Editor before testing
