@@ -34,11 +34,13 @@ export default function Dashboard() {
     if (!isSupabaseConfigured) {
       setError('Supabase is not configured. Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY environment variables.');
       setAccountLoading(false);
+      setQuotesLoading(false);
       return;
     }
 
     try {
       setAccountLoading(true);
+      setQuotesLoading(true);
       setError(null);
       
       console.log('[Dashboard] Loading account data for user:', user?.id);
@@ -50,6 +52,27 @@ export default function Dashboard() {
       
       setAccount(result?.account || null);
       setSettings(result?.settings || null);
+      
+      // Load quotes count for this month
+      if (result?.account?.id) {
+        try {
+          const count = await getQuotesThisMonth(result.account.id);
+          setQuotesThisMonth(count);
+          
+          // Calculate overage info (using default plan tier for now)
+          // TODO: Get plan_tier from account_settings when billing is integrated
+          const planTier = result?.settings?.plan_tier || DEFAULT_PLAN_TIER;
+          const overage = calculateOverage(count, planTier);
+          setOverageInfo(overage);
+          
+          console.log('[Dashboard] Quotes this month:', count, 'Overage info:', overage);
+        } catch (quoteErr) {
+          console.error('[Dashboard] Error loading quotes count:', quoteErr);
+          // Non-critical, don't show error but log it
+          setQuotesThisMonth(0);
+          setOverageInfo(null);
+        }
+      }
     } catch (err) {
       // Create a clean error message from whatever error we received
       console.error('[Dashboard] Error loading account data:', err);
@@ -75,6 +98,7 @@ export default function Dashboard() {
       setError(errorMessage);
     } finally {
       setAccountLoading(false);
+      setQuotesLoading(false);
     }
   };
 
