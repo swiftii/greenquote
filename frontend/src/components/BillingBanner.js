@@ -45,11 +45,11 @@ export default function BillingBanner() {
   }, [loadBillingData]);
 
   const handleManageBilling = async () => {
-    if (!account) return;
+    if (!account || !user) return;
 
     try {
       setPortalLoading(true);
-      const { url } = await createPortalSession(account.id);
+      const { url } = await createPortalSession(account.id, user.email, account.name);
       if (url) {
         window.location.href = url;
       }
