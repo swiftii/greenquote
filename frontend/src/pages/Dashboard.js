@@ -15,6 +15,11 @@ export default function Dashboard() {
   const [settings, setSettings] = useState(null);
   const [accountLoading, setAccountLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Quotes this month state
+  const [quotesThisMonth, setQuotesThisMonth] = useState(0);
+  const [quotesLoading, setQuotesLoading] = useState(true);
+  const [overageInfo, setOverageInfo] = useState(null);
 
   useEffect(() => {
     if (user && !loading) {
