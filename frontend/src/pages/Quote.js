@@ -996,16 +996,44 @@ export default function Quote() {
                   </div>
                 )}
 
+                {/* Send Quote to Customer Checkbox */}
+                {formData.email && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div 
+                      className="flex items-center gap-3 cursor-pointer"
+                      onClick={() => handleInputChange('sendQuoteToCustomer', !formData.sendQuoteToCustomer)}
+                    >
+                      <Checkbox
+                        id="sendQuoteToCustomer"
+                        checked={formData.sendQuoteToCustomer}
+                        onCheckedChange={(checked) => handleInputChange('sendQuoteToCustomer', checked)}
+                      />
+                      <div className="flex-1">
+                        <Label 
+                          htmlFor="sendQuoteToCustomer" 
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          Send quote to customer
+                        </Label>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Email this quote to {formData.email}
+                        </p>
+                      </div>
+                      <span className="text-lg">📧</span>
+                    </div>
+                  </div>
+                )}
+
                 <Button
                   onClick={handleSaveQuote}
                   disabled={saving || pricing.perVisit === 0}
-                  className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white"
+                  className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white"
                 >
-                  {saving ? 'Sending...' : formData.email ? '📧 Save & Email Quote' : '💾 Save Quote'}
+                  {saving ? 'Sending...' : (formData.email && formData.sendQuoteToCustomer) ? '📧 Save & Email Quote' : '💾 Save Quote'}
                 </Button>
-                {formData.email && (
+                {formData.email && !formData.sendQuoteToCustomer && (
                   <p className="text-xs text-gray-500 text-center mt-2">
-                    Quote will be emailed to {formData.email}
+                    Quote will be saved without sending email
                   </p>
                 )}
               </CardContent>
