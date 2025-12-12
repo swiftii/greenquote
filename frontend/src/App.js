@@ -6,6 +6,7 @@ import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
+import BillingSettings from "@/pages/BillingSettings";
 import Quote from "@/pages/Quote";
 import Billing from "@/pages/Billing";
 import BillingSuccess from "@/pages/BillingSuccess";
@@ -108,6 +109,16 @@ function App() {
               <ProtectedRoute>
                 <SubscriptionGuard>
                   <Settings />
+                </SubscriptionGuard>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/billing"
+            element={
+              <ProtectedRoute>
+                <SubscriptionGuard>
+                  <BillingSettings />
                 </SubscriptionGuard>
               </ProtectedRoute>
             }
