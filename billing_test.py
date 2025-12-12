@@ -154,7 +154,7 @@ class GreenQuoteBillingTester:
             ]
             
             for pattern, description in functionality_checks:
-                if pattern in content:
+                if re.search(pattern, content, re.DOTALL):
                     self.results['start_trial_api']['details'].append(f"✅ {description}")
                 else:
                     self.results['start_trial_api']['details'].append(f"❌ {description}")
