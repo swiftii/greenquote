@@ -7,8 +7,11 @@ import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import Quote from "@/pages/Quote";
+import Billing from "@/pages/Billing";
+import BillingSuccess from "@/pages/BillingSuccess";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PublicRoute from "@/components/PublicRoute";
+import SubscriptionGuard from "@/components/SubscriptionGuard";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -70,12 +73,32 @@ function App() {
             }
           />
           
-          {/* Protected routes - require authentication */}
+          {/* Billing pages - require auth but NOT subscription */}
+          <Route
+            path="/billing"
+            element={
+              <ProtectedRoute>
+                <Billing />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/billing/success"
+            element={
+              <ProtectedRoute>
+                <BillingSuccess />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Protected routes - require authentication AND subscription */}
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <SubscriptionGuard>
+                  <Dashboard />
+                </SubscriptionGuard>
               </ProtectedRoute>
             }
           />
@@ -83,17 +106,21 @@ function App() {
             path="/settings"
             element={
               <ProtectedRoute>
-                <Settings />
+                <SubscriptionGuard>
+                  <Settings />
+                </SubscriptionGuard>
               </ProtectedRoute>
             }
           />
           
-          {/* Quote page - Pro quote flow */}
+          {/* Quote page - Pro quote flow (requires subscription) */}
           <Route
             path="/quote"
             element={
               <ProtectedRoute>
-                <Quote />
+                <SubscriptionGuard>
+                  <Quote />
+                </SubscriptionGuard>
               </ProtectedRoute>
             }
           />
