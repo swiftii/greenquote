@@ -55,6 +55,9 @@ export async function startTrial({ accountId, userId, userEmail, accountName }) 
 export async function getBillingStatus(accountId) {
   const baseUrl = getApiBaseUrl();
   
+  console.log('[BillingService] Getting billing status for account:', accountId);
+  console.log('[BillingService] API base URL:', baseUrl);
+  
   try {
     const response = await fetch(`${baseUrl}/api/billing/status`, {
       method: 'POST',
@@ -64,12 +67,17 @@ export async function getBillingStatus(accountId) {
       body: JSON.stringify({ accountId }),
     });
 
+    const data = await response.json().catch(() => ({}));
+    
+    console.log('[BillingService] Status response:', response.status, data);
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP error ${response.status}`);
+      const errorMessage = data.error || data.details || `HTTP error ${response.status}`;
+      console.error('[BillingService] Status API error:', errorMessage);
+      throw new Error(errorMessage);
     }
 
-    return await response.json();
+    return data;
   } catch (error) {
     console.error('[BillingService] Error getting billing status:', error);
     throw error;
