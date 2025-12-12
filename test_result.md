@@ -105,35 +105,32 @@
 user_problem_statement: Test the Trial Countdown Banner and Billing Settings feature for GreenQuote Pro
 
 backend:
-  - task: "Vercel serverless function accepts replyToEmail parameter"
+  - task: "Portal API Route - Create Stripe Customer Portal Session"
     implemented: true
     working: true
-    file: "api/send-quote-email.js"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "main"
-        comment: "API already accepts and uses replyToEmail parameter in reply_to header. No changes needed."
-      - working: true
-        agent: "testing"
-        comment: "✅ VERIFIED: Vercel function properly extracts replyToEmail from request body, conditionally sets reply_to header, and includes it in email options. All logic is correct."
-
-  - task: "Supabase quotes table for tracking"
-    implemented: true
-    working: true
-    file: "SUPABASE_QUOTES_TABLE.sql"
+    file: "api/billing/portal.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Created SQL migration with quotes table, RLS policies, and indexes. User needs to run in Supabase."
+        comment: "Created Vercel serverless function to create Stripe Customer Portal sessions with proper error handling and Supabase integration."
       - working: true
         agent: "testing"
-        comment: "✅ VERIFIED: SQL migration file has correct structure with all required fields (id, account_id, customer info, property info, pricing fields, email tracking), proper indexes for fast monthly counting, RLS policies for account-based access, and comprehensive documentation. All syntax is correct."
+        comment: "✅ VERIFIED: Portal API properly configured with Stripe and Supabase imports, handles POST requests, validates accountId, looks up stripe_customer_id, creates portal sessions, and includes comprehensive error handling. All integration points are correct."
+
+  - task: "Backend API Status Endpoints"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Basic FastAPI backend with status endpoints working correctly. Note: Billing functionality is implemented as separate Vercel serverless functions, not FastAPI routes."
 
 frontend:
   - task: "Settings page - Customer Reply-To Email input field"
