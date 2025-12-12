@@ -190,7 +190,34 @@ export default function Dashboard() {
               <CardDescription>Generated this billing period</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-green-600">0</p>
+              {quotesLoading ? (
+                <div className="animate-pulse">
+                  <div className="h-10 w-16 bg-gray-200 rounded"></div>
+                </div>
+              ) : (
+                <>
+                  <p className="text-4xl font-bold text-green-600">{quotesThisMonth}</p>
+                  {overageInfo && (
+                    <div className="mt-2">
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>{overageInfo.planName} Plan</span>
+                        <span>•</span>
+                        <span>{overageInfo.includedLimit} included</span>
+                      </div>
+                      {overageInfo.isOverLimit && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          ⚠️ {overageInfo.overageCount} overage quote{overageInfo.overageCount > 1 ? 's' : ''}
+                        </p>
+                      )}
+                      {!overageInfo.isOverLimit && overageInfo.remainingIncluded > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {overageInfo.remainingIncluded} remaining this month
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
 
