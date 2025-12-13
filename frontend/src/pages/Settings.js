@@ -83,6 +83,8 @@ export default function Settings() {
         minPricePerVisit: userSettings?.min_price_per_visit || '50',
         pricePerSqFt: userSettings?.price_per_sq_ft || '0.01',
         customerReplyEmail: userSettings?.customer_reply_email || '',
+        useTieredSqftPricing: userSettings?.use_tiered_sqft_pricing ?? true,
+        sqftPricingTiers: userSettings?.sqft_pricing_tiers || DEFAULT_PRICING_TIERS,
       });
 
       // Load add-ons for this account
