@@ -286,21 +286,50 @@ export default function Dashboard() {
                 <span className="text-lg font-semibold mb-1">Create New Quote</span>
                 <span className="text-sm opacity-90">Generate a quote for a customer</span>
               </Button>
-              <Button variant="outline" className="h-auto py-6 flex flex-col items-start border-green-600 text-green-600 hover:bg-green-50">
+              <Button 
+                onClick={() => navigate('/quotes/pending')}
+                variant="outline" 
+                className="h-auto py-6 flex flex-col items-start border-green-600 text-green-600 hover:bg-green-50 relative"
+              >
+                <span className="text-lg font-semibold mb-1">View Pending Quotes</span>
+                <span className="text-sm opacity-90">Review and close open quotes</span>
+                {pendingQuotesCount > 0 && (
+                  <span className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full">
+                    {pendingQuotesCount}
+                  </span>
+                )}
+              </Button>
+              <Button 
+                onClick={() => navigate('/clients')}
+                variant="outline" 
+                className="h-auto py-6 flex flex-col items-start border-green-600 text-green-600 hover:bg-green-50"
+              >
                 <span className="text-lg font-semibold mb-1">Manage Clients</span>
-                <span className="text-sm opacity-90">View and edit client configurations</span>
+                <span className="text-sm opacity-90">View won quotes and clients</span>
+              </Button>
+              <Button 
+                onClick={() => navigate('/quotes/lost')}
+                variant="outline" 
+                className="h-auto py-6 flex flex-col items-start border-gray-400 text-gray-600 hover:bg-gray-50"
+              >
+                <span className="text-lg font-semibold mb-1">Closed Lost Quotes</span>
+                <span className="text-sm opacity-90">Re-engage lost leads</span>
               </Button>
               <Button 
                 onClick={() => navigate('/settings')}
                 variant="outline" 
                 className="h-auto py-6 flex flex-col items-start border-green-600 text-green-600 hover:bg-green-50"
               >
-                <span className="text-lg font-semibold mb-1">Widget Settings</span>
-                <span className="text-sm opacity-90">Configure your quote widgets</span>
+                <span className="text-lg font-semibold mb-1">Settings</span>
+                <span className="text-sm opacity-90">Configure pricing and add-ons</span>
               </Button>
-              <Button variant="outline" className="h-auto py-6 flex flex-col items-start border-green-600 text-green-600 hover:bg-green-50">
-                <span className="text-lg font-semibold mb-1">View Analytics</span>
-                <span className="text-sm opacity-90">Track your business performance</span>
+              <Button 
+                variant="outline" 
+                className="h-auto py-6 flex flex-col items-start border-gray-300 text-gray-400 hover:bg-gray-50 cursor-not-allowed"
+                disabled
+              >
+                <span className="text-lg font-semibold mb-1">Analytics</span>
+                <span className="text-sm opacity-90">Coming soon</span>
               </Button>
             </div>
           </CardContent>
