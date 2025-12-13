@@ -138,6 +138,40 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          {/* Quote Pipeline pages */}
+          <Route
+            path="/quotes/pending"
+            element={
+              <ProtectedRoute>
+                <SubscriptionGuard>
+                  <PendingQuotes />
+                </SubscriptionGuard>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotes/lost"
+            element={
+              <ProtectedRoute>
+                <SubscriptionGuard>
+                  <LostQuotes />
+                </SubscriptionGuard>
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Clients page */}
+          <Route
+            path="/clients"
+            element={
+              <ProtectedRoute>
+                <SubscriptionGuard>
+                  <Clients />
+                </SubscriptionGuard>
+              </ProtectedRoute>
+            }
+          />
 
           {/* Legacy home route for reference */}
           <Route path="/home" element={<Home />} />
