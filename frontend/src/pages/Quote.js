@@ -6,6 +6,7 @@ import { ensureUserAccount } from '@/services/accountService';
 import { getActiveAddons } from '@/services/addonsService';
 import { sendQuoteEmail } from '@/services/emailService';
 import { saveQuote, markQuoteEmailSent } from '@/services/quoteService';
+import { calculateTieredPrice, calculateFlatPrice, DEFAULT_PRICING_TIERS } from '@/utils/pricingUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,7 +22,7 @@ import { GoogleMap, useJsApiLoader, Autocomplete, Polygon } from '@react-google-
  * Route: /quote
  * 
  * This page allows logged-in users to create quotes for prospects using:
- * - Their account-specific pricing (min_price_per_visit, price_per_sq_ft)
+ * - Their account-specific pricing (tiered or flat rate)
  * - Their custom add-ons from account_addons table
  * - Google Maps for address autocomplete and boundary drawing
  * - Area calculation from polygon for accurate pricing
