@@ -231,12 +231,54 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Quote Pipeline & Clients Feature Testing Complete"
+    - "Tiered Square-Footage Pricing Feature Implementation"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
+  - agent: "main"
+    message: |
+      Implemented Tiered Square-Footage Pricing Feature:
+      
+      1. SQL Migration (SUPABASE_TIERED_PRICING_MIGRATION.sql):
+         - Added use_tiered_sqft_pricing (boolean, default true) to account_settings
+         - Added sqft_pricing_tiers (JSONB) with default tiers to account_settings
+         - Added pricing_mode, pricing_tiers_snapshot, flat_rate_snapshot to quotes table
+         - Includes verification queries and rollback instructions
+      
+      2. Pricing Utilities (frontend/src/utils/pricingUtils.js):
+         - calculateTieredPrice() - Blended tiered pricing algorithm (like tax brackets)
+         - calculateFlatPrice() - For backward compatibility
+         - validatePricingTiers() - Tier validation with error messages
+         - DEFAULT_PRICING_TIERS constant with sensible defaults
+      
+      3. Settings.js Updates:
+         - Toggle: "Enable volume-based (tiered) pricing" with Switch component
+         - Tier Editor UI: Table with editable Up to Sq Ft and Price per Sq Ft
+         - Add Tier / Remove Tier / Reset to Default buttons
+         - Validation errors displayed before save
+         - Flat rate field shown when tiered pricing is OFF
+      
+      4. Quote.js Updates:
+         - Updated calculatePricing() to use tiered vs flat pricing based on settings
+         - Pricing breakdown shows per-tier amounts when tiered
+         - Volume discount helper note shown: "Larger lawns receive automatic volume discounts"
+         - Pricing mode and tier snapshot saved with quote for historical accuracy
+      
+      5. quoteService.js Updates:
+         - saveQuote() now accepts pricingMode, pricingTiersSnapshot, flatRateSnapshot
+         - These fields are persisted to database for quote historical integrity
+      
+      USER ACTION REQUIRED:
+      Run SUPABASE_TIERED_PRICING_MIGRATION.sql in Supabase SQL Editor before testing
+      
+      Testing Scenarios to Verify:
+      1. 2,500 sq ft lawn - should price similar to before
+      2. 40,000 sq ft lawn - should show significant savings with tiered
+      3. Toggle OFF - should use flat rate exactly as before
+      4. Frequency discounts + add-ons still apply correctly
+      5. Saved quotes preserve pricing snapshot
   - agent: "main"
     message: |
       Implemented Quote Tracking Feature:
