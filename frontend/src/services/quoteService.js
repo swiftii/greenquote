@@ -8,7 +8,26 @@ import { supabase } from '@/lib/supabaseClient';
  * - Billing (count per account per month)
  * - Analytics (conversion tracking, revenue forecasting)
  * - Customer history
+ * - Sales pipeline (pending, won, lost)
  */
+
+/**
+ * Frequency to visits per month mapping
+ */
+export const FREQUENCY_VISITS = {
+  one_time: 1,
+  weekly: 4,
+  bi_weekly: 2,
+  monthly: 1,
+};
+
+/**
+ * Calculate estimated monthly revenue from price per visit and frequency
+ */
+export function calculateMonthlyRevenue(pricePerVisit, frequency) {
+  const visits = FREQUENCY_VISITS[frequency] || 1;
+  return parseFloat(pricePerVisit || 0) * visits;
+}
 
 /**
  * Plan tier limits for quote counting
