@@ -524,6 +524,10 @@ export default function Quote() {
           monthlyEstimate: pricing.monthly,
           sendToCustomer: formData.email && formData.sendQuoteToCustomer,
           services: servicesSnapshot, // Save services snapshot for pipeline
+          // Pricing snapshot for historical accuracy
+          pricingMode: pricing.pricingMode,
+          pricingTiersSnapshot: pricing.tiersSnapshot,
+          flatRateSnapshot: pricing.flatRateSnapshot,
         });
         console.log('[Quote] Quote saved to database:', savedQuote?.id);
       } catch (err) {
