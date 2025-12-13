@@ -612,7 +612,7 @@ class GreenQuoteTieredPricingTester:
             # 6. Volume discount note is conditional
             if quote_file.exists():
                 quote_content = quote_file.read_text()
-                if 'volume discounts' in quote_content.lower() and 'pricingMode.*tiered' in quote_content:
+                if 'volume discounts' in quote_content.lower() and re.search(r'pricing\.pricingMode.*===.*tiered', quote_content):
                     integration_checks.append("✅ Volume discount note shown for tiered pricing")
                 else:
                     integration_checks.append("❌ Volume discount note not properly conditional")
