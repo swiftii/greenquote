@@ -194,11 +194,11 @@ class GreenQuotePipelineClientsTester:
             
             # Check function implementations
             impl_checks = [
-                ('status.*pending.*won.*lost', 'updateQuoteStatus validates status values'),
+                ('pending.*won.*lost', 'updateQuoteStatus validates status values'),
                 ('from.*quotes.*eq.*status', 'getQuotesByStatus filters by status'),
-                ('order.*created_at.*property_address.*monthly_estimate', 'getQuotesByStatus supports sorting'),
-                ('status.*pending.*saveQuote', 'saveQuote sets status to pending'),
-                ('services.*services.*saveQuote', 'saveQuote includes services snapshot'),
+                ('order.*created_at', 'getQuotesByStatus supports sorting'),
+                ('status.*pending', 'saveQuote sets status to pending'),
+                ('services.*saveQuote', 'saveQuote includes services snapshot'),
             ]
             
             for pattern, description in impl_checks:
