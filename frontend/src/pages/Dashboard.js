@@ -256,10 +256,17 @@ export default function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Revenue</CardTitle>
-              <CardDescription>Estimated monthly revenue</CardDescription>
+              <CardDescription>Estimated monthly from clients</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-green-600">$0</p>
+              <p className="text-4xl font-bold text-green-600">
+                ${monthlyRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </p>
+              {monthlyRevenue > 0 && (
+                <p className="text-sm text-gray-500 mt-1">
+                  From {clientCount} active client{clientCount !== 1 ? 's' : ''}
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -271,7 +278,7 @@ export default function Dashboard() {
             <CardDescription>Get started with GreenQuote Pro</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Button 
                 onClick={() => navigate('/quote')}
                 className="h-auto py-6 flex flex-col items-start bg-green-600 hover:bg-green-700"
