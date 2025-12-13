@@ -447,6 +447,12 @@ export default function Quote() {
       let dbError = null;
       
       try {
+        // Build services snapshot
+        const servicesSnapshot = {
+          baseService: formData.primaryService,
+          addons: selectedAddonsDetails,
+        };
+
         savedQuote = await saveQuote({
           accountId: account?.id,
           userId: user?.id,
@@ -462,6 +468,7 @@ export default function Quote() {
           frequency: formData.frequency,
           monthlyEstimate: pricing.monthly,
           sendToCustomer: formData.email && formData.sendQuoteToCustomer,
+          services: servicesSnapshot, // Save services snapshot for pipeline
         });
         console.log('[Quote] Quote saved to database:', savedQuote?.id);
       } catch (err) {
