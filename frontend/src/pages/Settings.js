@@ -44,7 +44,12 @@ export default function Settings() {
     minPricePerVisit: '',
     pricePerSqFt: '',
     customerReplyEmail: '',
+    useTieredSqftPricing: true,
+    sqftPricingTiers: DEFAULT_PRICING_TIERS,
   });
+
+  // Tier validation errors
+  const [tierErrors, setTierErrors] = useState([]);
 
   useEffect(() => {
     if (user && !loading) {
