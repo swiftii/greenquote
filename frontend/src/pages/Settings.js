@@ -457,27 +457,162 @@ export default function Settings() {
               <CardDescription>Set your default pricing for quotes</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="minPricePerVisit">Minimum Price Per Visit ($)</Label>
-                  <Input
-                    id="minPricePerVisit"
-                    name="minPricePerVisit"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.minPricePerVisit}
-                    onChange={handleInputChange}
-                    placeholder="50.00"
-                    className="mt-1"
-                    required
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Minimum amount charged regardless of lawn size
+              {/* Minimum Price */}
+              <div className="mb-6">
+                <Label htmlFor="minPricePerVisit">Minimum Price Per Visit ($)</Label>
+                <Input
+                  id="minPricePerVisit"
+                  name="minPricePerVisit"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.minPricePerVisit}
+                  onChange={handleInputChange}
+                  placeholder="50.00"
+                  className="mt-1 max-w-xs"
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Minimum amount charged regardless of lawn size
+                </p>
+              </div>
+
+              {/* Tiered Pricing Toggle */}
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        id="useTieredPricing"
+                        checked={formData.useTieredSqftPricing}
+                        onCheckedChange={handleToggleTieredPricing}
+                      />
+                      <Label htmlFor="useTieredPricing" className="font-medium cursor-pointer">
+                        Enable volume-based (tiered) pricing
+                      </Label>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 ml-12">
+                      Automatically applies lower per-sq-ft rates to larger lawns.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tiered Pricing Editor (visible when toggle is ON) */}
+              {formData.useTieredSqftPricing && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="text-base font-medium">Pricing Tiers</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleResetTiersToDefault}
+                      >
+                        Reset to Default
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleAddTier}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        + Add Tier
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Tier Validation Errors */}
+                  {tierErrors.length > 0 && (
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertDescription>
+                        <ul className="list-disc list-inside space-y-1">
+                          {tierErrors.map((err, i) => (
+                            <li key={i}>{err}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Tiers Table */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Up to Sq Ft</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Price per Sq Ft</th>
+                          <th className="px-4 py-2 text-right text-sm font-medium text-gray-600">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {formData.sqftPricingTiers.map((tier, index) => {
+                          const isUnlimited = tier.up_to_sqft === null;
+                          return (
+                            <tr key={index} className="border-t">
+                              <td className="px-4 py-3">
+                                {isUnlimited ? (
+                                  <span className="text-gray-500 italic">No limit</span>
+                                ) : (
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    step="1000"
+                                    value={tier.up_to_sqft || ''}
+                                    onChange={(e) => handleTierChange(index, 'up_to_sqft', e.target.value)}
+                                    className="w-32"
+                                    placeholder="sq ft"
+                                  />
+                                )}
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-gray-500">$</span>
+                                  <Input
+                                    type="number"
+                                    min="0.001"
+                                    step="0.001"
+                                    value={tier.rate_per_sqft || ''}
+                                    onChange={(e) => handleTierChange(index, 'rate_per_sqft', e.target.value)}
+                                    className="w-28"
+                                    placeholder="0.01"
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                {!isUnlimited && formData.sqftPricingTiers.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => handleRemoveTier(index)}
+                                  >
+                                    Remove
+                                  </Button>
+                                )}
+                                {isUnlimited && (
+                                  <span className="text-xs text-gray-400">Required</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <p className="mt-2 text-xs text-gray-500">
+                    💡 Pricing is applied progressively (like tax brackets). Larger lawns receive automatic volume discounts.
                   </p>
                 </div>
-                <div>
-                  <Label htmlFor="pricePerSqFt">Price Per Square Foot ($)</Label>
+              )}
+
+              {/* Flat Price (visible when toggle is OFF) */}
+              {!formData.useTieredSqftPricing && (
+                <div className="mb-6">
+                  <Label htmlFor="pricePerSqFt">Flat Price Per Square Foot ($)</Label>
                   <Input
                     id="pricePerSqFt"
                     name="pricePerSqFt"
@@ -487,15 +622,16 @@ export default function Settings() {
                     value={formData.pricePerSqFt}
                     onChange={handleInputChange}
                     placeholder="0.01"
-                    className="mt-1"
+                    className="mt-1 max-w-xs"
                     required
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Price per square foot of lawn area
+                    Single flat rate applied to all lawn sizes
                   </p>
                 </div>
-              </div>
-              <div className="mt-4 flex justify-end">
+              )}
+
+              <div className="flex justify-end border-t pt-4">
                 <Button
                   type="submit"
                   disabled={saving}
