@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: Test the Trial Countdown Banner and Billing Settings feature for GreenQuote Pro
+user_problem_statement: Test the Quote Pipeline & Clients feature for GreenQuote Pro
 
 backend:
   - task: "Portal API Route - Create Stripe Customer Portal Session"
