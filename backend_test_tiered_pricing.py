@@ -586,7 +586,7 @@ class GreenQuoteTieredPricingTester:
             utils_file = self.app_dir / 'frontend' / 'src' / 'utils' / 'pricingUtils.js'
             if utils_file.exists():
                 utils_content = utils_file.read_text()
-                if 'calculateTieredPrice' in utils_content and 'totalPrice.*breakdown' in utils_content:
+                if 'calculateTieredPrice' in utils_content and re.search(r'totalPrice.*breakdown', utils_content):
                     integration_checks.append("✅ Pricing utilities provide tiered calculations")
                 else:
                     integration_checks.append("❌ Pricing utilities don't provide tiered calculations")
