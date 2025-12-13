@@ -79,6 +79,25 @@ export default function Dashboard() {
           setQuotesThisMonth(0);
           setOverageInfo(null);
         }
+        
+        // Load clients count and revenue
+        try {
+          const [clients, revenue, pending] = await Promise.all([
+            getClientCount(result.account.id),
+            getTotalMonthlyRevenue(result.account.id),
+            getQuoteCountByStatus(result.account.id, 'pending'),
+          ]);
+          setClientCount(clients);
+          setMonthlyRevenue(revenue);
+          setPendingQuotesCount(pending);
+          console.log('[Dashboard] Clients:', clients, 'Revenue:', revenue, 'Pending:', pending);
+        } catch (clientErr) {
+          console.error('[Dashboard] Error loading client data:', clientErr);
+          // Non-critical
+          setClientCount(0);
+          setMonthlyRevenue(0);
+          setPendingQuotesCount(0);
+        }
       }
     } catch (err) {
       // Create a clean error message from whatever error we received
