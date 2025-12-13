@@ -225,23 +225,71 @@ export default function Quote() {
 
   const calculatePricing = useCallback(() => {
     if (!settings || !formData.lawnSizeSqFt || !formData.primaryService || !formData.frequency) {
-      setPricing({ perVisit: 0, monthly: 0, basePrice: 0, addonsTotal: 0, breakdown: [] });
+      setPricing({ 
+        perVisit: 0, 
+        monthly: 0, 
+        basePrice: 0, 
+        addonsTotal: 0, 
+        breakdown: [],
+        pricingMode: 'flat',
+        tiersSnapshot: null,
+        flatRateSnapshot: null,
+      });
       return;
     }
 
     const sqFt = parseFloat(formData.lawnSizeSqFt) || 0;
     const minPrice = parseFloat(settings.min_price_per_visit) || 50;
-    const pricePerSqFt = parseFloat(settings.price_per_sq_ft) || 0.01;
+    const useTieredPricing = settings.use_tiered_sqft_pricing ?? true;
+    const tiers = settings.sqft_pricing_tiers || DEFAULT_PRICING_TIERS;
+    const flatRate = parseFloat(settings.price_per_sq_ft) || 0.01;
 
-    // Base price calculation: sqFt × pricePerSqFt, enforcing minimum
-    const calculatedFromArea = sqFt * pricePerSqFt;
+    let calculatedFromArea = 0;
+    const breakdown = [];
+    let pricingMode = 'flat';
+    let tiersSnapshot = null;
+    let flatRateSnapshot = null;
+
+    if (useTieredPricing && tiers && tiers.length > 0) {
+      // Use tiered blended pricing
+      pricingMode = 'tiered';
+      tiersSnapshot = tiers;
+      
+      const { totalPrice, breakdown: tierBreakdown } = calculateTieredPrice(sqFt, tiers);
+      calculatedFromArea = totalPrice;
+
+      // Build breakdown from tier calculation
+      if (tierBreakdown.length > 0) {
+        tierBreakdown.forEach(tier => {
+          breakdown.push({
+            label: `${tier.sqftInTier.toLocaleString()} sq ft @ $${tier.rate.toFixed(4)}/sqft`,
+            amount: tier.price,
+            note: '',
+          });
+        });
+      }
+    } else {
+      // Use flat pricing
+      pricingMode = 'flat';
+      flatRateSnapshot = flatRate;
+      calculatedFromArea = calculateFlatPrice(sqFt, flatRate);
+      
+      breakdown.push({ 
+        label: `Base service (${sqFt.toLocaleString()} sq ft × $${flatRate.toFixed(4)})`, 
+        amount: calculatedFromArea,
+        note: ''
+      });
+    }
+
+    // Enforce minimum price
     const basePrice = Math.max(calculatedFromArea, minPrice);
-    
-    const breakdown = [{ 
-      label: `Base service (${sqFt.toLocaleString()} sq ft × $${pricePerSqFt.toFixed(4)})`, 
-      amount: calculatedFromArea,
-      note: calculatedFromArea < minPrice ? `(min $${minPrice} applied)` : ''
-    }];
+    if (calculatedFromArea < minPrice) {
+      breakdown.push({
+        label: 'Minimum price applied',
+        amount: minPrice - calculatedFromArea,
+        note: `(min $${minPrice})`,
+      });
+    }
 
     // Calculate add-ons total using account-specific add-ons
     let addonsTotal = 0;
@@ -272,6 +320,9 @@ export default function Quote() {
       basePrice: Math.round(basePrice),
       addonsTotal: Math.round(addonsTotal),
       breakdown,
+      pricingMode,
+      tiersSnapshot,
+      flatRateSnapshot,
     });
   }, [formData, settings, availableAddons]);
 
