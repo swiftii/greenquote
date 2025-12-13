@@ -104,6 +104,10 @@ export async function saveQuote(quoteData) {
     monthlyEstimate,
     sendToCustomer,
     services, // Base service + add-ons snapshot
+    // Pricing snapshot fields
+    pricingMode,
+    pricingTiersSnapshot,
+    flatRateSnapshot,
   } = quoteData;
 
   if (!accountId) {
@@ -133,6 +137,10 @@ export async function saveQuote(quoteData) {
         send_to_customer: sendToCustomer || false,
         status: 'pending', // All new quotes start as pending
         services: services || null,
+        // Pricing snapshot for historical accuracy
+        pricing_mode: pricingMode || 'flat',
+        pricing_tiers_snapshot: pricingTiersSnapshot || null,
+        flat_rate_snapshot: flatRateSnapshot ? parseFloat(flatRateSnapshot) : null,
       }])
       .select()
       .single();
