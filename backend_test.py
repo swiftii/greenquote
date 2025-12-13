@@ -198,7 +198,7 @@ class GreenQuotePipelineClientsTester:
                 ('from.*quotes.*eq.*status', 'getQuotesByStatus filters by status'),
                 ('order.*created_at', 'getQuotesByStatus supports sorting'),
                 ('status.*pending', 'saveQuote sets status to pending'),
-                ('services.*saveQuote', 'saveQuote includes services snapshot'),
+                ('services.*services.*null', 'saveQuote includes services snapshot'),
             ]
             
             for pattern, description in impl_checks:
