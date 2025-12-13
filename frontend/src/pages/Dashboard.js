@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import { ensureUserAccount } from '@/services/accountService';
-import { getQuotesThisMonth, calculateOverage, DEFAULT_PLAN_TIER } from '@/services/quoteService';
+import { getQuotesThisMonth, calculateOverage, DEFAULT_PLAN_TIER, getQuoteCountByStatus } from '@/services/quoteService';
+import { getClientCount, getTotalMonthlyRevenue } from '@/services/clientService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -21,6 +22,11 @@ export default function Dashboard() {
   const [quotesThisMonth, setQuotesThisMonth] = useState(0);
   const [quotesLoading, setQuotesLoading] = useState(true);
   const [overageInfo, setOverageInfo] = useState(null);
+  
+  // Clients and revenue state
+  const [clientCount, setClientCount] = useState(0);
+  const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+  const [pendingQuotesCount, setPendingQuotesCount] = useState(0);
 
   useEffect(() => {
     if (user && !loading) {
