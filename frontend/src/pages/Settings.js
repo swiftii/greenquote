@@ -161,6 +161,76 @@ export default function Settings() {
     }
   };
 
+  // Tier management handlers
+  const handleToggleTieredPricing = (checked) => {
+    setFormData(prev => ({ ...prev, useTieredSqftPricing: checked }));
+    setTierErrors([]);
+  };
+
+  const handleTierChange = (index, field, value) => {
+    setFormData(prev => {
+      const newTiers = [...prev.sqftPricingTiers];
+      if (field === 'up_to_sqft') {
+        // Handle "No limit" as null
+        newTiers[index] = {
+          ...newTiers[index],
+          up_to_sqft: value === '' || value === null ? null : parseInt(value, 10) || 0,
+        };
+      } else if (field === 'rate_per_sqft') {
+        newTiers[index] = {
+          ...newTiers[index],
+          rate_per_sqft: parseFloat(value) || 0,
+        };
+      }
+      return { ...prev, sqftPricingTiers: newTiers };
+    });
+    setTierErrors([]);
+  };
+
+  const handleAddTier = () => {
+    setFormData(prev => {
+      const newTiers = [...prev.sqftPricingTiers];
+      // Find the last tier with a limit
+      const lastLimitedIndex = newTiers.findIndex(t => t.up_to_sqft === null);
+      const insertIndex = lastLimitedIndex === -1 ? newTiers.length : lastLimitedIndex;
+      
+      // Calculate suggested up_to_sqft
+      const previousMax = insertIndex > 0 
+        ? (newTiers[insertIndex - 1]?.up_to_sqft || 5000) 
+        : 0;
+      const suggestedMax = previousMax + 10000;
+      
+      // Insert new tier before the unlimited tier
+      newTiers.splice(insertIndex, 0, {
+        up_to_sqft: suggestedMax,
+        rate_per_sqft: 0.006,
+      });
+      
+      return { ...prev, sqftPricingTiers: newTiers };
+    });
+    setTierErrors([]);
+  };
+
+  const handleRemoveTier = (index) => {
+    if (formData.sqftPricingTiers.length <= 1) {
+      setError('At least one pricing tier is required');
+      return;
+    }
+    setFormData(prev => {
+      const newTiers = prev.sqftPricingTiers.filter((_, i) => i !== index);
+      return { ...prev, sqftPricingTiers: newTiers };
+    });
+    setTierErrors([]);
+  };
+
+  const handleResetTiersToDefault = () => {
+    setFormData(prev => ({
+      ...prev,
+      sqftPricingTiers: DEFAULT_PRICING_TIERS,
+    }));
+    setTierErrors([]);
+  };
+
   // Add-on CRUD handlers
   const handleAddAddon = async () => {
     if (!newAddon.name.trim()) {
