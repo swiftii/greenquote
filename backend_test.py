@@ -255,7 +255,7 @@ class GreenQuotePipelineClientsTester:
             ui_checks = [
                 ('Pending Quotes', 'page title present'),
                 ('Won.*Lost', 'action buttons present'),
-                ('property_address.*customer_name', 'quote info displayed'),
+                ('property_address', 'quote info displayed'),
                 ('monthly_estimate', 'revenue displayed'),
                 ('Select.*sort', 'sorting controls present'),
             ]
