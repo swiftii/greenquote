@@ -114,6 +114,7 @@ export default function Settings() {
     setSaving(true);
     setError(null);
     setSuccess(null);
+    setTierErrors([]);
 
     try {
       const minPrice = parseFloat(formData.minPricePerVisit);
@@ -126,16 +127,27 @@ export default function Settings() {
         throw new Error('Please enter a valid price per square foot');
       }
 
+      // Validate tiered pricing tiers if enabled
+      if (formData.useTieredSqftPricing) {
+        const validation = validatePricingTiers(formData.sqftPricingTiers);
+        if (!validation.valid) {
+          setTierErrors(validation.errors);
+          throw new Error('Please fix pricing tier errors before saving');
+        }
+      }
+
       // Update account name
       if (formData.accountName !== account.name) {
         await updateAccountName(account.id, formData.accountName);
       }
 
-      // Update settings
+      // Update settings including tiered pricing
       await updateAccountSettings(account.id, {
         min_price_per_visit: minPrice,
         price_per_sq_ft: pricePerSqFt,
         customer_reply_email: formData.customerReplyEmail.trim() || null,
+        use_tiered_sqft_pricing: formData.useTieredSqftPricing,
+        sqft_pricing_tiers: formData.sqftPricingTiers,
       });
 
       setSuccess('Settings saved successfully!');
