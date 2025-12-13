@@ -365,7 +365,7 @@ class GreenQuoteTieredPricingTester:
                     return False
             
             # Check for volume discount note
-            if 'Larger lawns receive automatic volume discounts' in content and 'pricingMode.*tiered' in content:
+            if 'Larger lawns receive automatic volume discounts' in content and re.search(r'pricing\.pricingMode.*===.*tiered', content):
                 self.results['quote_integration']['details'].append("✅ Volume discount note displayed for tiered pricing")
             else:
                 self.results['quote_integration']['details'].append("❌ Volume discount note not properly conditional")
