@@ -142,6 +142,9 @@ export default function Quote() {
     basePrice: 0,
     addonsTotal: 0,
     breakdown: [],
+    pricingMode: 'flat', // 'tiered' or 'flat'
+    tiersSnapshot: null, // snapshot of tiers used for tiered pricing
+    flatRateSnapshot: null, // snapshot of flat rate used
   });
 
   // Load account data and add-ons
