@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 """
-Backend Testing for GreenQuote Pro Reply-To Email Feature
+Backend Testing for GreenQuote Pro Quote Pipeline & Clients Feature
 
-This test suite verifies the Reply-To email feature implementation:
+This test suite verifies the Quote Pipeline & Clients feature implementation:
 1. SQL migration file syntax and structure
-2. Vercel serverless function accepts and uses replyToEmail parameter
-3. Frontend Settings.js properly handles customer_reply_email field
-4. Frontend Quote.js uses settings.customer_reply_email with fallback
-5. Email service integration passes correct replyToEmail parameter
+2. Client Service functions (getClients, getTotalMonthlyRevenue, etc.)
+3. Quote Service pipeline functions (getQuotesByStatus, updateQuoteStatus, etc.)
+4. Page components (PendingQuotes.js, LostQuotes.js, Clients.js)
+5. Dashboard integration with client data
+6. App.js routing configuration
+7. Quote.js services snapshot saving
 
-Since this is a Supabase-based app with external dependencies, we focus on:
+Since this is a Supabase-based app with frontend components, we focus on:
 - Code syntax and logic verification
 - Integration point validation
-- Parameter passing verification
+- Component structure validation
+- Service function implementation
 """
 
 import os
@@ -25,23 +28,27 @@ from pathlib import Path
 # Add the app directory to Python path
 sys.path.insert(0, '/app')
 
-class GreenQuoteReplyToTester:
+class GreenQuotePipelineClientsTester:
     def __init__(self):
         self.app_dir = Path('/app')
         self.results = {
             'sql_migration': {'status': 'pending', 'details': []},
-            'vercel_function': {'status': 'pending', 'details': []},
-            'settings_page': {'status': 'pending', 'details': []},
-            'quote_page': {'status': 'pending', 'details': []},
-            'email_service': {'status': 'pending', 'details': []},
+            'client_service': {'status': 'pending', 'details': []},
+            'quote_service': {'status': 'pending', 'details': []},
+            'pending_quotes_page': {'status': 'pending', 'details': []},
+            'lost_quotes_page': {'status': 'pending', 'details': []},
+            'clients_page': {'status': 'pending', 'details': []},
+            'dashboard_integration': {'status': 'pending', 'details': []},
+            'app_routing': {'status': 'pending', 'details': []},
+            'quote_services_snapshot': {'status': 'pending', 'details': []},
             'integration': {'status': 'pending', 'details': []}
         }
         
     def test_sql_migration(self):
-        """Test the SQL migration file for Reply-To email feature"""
+        """Test the SQL migration file for Quote Pipeline & Clients feature"""
         print("🔍 Testing SQL Migration File...")
         
-        migration_file = self.app_dir / 'SUPABASE_REPLY_TO_MIGRATION.sql'
+        migration_file = self.app_dir / 'SUPABASE_PIPELINE_CLIENTS_MIGRATION.sql'
         
         if not migration_file.exists():
             self.results['sql_migration']['status'] = 'failed'
@@ -51,16 +58,16 @@ class GreenQuoteReplyToTester:
         try:
             content = migration_file.read_text()
             
-            # Check for required SQL elements
-            checks = [
-                ('ALTER TABLE account_settings', 'ALTER TABLE statement present'),
-                ('ADD COLUMN.*customer_reply_email', 'customer_reply_email column addition'),
-                ('TEXT DEFAULT NULL', 'Correct column type and default'),
-                ('COMMENT ON COLUMN', 'Column documentation present'),
-                ('IF NOT EXISTS', 'Safe column addition with IF NOT EXISTS')
+            # Check for required SQL elements for quotes table updates
+            quotes_checks = [
+                ('ALTER TABLE quotes.*ADD COLUMN.*status', 'status column addition to quotes'),
+                ('ALTER TABLE quotes.*ADD COLUMN.*services', 'services JSONB column addition'),
+                ('DEFAULT.*pending', 'status defaults to pending'),
+                ('JSONB', 'services column is JSONB type'),
+                ('CREATE INDEX.*quotes.*account.*status', 'index for pipeline queries'),
             ]
             
-            for pattern, description in checks:
+            for pattern, description in quotes_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
                     self.results['sql_migration']['details'].append(f"✅ {description}")
                 else:
@@ -68,9 +75,28 @@ class GreenQuoteReplyToTester:
                     self.results['sql_migration']['status'] = 'failed'
                     return False
             
-            # Check for verification query
+            # Check for clients table creation
+            clients_checks = [
+                ('CREATE TABLE.*clients', 'clients table creation'),
+                ('account_id.*REFERENCES accounts', 'account relationship'),
+                ('source_quote_id.*REFERENCES quotes', 'quote relationship'),
+                ('estimated_monthly_revenue', 'monthly revenue column'),
+                ('is_active.*BOOLEAN', 'active status column'),
+                ('ENABLE ROW LEVEL SECURITY', 'RLS enabled for clients'),
+                ('CREATE POLICY.*clients', 'RLS policies for clients'),
+            ]
+            
+            for pattern, description in clients_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['sql_migration']['details'].append(f"✅ {description}")
+                else:
+                    self.results['sql_migration']['details'].append(f"❌ {description}")
+                    self.results['sql_migration']['status'] = 'failed'
+                    return False
+            
+            # Check for verification queries
             if 'information_schema.columns' in content:
-                self.results['sql_migration']['details'].append("✅ Verification query included")
+                self.results['sql_migration']['details'].append("✅ Verification queries included")
             
             self.results['sql_migration']['status'] = 'passed'
             return True
@@ -80,216 +106,394 @@ class GreenQuoteReplyToTester:
             self.results['sql_migration']['details'].append(f"Error reading migration file: {str(e)}")
             return False
     
-    def test_vercel_function(self):
-        """Test the Vercel serverless function for Reply-To support"""
-        print("🔍 Testing Vercel Serverless Function...")
+    def test_client_service(self):
+        """Test clientService.js functions"""
+        print("🔍 Testing Client Service...")
         
-        function_file = self.app_dir / 'api' / 'send-quote-email.js'
+        service_file = self.app_dir / 'frontend' / 'src' / 'services' / 'clientService.js'
         
-        if not function_file.exists():
-            self.results['vercel_function']['status'] = 'failed'
-            self.results['vercel_function']['details'].append('Vercel function file not found')
+        if not service_file.exists():
+            self.results['client_service']['status'] = 'failed'
+            self.results['client_service']['details'].append('clientService.js file not found')
             return False
             
         try:
-            content = function_file.read_text()
+            content = service_file.read_text()
             
-            # Check for replyToEmail parameter handling
-            checks = [
-                ('replyToEmail', 'replyToEmail parameter extracted from request body'),
-                ('reply_to.*replyToEmail', 'reply_to header set conditionally'),
-                ('if.*replyToEmail', 'Conditional logic for reply_to header'),
-                ('emailOptions\.reply_to', 'reply_to property added to email options')
+            # Check for required functions
+            functions = [
+                ('export.*function getClients', 'getClients function exported'),
+                ('export.*function getTotalMonthlyRevenue', 'getTotalMonthlyRevenue function exported'),
+                ('export.*function getClientCount', 'getClientCount function exported'),
+                ('export.*function createClientFromQuote', 'createClientFromQuote function exported'),
             ]
             
-            for pattern, description in checks:
+            for pattern, description in functions:
                 if re.search(pattern, content, re.IGNORECASE):
-                    self.results['vercel_function']['details'].append(f"✅ {description}")
+                    self.results['client_service']['details'].append(f"✅ {description}")
                 else:
-                    self.results['vercel_function']['details'].append(f"❌ {description}")
-                    self.results['vercel_function']['status'] = 'failed'
+                    self.results['client_service']['details'].append(f"❌ {description}")
+                    self.results['client_service']['status'] = 'failed'
                     return False
             
-            # Check that the function properly handles the reply_to field
-            if 'emailOptions.reply_to = replyToEmail' in content:
-                self.results['vercel_function']['details'].append("✅ reply_to correctly assigned")
-            else:
-                self.results['vercel_function']['details'].append("❌ reply_to assignment not found")
-                self.results['vercel_function']['status'] = 'failed'
-                return False
+            # Check function implementations
+            impl_checks = [
+                ('from.*clients.*select.*account_id.*is_active', 'getClients filters by account and active status'),
+                ('estimated_monthly_revenue.*reduce.*sum', 'getTotalMonthlyRevenue sums revenue'),
+                ('count.*exact.*head.*true', 'getClientCount uses count query'),
+                ('source_quote_id.*quoteId', 'createClientFromQuote prevents duplicates'),
+                ('supabase.*from.*clients.*insert', 'createClientFromQuote inserts client'),
+            ]
             
-            self.results['vercel_function']['status'] = 'passed'
+            for pattern, description in impl_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['client_service']['details'].append(f"✅ {description}")
+                else:
+                    self.results['client_service']['details'].append(f"❌ {description}")
+                    self.results['client_service']['status'] = 'failed'
+                    return False
+            
+            self.results['client_service']['status'] = 'passed'
             return True
             
         except Exception as e:
-            self.results['vercel_function']['status'] = 'failed'
-            self.results['vercel_function']['details'].append(f"Error reading function file: {str(e)}")
+            self.results['client_service']['status'] = 'failed'
+            self.results['client_service']['details'].append(f"Error reading client service file: {str(e)}")
             return False
     
-    def test_settings_page(self):
-        """Test Settings.js for customer_reply_email field implementation"""
-        print("🔍 Testing Settings Page Implementation...")
+    def test_quote_service(self):
+        """Test quoteService.js pipeline functions"""
+        print("🔍 Testing Quote Service Pipeline Functions...")
         
-        settings_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Settings.js'
+        service_file = self.app_dir / 'frontend' / 'src' / 'services' / 'quoteService.js'
         
-        if not settings_file.exists():
-            self.results['settings_page']['status'] = 'failed'
-            self.results['settings_page']['details'].append('Settings.js file not found')
+        if not service_file.exists():
+            self.results['quote_service']['status'] = 'failed'
+            self.results['quote_service']['details'].append('quoteService.js file not found')
             return False
             
         try:
-            content = settings_file.read_text()
+            content = service_file.read_text()
             
-            # Check for Email Settings card
-            if 'Email Settings' in content:
-                self.results['settings_page']['details'].append("✅ Email Settings card present")
-            else:
-                self.results['settings_page']['details'].append("❌ Email Settings card not found")
-                self.results['settings_page']['status'] = 'failed'
-                return False
-            
-            # Check for customer_reply_email field handling
-            checks = [
-                ('customerReplyEmail:', 'customerReplyEmail in form state'),
-                ('userSettings.*customer_reply_email', 'customer_reply_email loaded from settings'),
-                ('customer_reply_email.*formData\.customerReplyEmail', 'customer_reply_email saved to settings'),
-                ('Customer Reply-To Email', 'Proper field label'),
-                ('type="email"', 'Email input type validation'),
-                ('placeholder.*user.*email', 'Fallback placeholder showing user email')
+            # Check for new pipeline functions
+            functions = [
+                ('export.*function getQuotesByStatus', 'getQuotesByStatus function exported'),
+                ('export.*function updateQuoteStatus', 'updateQuoteStatus function exported'),
+                ('export.*function getQuoteCountByStatus', 'getQuoteCountByStatus function exported'),
+                ('export.*function calculateMonthlyRevenue', 'calculateMonthlyRevenue helper function'),
+                ('FREQUENCY_VISITS', 'FREQUENCY_VISITS mapping defined'),
             ]
             
-            for pattern, description in checks:
+            for pattern, description in functions:
                 if re.search(pattern, content, re.IGNORECASE):
-                    self.results['settings_page']['details'].append(f"✅ {description}")
+                    self.results['quote_service']['details'].append(f"✅ {description}")
                 else:
-                    self.results['settings_page']['details'].append(f"❌ {description}")
-                    self.results['settings_page']['status'] = 'failed'
+                    self.results['quote_service']['details'].append(f"❌ {description}")
+                    self.results['quote_service']['status'] = 'failed'
                     return False
             
-            # Check for proper form data initialization
-            if 'customerReplyEmail: userSettings?.customer_reply_email' in content:
-                self.results['settings_page']['details'].append("✅ Form data properly initialized from settings")
-            else:
-                self.results['settings_page']['details'].append("❌ Form data initialization not found")
-                self.results['settings_page']['status'] = 'failed'
-                return False
+            # Check function implementations
+            impl_checks = [
+                ('status.*pending.*won.*lost', 'updateQuoteStatus validates status values'),
+                ('from.*quotes.*eq.*status', 'getQuotesByStatus filters by status'),
+                ('order.*created_at.*property_address.*monthly_estimate', 'getQuotesByStatus supports sorting'),
+                ('status.*pending.*saveQuote', 'saveQuote sets status to pending'),
+                ('services.*services.*saveQuote', 'saveQuote includes services snapshot'),
+            ]
             
-            # Check for help text explaining the feature
-            if 'When customers reply to quote emails' in content:
-                self.results['settings_page']['details'].append("✅ Help text explaining feature present")
-            else:
-                self.results['settings_page']['details'].append("❌ Help text not found")
+            for pattern, description in impl_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['quote_service']['details'].append(f"✅ {description}")
+                else:
+                    self.results['quote_service']['details'].append(f"❌ {description}")
+                    self.results['quote_service']['status'] = 'failed'
+                    return False
             
-            self.results['settings_page']['status'] = 'passed'
+            self.results['quote_service']['status'] = 'passed'
             return True
             
         except Exception as e:
-            self.results['settings_page']['status'] = 'failed'
-            self.results['settings_page']['details'].append(f"Error reading settings file: {str(e)}")
+            self.results['quote_service']['status'] = 'failed'
+            self.results['quote_service']['details'].append(f"Error reading quote service file: {str(e)}")
             return False
     
-    def test_quote_page(self):
-        """Test Quote.js for using customer_reply_email with fallback"""
-        print("🔍 Testing Quote Page Implementation...")
+    def test_pending_quotes_page(self):
+        """Test PendingQuotes.js page component"""
+        print("🔍 Testing Pending Quotes Page...")
+        
+        page_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'PendingQuotes.js'
+        
+        if not page_file.exists():
+            self.results['pending_quotes_page']['status'] = 'failed'
+            self.results['pending_quotes_page']['details'].append('PendingQuotes.js file not found')
+            return False
+            
+        try:
+            content = page_file.read_text()
+            
+            # Check for required imports and functionality
+            checks = [
+                ('import.*getQuotesByStatus.*updateQuoteStatus', 'imports quote service functions'),
+                ('import.*createClientFromQuote', 'imports client service function'),
+                ('getQuotesByStatus.*pending', 'loads pending quotes'),
+                ('handleClosedWon.*updateQuoteStatus.*won', 'Won action updates status'),
+                ('handleClosedLost.*updateQuoteStatus.*lost', 'Lost action updates status'),
+                ('createClientFromQuote.*handleClosedWon', 'Won action creates client'),
+                ('sortBy.*sortOrder', 'sorting functionality implemented'),
+                ('FREQUENCY_LABELS', 'frequency labels for display'),
+            ]
+            
+            for pattern, description in checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['pending_quotes_page']['details'].append(f"✅ {description}")
+                else:
+                    self.results['pending_quotes_page']['details'].append(f"❌ {description}")
+                    self.results['pending_quotes_page']['status'] = 'failed'
+                    return False
+            
+            # Check UI elements
+            ui_checks = [
+                ('Pending Quotes', 'page title present'),
+                ('Won.*Lost', 'action buttons present'),
+                ('property_address.*customer_name', 'quote info displayed'),
+                ('monthly_estimate', 'revenue displayed'),
+                ('Select.*sort', 'sorting controls present'),
+            ]
+            
+            for pattern, description in ui_checks:
+                if re.search(pattern, content, re.IGNORECASE):
+                    self.results['pending_quotes_page']['details'].append(f"✅ {description}")
+                else:
+                    self.results['pending_quotes_page']['details'].append(f"❌ {description}")
+                    self.results['pending_quotes_page']['status'] = 'failed'
+                    return False
+            
+            self.results['pending_quotes_page']['status'] = 'passed'
+            return True
+            
+        except Exception as e:
+            self.results['pending_quotes_page']['status'] = 'failed'
+            self.results['pending_quotes_page']['details'].append(f"Error reading pending quotes page: {str(e)}")
+            return False
+    
+    def test_lost_quotes_page(self):
+        """Test LostQuotes.js page component"""
+        print("🔍 Testing Lost Quotes Page...")
+        
+        page_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'LostQuotes.js'
+        
+        if not page_file.exists():
+            self.results['lost_quotes_page']['status'] = 'failed'
+            self.results['lost_quotes_page']['details'].append('LostQuotes.js file not found')
+            return False
+            
+        try:
+            content = page_file.read_text()
+            
+            # Check for required functionality
+            checks = [
+                ('getQuotesByStatus.*lost', 'loads lost quotes'),
+                ('handleReopen.*updateQuoteStatus.*pending', 'Reopen action updates to pending'),
+                ('handleClosedWon.*updateQuoteStatus.*won', 'Won action updates status'),
+                ('createClientFromQuote.*handleClosedWon', 'Won action creates client'),
+                ('Closed Lost Quotes', 'page title present'),
+                ('Reopen.*Won', 'action buttons present'),
+                ('Re-engage lost leads', 'help text present'),
+            ]
+            
+            for pattern, description in checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['lost_quotes_page']['details'].append(f"✅ {description}")
+                else:
+                    self.results['lost_quotes_page']['details'].append(f"❌ {description}")
+                    self.results['lost_quotes_page']['status'] = 'failed'
+                    return False
+            
+            self.results['lost_quotes_page']['status'] = 'passed'
+            return True
+            
+        except Exception as e:
+            self.results['lost_quotes_page']['status'] = 'failed'
+            self.results['lost_quotes_page']['details'].append(f"Error reading lost quotes page: {str(e)}")
+            return False
+    
+    def test_clients_page(self):
+        """Test Clients.js page component"""
+        print("🔍 Testing Clients Page...")
+        
+        page_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Clients.js'
+        
+        if not page_file.exists():
+            self.results['clients_page']['status'] = 'failed'
+            self.results['clients_page']['details'].append('Clients.js file not found')
+            return False
+            
+        try:
+            content = page_file.read_text()
+            
+            # Check for required functionality
+            checks = [
+                ('import.*getClients.*getTotalMonthlyRevenue', 'imports client service functions'),
+                ('getClients.*getTotalMonthlyRevenue', 'loads clients and revenue'),
+                ('Active Clients', 'page title present'),
+                ('Total Clients.*Monthly Revenue', 'stats summary present'),
+                ('property_address.*customer_name', 'client info displayed'),
+                ('estimated_monthly_revenue', 'revenue per client displayed'),
+                ('services.*addons', 'services tags displayed'),
+                ('customer_email.*customer_phone', 'contact info displayed'),
+            ]
+            
+            for pattern, description in checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['clients_page']['details'].append(f"✅ {description}")
+                else:
+                    self.results['clients_page']['details'].append(f"❌ {description}")
+                    self.results['clients_page']['status'] = 'failed'
+                    return False
+            
+            self.results['clients_page']['status'] = 'passed'
+            return True
+            
+        except Exception as e:
+            self.results['clients_page']['status'] = 'failed'
+            self.results['clients_page']['details'].append(f"Error reading clients page: {str(e)}")
+            return False
+    
+    def test_dashboard_integration(self):
+        """Test Dashboard.js integration with client data"""
+        print("🔍 Testing Dashboard Integration...")
+        
+        dashboard_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Dashboard.js'
+        
+        if not dashboard_file.exists():
+            self.results['dashboard_integration']['status'] = 'failed'
+            self.results['dashboard_integration']['details'].append('Dashboard.js file not found')
+            return False
+            
+        try:
+            content = dashboard_file.read_text()
+            
+            # Check for client service integration
+            checks = [
+                ('import.*getClientCount.*getTotalMonthlyRevenue', 'imports client service functions'),
+                ('import.*getQuoteCountByStatus', 'imports quote count function'),
+                ('getClientCount.*getTotalMonthlyRevenue.*getQuoteCountByStatus', 'loads client data'),
+                ('clientCount.*monthlyRevenue.*pendingQuotesCount', 'state variables for client data'),
+                ('Active Clients.*clientCount', 'displays client count'),
+                ('Revenue.*monthlyRevenue', 'displays monthly revenue'),
+                ('View Pending Quotes.*pendingQuotesCount', 'shows pending quotes badge'),
+                ('Manage Clients', 'client management quick action'),
+                ('Closed Lost Quotes', 'lost quotes quick action'),
+            ]
+            
+            for pattern, description in checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['dashboard_integration']['details'].append(f"✅ {description}")
+                else:
+                    self.results['dashboard_integration']['details'].append(f"❌ {description}")
+                    self.results['dashboard_integration']['status'] = 'failed'
+                    return False
+            
+            self.results['dashboard_integration']['status'] = 'passed'
+            return True
+            
+        except Exception as e:
+            self.results['dashboard_integration']['status'] = 'failed'
+            self.results['dashboard_integration']['details'].append(f"Error reading dashboard file: {str(e)}")
+            return False
+    
+    def test_app_routing(self):
+        """Test App.js routing configuration"""
+        print("🔍 Testing App.js Routing...")
+        
+        app_file = self.app_dir / 'frontend' / 'src' / 'App.js'
+        
+        if not app_file.exists():
+            self.results['app_routing']['status'] = 'failed'
+            self.results['app_routing']['details'].append('App.js file not found')
+            return False
+            
+        try:
+            content = app_file.read_text()
+            
+            # Check for required imports
+            import_checks = [
+                ('import.*PendingQuotes', 'PendingQuotes component imported'),
+                ('import.*LostQuotes', 'LostQuotes component imported'),
+                ('import.*Clients', 'Clients component imported'),
+            ]
+            
+            for pattern, description in import_checks:
+                if re.search(pattern, content, re.IGNORECASE):
+                    self.results['app_routing']['details'].append(f"✅ {description}")
+                else:
+                    self.results['app_routing']['details'].append(f"❌ {description}")
+                    self.results['app_routing']['status'] = 'failed'
+                    return False
+            
+            # Check for route configurations
+            route_checks = [
+                ('path.*quotes/pending.*PendingQuotes', '/quotes/pending route configured'),
+                ('path.*quotes/lost.*LostQuotes', '/quotes/lost route configured'),
+                ('path.*clients.*Clients', '/clients route configured'),
+                ('ProtectedRoute.*SubscriptionGuard.*PendingQuotes', 'PendingQuotes route protected'),
+                ('ProtectedRoute.*SubscriptionGuard.*LostQuotes', 'LostQuotes route protected'),
+                ('ProtectedRoute.*SubscriptionGuard.*Clients', 'Clients route protected'),
+            ]
+            
+            for pattern, description in route_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['app_routing']['details'].append(f"✅ {description}")
+                else:
+                    self.results['app_routing']['details'].append(f"❌ {description}")
+                    self.results['app_routing']['status'] = 'failed'
+                    return False
+            
+            self.results['app_routing']['status'] = 'passed'
+            return True
+            
+        except Exception as e:
+            self.results['app_routing']['status'] = 'failed'
+            self.results['app_routing']['details'].append(f"Error reading app file: {str(e)}")
+            return False
+    
+    def test_quote_services_snapshot(self):
+        """Test Quote.js services snapshot saving"""
+        print("🔍 Testing Quote.js Services Snapshot...")
         
         quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
         
         if not quote_file.exists():
-            self.results['quote_page']['status'] = 'failed'
-            self.results['quote_page']['details'].append('Quote.js file not found')
+            self.results['quote_services_snapshot']['status'] = 'failed'
+            self.results['quote_services_snapshot']['details'].append('Quote.js file not found')
             return False
             
         try:
             content = quote_file.read_text()
             
-            # Check for replyToEmail logic
-            if 'settings?.customer_reply_email || user?.email' in content:
-                self.results['quote_page']['details'].append("✅ Reply-to email with proper fallback logic")
-            else:
-                self.results['quote_page']['details'].append("❌ Reply-to email fallback logic not found")
-                self.results['quote_page']['status'] = 'failed'
-                return False
+            # Check for services snapshot implementation
+            checks = [
+                ('servicesSnapshot.*baseService.*addons', 'services snapshot structure'),
+                ('services.*servicesSnapshot.*saveQuote', 'services snapshot passed to saveQuote'),
+                ('baseService.*formData\.primaryService', 'base service included'),
+                ('addons.*selectedAddonsDetails', 'addons details included'),
+                ('selectedAddonsDetails.*id.*name.*price', 'addon details structure'),
+            ]
             
-            # Check for replyToEmail parameter in sendQuoteEmail call
-            if 'replyToEmail:' in content and 'sendQuoteEmail' in content:
-                self.results['quote_page']['details'].append("✅ replyToEmail parameter passed to sendQuoteEmail")
-            else:
-                self.results['quote_page']['details'].append("❌ replyToEmail parameter not passed to sendQuoteEmail")
-                self.results['quote_page']['status'] = 'failed'
-                return False
+            for pattern, description in checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['quote_services_snapshot']['details'].append(f"✅ {description}")
+                else:
+                    self.results['quote_services_snapshot']['details'].append(f"❌ {description}")
+                    self.results['quote_services_snapshot']['status'] = 'failed'
+                    return False
             
-            # Check for console logging of reply-to email
-            if 'Using Reply-To email' in content:
-                self.results['quote_page']['details'].append("✅ Debug logging for reply-to email present")
-            else:
-                self.results['quote_page']['details'].append("❌ Debug logging not found")
-            
-            # Verify the email service import
-            if 'sendQuoteEmail' in content and 'from' in content and 'emailService' in content:
-                self.results['quote_page']['details'].append("✅ Email service properly imported")
-            else:
-                self.results['quote_page']['details'].append("❌ Email service import not found")
-                self.results['quote_page']['status'] = 'failed'
-                return False
-            
-            self.results['quote_page']['status'] = 'passed'
+            self.results['quote_services_snapshot']['status'] = 'passed'
             return True
             
         except Exception as e:
-            self.results['quote_page']['status'] = 'failed'
-            self.results['quote_page']['details'].append(f"Error reading quote file: {str(e)}")
-            return False
-    
-    def test_email_service(self):
-        """Test emailService.js for replyToEmail parameter handling"""
-        print("🔍 Testing Email Service Implementation...")
-        
-        email_service_file = self.app_dir / 'frontend' / 'src' / 'services' / 'emailService.js'
-        
-        if not email_service_file.exists():
-            self.results['email_service']['status'] = 'failed'
-            self.results['email_service']['details'].append('emailService.js file not found')
-            return False
-            
-        try:
-            content = email_service_file.read_text()
-            
-            # Check for replyToEmail parameter in function signature
-            if 'replyToEmail' in content and 'params.replyToEmail' in content:
-                self.results['email_service']['details'].append("✅ replyToEmail parameter in function signature")
-            else:
-                self.results['email_service']['details'].append("❌ replyToEmail parameter not in function signature")
-                self.results['email_service']['status'] = 'failed'
-                return False
-            
-            # Check for replyToEmail in request body
-            if 'replyToEmail,' in content and 'JSON.stringify' in content:
-                self.results['email_service']['details'].append("✅ replyToEmail included in API request body")
-            else:
-                self.results['email_service']['details'].append("❌ replyToEmail not included in request body")
-                self.results['email_service']['status'] = 'failed'
-                return False
-            
-            # Check for proper API endpoint
-            if '/api/send-quote-email' in content:
-                self.results['email_service']['details'].append("✅ Correct API endpoint used")
-            else:
-                self.results['email_service']['details'].append("❌ API endpoint not found")
-                self.results['email_service']['status'] = 'failed'
-                return False
-            
-            # Check for JSDoc documentation
-            if '@param' in content and 'replyToEmail' in content:
-                self.results['email_service']['details'].append("✅ JSDoc documentation includes replyToEmail")
-            else:
-                self.results['email_service']['details'].append("❌ JSDoc documentation incomplete")
-            
-            self.results['email_service']['status'] = 'passed'
-            return True
-            
-        except Exception as e:
-            self.results['email_service']['status'] = 'failed'
-            self.results['email_service']['details'].append(f"Error reading email service file: {str(e)}")
+            self.results['quote_services_snapshot']['status'] = 'failed'
+            self.results['quote_services_snapshot']['details'].append(f"Error reading quote file: {str(e)}")
             return False
     
     def test_integration_flow(self):
@@ -297,52 +501,60 @@ class GreenQuoteReplyToTester:
         print("🔍 Testing Integration Flow...")
         
         try:
-            # Check that all components are properly connected
             integration_checks = []
             
-            # 1. Settings page saves customer_reply_email to account_settings table
-            settings_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Settings.js'
-            if settings_file.exists():
-                settings_content = settings_file.read_text()
-                if 'customer_reply_email' in settings_content and 'updateAccountSettings' in settings_content:
-                    integration_checks.append("✅ Settings page saves customer_reply_email")
-                else:
-                    integration_checks.append("❌ Settings page doesn't save customer_reply_email")
-            
-            # 2. Quote page loads settings and uses customer_reply_email
+            # 1. Quote creation saves services snapshot and status
             quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
             if quote_file.exists():
                 quote_content = quote_file.read_text()
-                if 'ensureUserAccount' in quote_content and 'settings?.customer_reply_email' in quote_content:
-                    integration_checks.append("✅ Quote page loads and uses customer_reply_email")
+                if 'services.*servicesSnapshot' in quote_content and 'status.*pending' in quote_content:
+                    integration_checks.append("✅ Quote creation saves services snapshot with pending status")
                 else:
-                    integration_checks.append("❌ Quote page doesn't properly use customer_reply_email")
+                    integration_checks.append("❌ Quote creation doesn't save services snapshot properly")
             
-            # 3. Email service passes replyToEmail to API
-            email_service_file = self.app_dir / 'frontend' / 'src' / 'services' / 'emailService.js'
-            if email_service_file.exists():
-                email_content = email_service_file.read_text()
-                if 'replyToEmail' in email_content and 'JSON.stringify' in email_content:
-                    integration_checks.append("✅ Email service passes replyToEmail to API")
+            # 2. Pending quotes page loads and manages quotes
+            pending_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'PendingQuotes.js'
+            if pending_file.exists():
+                pending_content = pending_file.read_text()
+                if 'getQuotesByStatus.*pending' in pending_content and 'updateQuoteStatus.*won' in pending_content:
+                    integration_checks.append("✅ Pending quotes page manages quote status transitions")
                 else:
-                    integration_checks.append("❌ Email service doesn't pass replyToEmail")
+                    integration_checks.append("❌ Pending quotes page doesn't manage status properly")
             
-            # 4. Vercel function uses replyToEmail in email headers
-            function_file = self.app_dir / 'api' / 'send-quote-email.js'
-            if function_file.exists():
-                function_content = function_file.read_text()
-                if 'reply_to' in function_content and 'replyToEmail' in function_content:
-                    integration_checks.append("✅ Vercel function sets reply_to header")
+            # 3. Won quotes create clients
+            if pending_file.exists():
+                pending_content = pending_file.read_text()
+                if 'createClientFromQuote' in pending_content and 'handleClosedWon' in pending_content:
+                    integration_checks.append("✅ Won quotes create clients automatically")
                 else:
-                    integration_checks.append("❌ Vercel function doesn't set reply_to header")
+                    integration_checks.append("❌ Won quotes don't create clients")
             
-            # 5. Check for proper fallback logic
-            if quote_file.exists():
-                quote_content = quote_file.read_text()
-                if 'user?.email' in quote_content and '||' in quote_content:
-                    integration_checks.append("✅ Proper fallback to user email")
+            # 4. Clients page displays client data
+            clients_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Clients.js'
+            if clients_file.exists():
+                clients_content = clients_file.read_text()
+                if 'getClients' in clients_content and 'getTotalMonthlyRevenue' in clients_content:
+                    integration_checks.append("✅ Clients page displays client data and revenue")
                 else:
-                    integration_checks.append("❌ No fallback to user email")
+                    integration_checks.append("❌ Clients page doesn't display data properly")
+            
+            # 5. Dashboard shows client metrics
+            dashboard_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Dashboard.js'
+            if dashboard_file.exists():
+                dashboard_content = dashboard_file.read_text()
+                if 'getClientCount' in dashboard_content and 'getTotalMonthlyRevenue' in dashboard_content:
+                    integration_checks.append("✅ Dashboard displays client metrics")
+                else:
+                    integration_checks.append("❌ Dashboard doesn't display client metrics")
+            
+            # 6. All routes are properly configured
+            app_file = self.app_dir / 'frontend' / 'src' / 'App.js'
+            if app_file.exists():
+                app_content = app_file.read_text()
+                if 'quotes/pending' in app_content and 'quotes/lost' in app_content and '/clients' in app_content:
+                    integration_checks.append("✅ All pipeline routes are configured")
+                else:
+                    integration_checks.append("❌ Pipeline routes not properly configured")
             
             self.results['integration']['details'] = integration_checks
             
@@ -362,14 +574,18 @@ class GreenQuoteReplyToTester:
     
     def run_all_tests(self):
         """Run all tests and return results"""
-        print("🚀 Starting GreenQuote Pro Reply-To Email Feature Tests\n")
+        print("🚀 Starting GreenQuote Pro Quote Pipeline & Clients Feature Tests\n")
         
         tests = [
             ('SQL Migration', self.test_sql_migration),
-            ('Vercel Function', self.test_vercel_function),
-            ('Settings Page', self.test_settings_page),
-            ('Quote Page', self.test_quote_page),
-            ('Email Service', self.test_email_service),
+            ('Client Service', self.test_client_service),
+            ('Quote Service', self.test_quote_service),
+            ('Pending Quotes Page', self.test_pending_quotes_page),
+            ('Lost Quotes Page', self.test_lost_quotes_page),
+            ('Clients Page', self.test_clients_page),
+            ('Dashboard Integration', self.test_dashboard_integration),
+            ('App Routing', self.test_app_routing),
+            ('Quote Services Snapshot', self.test_quote_services_snapshot),
             ('Integration Flow', self.test_integration_flow)
         ]
         
@@ -404,7 +620,7 @@ class GreenQuoteReplyToTester:
 
 def main():
     """Main test execution"""
-    tester = GreenQuoteReplyToTester()
+    tester = GreenQuotePipelineClientsTester()
     passed, total, results = tester.run_all_tests()
     
     print("\n" + "=" * 60)
@@ -415,7 +631,7 @@ def main():
     
     # Determine overall result
     if passed == total:
-        print("\n🎉 ALL TESTS PASSED! Reply-To email feature is properly implemented.")
+        print("\n🎉 ALL TESTS PASSED! Quote Pipeline & Clients feature is properly implemented.")
         return True
     else:
         print(f"\n⚠️  {total - passed} test(s) failed. Review the implementation.")
