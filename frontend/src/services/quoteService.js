@@ -285,3 +285,125 @@ export async function getQuotesByAccount(accountId, options = {}) {
     throw err;
   }
 }
+
+
+/**
+ * Get quotes by status for pipeline views
+ * @param {string} accountId - Account ID
+ * @param {string} status - Quote status (pending, won, lost)
+ * @param {Object} options - Sorting and pagination options
+ * @returns {Promise<Array>} - List of quotes
+ */
+export async function getQuotesByStatus(accountId, status, options = {}) {
+  const { 
+    sortBy = 'created_at', 
+    sortOrder = 'desc',
+    limit = 100 
+  } = options;
+
+  if (!accountId) {
+    return [];
+  }
+
+  try {
+    let query = supabase
+      .from('quotes')
+      .select('*')
+      .eq('account_id', accountId)
+      .eq('status', status)
+      .limit(limit);
+
+    // Apply sorting
+    const ascending = sortOrder === 'asc';
+    switch (sortBy) {
+      case 'property_address':
+        query = query.order('property_address', { ascending });
+        break;
+      case 'monthly_estimate':
+        query = query.order('monthly_estimate', { ascending });
+        break;
+      case 'frequency':
+        query = query.order('frequency', { ascending });
+        break;
+      case 'created_at':
+      default:
+        query = query.order('created_at', { ascending });
+        break;
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('[QuoteService] Error getting quotes by status:', error);
+      throw new Error('Failed to get quotes: ' + error.message);
+    }
+
+    return data || [];
+  } catch (err) {
+    console.error('[QuoteService] Exception getting quotes by status:', err);
+    throw err;
+  }
+}
+
+/**
+ * Update quote status (for pipeline)
+ * @param {string} quoteId - Quote ID
+ * @param {string} status - New status (pending, won, lost)
+ * @returns {Promise<Object>} - Updated quote
+ */
+export async function updateQuoteStatus(quoteId, status) {
+  if (!['pending', 'won', 'lost'].includes(status)) {
+    throw new Error('Invalid status. Must be: pending, won, or lost');
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('quotes')
+      .update({ status })
+      .eq('id', quoteId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[QuoteService] Error updating quote status:', error);
+      throw new Error('Failed to update quote: ' + error.message);
+    }
+
+    console.log('[QuoteService] Quote status updated:', quoteId, '->', status);
+    return data;
+  } catch (err) {
+    console.error('[QuoteService] Exception updating quote status:', err);
+    throw err;
+  }
+}
+
+/**
+ * Get count of quotes by status
+ * @param {string} accountId - Account ID
+ * @param {string} status - Quote status
+ * @returns {Promise<number>} - Count
+ */
+export async function getQuoteCountByStatus(accountId, status) {
+  if (!accountId) {
+    return 0;
+  }
+
+  try {
+    const { count, error } = await supabase
+      .from('quotes')
+      .select('*', { count: 'exact', head: true })
+      .eq('account_id', accountId)
+      .eq('status', status);
+
+    if (error) {
+      console.error('[QuoteService] Error getting quote count by status:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (err) {
+    console.error('[QuoteService] Exception getting quote count:', err);
+    return 0;
+  }
+}
+
