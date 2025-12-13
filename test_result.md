@@ -231,9 +231,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Portal API Route - Create Stripe Customer Portal Session"
-    - "BillingSettings Page - Subscription Status and Portal Management"
-    - "BillingBanner Component - Trial Countdown and Billing Warnings"
+    - "Quote Pipeline & Clients Feature Testing Complete"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
