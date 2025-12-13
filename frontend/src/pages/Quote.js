@@ -1056,13 +1056,23 @@ export default function Quote() {
               <CardHeader>
                 <CardTitle>Quote Summary</CardTitle>
                 <CardDescription>
-                  Pricing: ${settings?.min_price_per_visit || 50} min, 
-                  ${settings?.price_per_sq_ft || 0.01}/sq ft
+                  {settings?.use_tiered_sqft_pricing ? (
+                    <>Volume-based pricing • ${settings?.min_price_per_visit || 50} min</>
+                  ) : (
+                    <>Pricing: ${settings?.min_price_per_visit || 50} min, ${settings?.price_per_sq_ft || 0.01}/sq ft</>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {pricing.perVisit > 0 ? (
                   <div className="space-y-4">
+                    {/* Tiered Pricing Note */}
+                    {pricing.pricingMode === 'tiered' && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-xs text-green-700">
+                        💡 Larger lawns receive automatic volume discounts.
+                      </div>
+                    )}
+
                     {/* Breakdown */}
                     <div className="space-y-2">
                       {pricing.breakdown.map((item, index) => (
