@@ -527,7 +527,7 @@ class GreenQuoteTieredPricingTester:
                     return False
             
             # Check for tier sorting logic
-            if 'sort.*up_to_sqft' in content and 'null.*return 1' in content:
+            if re.search(r'sort.*up_to_sqft', content) and re.search(r'null.*return 1', content):
                 self.results['pricing_calculations']['details'].append("✅ Tiers sorted correctly (null/unlimited last)")
             else:
                 self.results['pricing_calculations']['details'].append("❌ Tier sorting logic incorrect")
