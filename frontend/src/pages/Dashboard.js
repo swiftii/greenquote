@@ -203,13 +203,16 @@ export default function Dashboard() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/clients')}
+          >
             <CardHeader>
               <CardTitle className="text-lg">Active Clients</CardTitle>
-              <CardDescription>Total clients in your database</CardDescription>
+              <CardDescription>Total clients from won quotes</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-green-600">0</p>
+              <p className="text-4xl font-bold text-green-600">{clientCount}</p>
             </CardContent>
           </Card>
 
