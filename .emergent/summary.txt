@@ -6,135 +6,125 @@ PRODUCT REQUIREMENTS:
 - The frontend is a React Single Page Application (SPA).
 - User authentication (signup, login, logout, session management) is handled by Supabase Auth.
 - The application must be multi-tenant. Each user who signs up gets their own .
-- A  page should display the logged-in user's account information.
+- A  page should display the logged-in user's account information, KPIs, and quick actions.
 - A  page should allow the user to edit their account-specific configuration, including pricing rules and service add-ons.
-- A  page allows users to generate quotes for their customers. This flow must:
-    - Use Google Maps and Places API for address lookup.
-    - Allow users to draw a polygon on the map to define a service area.
-    - Calculate the area in square feet from the polygon.
-    - Use the calculated area and the user's account-specific pricing to generate a quote.
-- The system should send a formal quote email to the customer using Resend. The  address on these emails must be configurable by the user.
+- A  page allows users to generate quotes for their customers using Google Maps for address lookup and area calculation.
+- The system should send a formal quote email to the customer using Resend, with a configurable  address.
 - A Supabase trigger should automatically create  and  rows for every new user.
+- **Billing & Paywall:** New accounts default to a 14-day Pro plan trial. Access to the app is gated by an active trial or a paid subscription via Stripe.
+- **Quote & Client Pipeline:** Quotes are tracked in Supabase with statuses (, , ). Won quotes are converted into , and dashboard metrics (e.g., revenue) are rolled up from the  table.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The project is a full-stack application with a React frontend () and a Node.js serverless function () for sending emails, deployed on Vercel. Supabase is used for authentication and the PostgreSQL database.
+The project is a full-stack, multi-tenant SaaS application with a React frontend, Node.js serverless functions for the backend, and Supabase for the database and authentication, all deployed on Vercel.
 
 Key features implemented:
-- **Authentication**: Complete Supabase auth flow with signup, login, protected routes, and a  hook.
-- **Multi-Tenancy**: A Supabase SQL trigger automatically provisions  and  for new users. An SQL script exists to backfill existing users.
-- **Dashboard & Settings**: A  page serves as the user's home page, and a  page allows them to manage pricing and service add-ons.
-- **Quote Generation Flow**: A  page integrates Google Maps for address search and polygon drawing to calculate property square footage. The quote price is calculated based on this area and the user's custom pricing rules.
-- **Configurable Add-ons**: Users can create, edit, and manage their own service add-ons (e.g., Mulch Refresh) with custom pricing via the Settings page. These are stored in a dedicated  table.
-- **Email Integration**: A Vercel serverless function () uses Resend to email quotes to customers. A checkbox in the UI controls whether the email is sent.
+- **Authentication & Multi-Tenancy**: Complete Supabase auth flow with auto-provisioning of  for new users.
+- **Quote Generation**: A  page integrates Google Maps for address search and area calculation.
+- **Configurable Settings**: A  page allows users to manage pricing, service add-ons, and a custom  email address.
+- **Email Integration**: Vercel serverless function sends quotes via Resend.
+- **Stripe Billing Integration**: Full paywall implementation with a 14-day free trial. Users are redirected to Stripe Checkout when their trial ends. A Stripe Customer Portal is integrated for managing subscriptions. Webhooks keep Supabase in sync with Stripe.
+- **Trial & Billing UI**: The app displays a trial countdown banner and other billing status banners (e.g., ). A dedicated  page allows users to manage their subscription.
+- **Sales Pipeline**: Quotes are saved to a  table with a  (, , ). Won quotes create records in a  table. The dashboard has been updated with pages to view  and  quotes, a  page, and updated metrics for client count and monthly revenue.
 
 **Last working item**:
-- **Last item agent was working**: The user requested a new feature to make the  address on quote emails configurable on a per-account basis. The agent acknowledged the request and was about to start implementation.
+- **Last item agent was working**: The user requested a new tiered pricing feature to allow for volume-based discounts on lawn square footage. The agent acknowledged the request and began exploring the codebase () to understand the current pricing structure before implementation.
 - **Status**: NOT STARTED
 - **Agent Testing Done**: N
-- **Which testing method agent to use?**: Manual testing. The agent will need to:
-    1. Add a  column to the  table in Supabase.
-    2. Add an input field for this setting on the  page.
-    3. Update the  serverless function to use this new email address as the  header, with a fallback to the user's auth email.
-    4. Test the end-to-end flow by setting a custom reply email, sending a quote, and verifying the  header in the received email.
+- **Which testing method agent to use?**: both
+- **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1**: Potentially recurring frontend error:  or . (P1)
+- **Issue 1**: Potentially recurring frontend error: . (P2)
 
 **Issues Detail**:
 - **Issue 1**: 
-    - **Description**: The user repeatedly reported errors related to reading a  response body more than once. These errors typically occurred on the dashboard when loading account data from Supabase, especially when the underlying Supabase query failed (e.g., due to missing RLS policies or tables before they were created).
-    - **Attempted fixes**: The agent made multiple attempts to fix this. The final fix involved a complete rewrite of  to simplify error handling and remove any logic that might access a failed response body multiple times. The agent also removed a custom  wrapper from  that used .
-    - **Next debug checklist**: Although the user has not reported the issue since the last fix, the agent should be aware of its recurring nature. If any data-loading errors appear on the dashboard or settings pages, the first step is to:
-        1.  Check the browser's developer console for the exact error message and stack trace.
-        2.  Verify that all Supabase queries in  and  handle  returns defensively.
-        3.  Ensure no part of the code attempts to parse a  object that might have already been read by the Supabase client's internal error handling.
-    - **Why fix this issue and what will be achieved with the fix?**: These errors are critical blockers that prevent pages from loading. Ensuring they are permanently fixed is essential for application stability.
-    - **Status**: USER VERIFICATION PENDING (The user moved on to new feature requests after the last fix without explicitly confirming the issue was resolved).
+    - **Description**: A recurring error related to reading a  response body more than once, typically during data loading from Supabase. It was last seen before major refactoring but could resurface.
+    - **Attempted fixes**: The agent in a previous job refactored  to simplify error handling.
+    - **Next debug checklist**: If data-loading errors appear, check the browser's developer console. Verify all Supabase queries handle  returns defensively and that no code attempts to parse a  object that might have already been read.
+    - **Why fix this issue and what will be achieved with the fix?**: This is a critical error that can block pages from loading.
+    - **Status**: USER VERIFICATION PENDING
     - **Is recurring issue?**: Y
     - **Should Test frontend/backend/both after fix?**: Frontend
     - **Blocked on other issue**: None
 
 **In progress Task List**:
-- **Task 1**: Implement per-account configurable  for quote emails. (P0)
-
-**Task Detail**:
-- **Task 1**: 
-    - **Where to resume**: 
-        1. Create an SQL migration script to add a  column to the  table.
-        2. Update the  page UI to include an input field for this new setting.
-        3. Modify the data-fetching logic on the  page to retrieve this setting.
-        4. Update the payload sent to  to include the .
-        5. Modify the serverless function  to use the passed  in the  call.
-    - **What will be achieved with this?**: Customer replies to quote emails will go directly to the business owner's preferred email address, rather than a generic system address.
-    - **Status**: NOT STARTED
-    - **Should Test frontend/backend/both after fix?**: Both (frontend UI for settings and backend API for email sending).
-    - **Blocked on something**: None
+None.
 
 **Upcoming and Future Tasks**
+- **Upcoming Tasks**:
+    - **Implement Tiered Square-Footage Pricing (P0)**:
+        - Add  (boolean) and  (jsonb) columns to the  table.
+        - Update the Settings page with a UI to toggle tiered pricing and manage the pricing tiers.
+        - Modify the quote generation logic to calculate a blended rate based on the tiers if the feature is enabled, otherwise use the existing flat-rate logic.
+        - Update the  table to store a snapshot of the pricing mode ( or ) and the tiers used for the calculation.
 - **Future Tasks**:
-    - Refactor duplicated JavaScript logic between the original static site files:  and . This is a low-priority cleanup task, as this code is no longer part of the main React application. (P2)
+    - **Refactor  (P2)**: The  component is very large and should be broken down into smaller components (, , ).
+    - **Cleanup Deprecated Static Files (P3)**: The original static files in  and  are no longer used and could be removed to reduce project clutter.
 
 **Completed work in this session**
-- **Data Loading Stability**: Refactored  to fix recurring body stream already read and response body already used errors when fetching data from Supabase.
-- **DB Auto-Provisioning**: Implemented a Supabase trigger () and a backfill script to automatically create  and  for all users.
-- **Quote Flow Integration**: Created a new  page in React, replacing the old static HTML/JS version. Wired the Generate Quote button on the dashboard to navigate to this new page.
-- **Google Maps Integration**: Enhanced the  page with a Google Maps feature for address autocomplete (Places API) and drawing a boundary polygon to calculate property square footage (Geometry API).
-- **Configurable Add-ons**: Built a full system for per-account add-ons, including a new  DB table, RLS policies, and a management UI on the  page.
-- **Quote Emailing**: Integrated Resend to send quote emails to customers. This was implemented using a Vercel serverless function () to keep API keys secure.
-- **Email Opt-in**: Added a Send quote to customer checkbox to the quote form, allowing users to control whether an email is sent.
-- **Vercel Build Fix**: Resolved a critical build failure () by removing legacy runtime configuration from  and updating the root .
+- **Configurable  Email**: Implemented a feature allowing users to set a custom  address for quote emails.
+- **Dashboard Layout Rework**: Reordered dashboard sections to prioritize KPIs and actions over the pricing settings card.
+- **Quote Tracking & Metrics**: Implemented saving quotes to a Supabase table and updated the Quotes This Month dashboard metric to reflect the live count.
+- **Stripe Trial & Paywall**: Integrated Stripe to create a 14-day trial and a subscription paywall, blocking access to the app after the trial ends without an active subscription. This included API endpoints for checkout and webhooks.
+- **Stripe Customer Portal**: Added a trial countdown banner, billing status banners, and a  page that redirects users to the Stripe Customer Portal to manage their subscription.
+- **Billing API Bug Fixes**: Diagnosed and fixed 500 errors on the billing page by adding robust error handling and diagnostics to serverless functions, correctly handling cases where a Stripe Customer ID did not yet exist.
+- **Quote & Client Pipeline**: Built a sales pipeline by adding  to quotes, creating a  table for won quotes, and adding pages for , , and . The dashboard revenue metric now rolls up from the  table.
 
 **Earlier issues found/mentioned but not fixed**
 - **Issue 1**: Significant code duplication exists in the original static widget files ( and ). This was deprioritized when the project pivoted to a React SPA and has not been addressed.
 
 **Known issue recurrence from previous fork**
-- None.
+- **Issue recurrence in previous fork**:  or .
+- **Recurrence count**: Multiple times in the previous job.
+- **Status**: USER VERIFICATION PENDING
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
 - **Framework**: React (Create React App) SPA
-- **Backend**: Vercel Serverless Functions (Node.js) for specific tasks (email).
-- **Backend-as-a-Service (BaaS)**: Supabase for authentication and database (PostgreSQL).
-- **Database**: PostgreSQL via Supabase, with Row Level Security (RLS) and Triggers.
-- **Deployment**: Vercel.
-- **Email**: Resend API.
-- **Maps/Geography**: Google Maps API (Places, Maps, Geometry libraries).
+- **Backend**: Vercel Serverless Functions (Node.js)
+- **BaaS**: Supabase (PostgreSQL, Auth, Triggers)
+- **Deployment**: Vercel
+- **Payments**: Stripe (Subscriptions, Checkout, Customer Portal, Webhooks)
+- **Email**: Resend API
+- **Maps**: Google Maps API (Places, Geometry)
 
 **key DB schema**
 - ****: 
 - ****: 
 - ****: 
+- ****: 
+- ****: 
 
 **changes in tech stack**
-- A Vercel Serverless Function (Node.js) was introduced to handle server-side logic (sending emails), moving away from the unused Python backend for Vercel deployments.
+- Added **Stripe** for billing and subscriptions, using the  Node.js library.
 
 **All files of reference**
-- : Needs to be updated for the  setting.
-- : Calls the email API and needs to pass the .
-- : The serverless function that needs to be modified to use the new  parameter.
-- : Defines the core  and  tables.
-- : Defines the  table and its RLS policies.
-- : Vercel configuration file.
--  (root): Defines workspaces and dependencies for Vercel build.
+- **New SQL Migrations**: , , , 
+- **New API Routes**: 
+- **New Frontend Services**: , , 
+- **New Frontend Pages**: , , , , , 
+- **New Frontend Components**: , 
+- **Modified Core Pages**: , , , 
 
 **Areas that need refactoring**:
-- The  component has grown very large (over 1000 lines) and manages state for the form, Google Maps, polygon drawing, and price calculation. It should be broken down into smaller, more manageable components (e.g., , , ).
-- The original static files in  and  are now deprecated and could be removed to reduce clutter.
+- ****: This component is over 1000 lines and should be broken down into smaller, manageable components.
+- **Deprecated static files**: The  and  directories contain code that is no longer part of the main application and could be removed.
 
 **key api endpoints**
-- : The Vercel serverless function that accepts quote data and sends an email via Resend.
+- : Sends a quote email via Resend.
+- : Creates a Stripe Checkout session for starting a subscription.
+- : Creates a Stripe Customer Portal session for managing a subscription.
+- : Fetches the current subscription status for an account.
+- : Receives and processes webhook events from Stripe to keep the database in sync.
 
 **Critical Info for New Agent**
-- **API Keys are User-Managed**: The application's core features depend on environment variables that must be set by the user in their Vercel project settings. These are:
-    -  &  (for Supabase connection)
-    -  (for maps and address search)
-    -  &  (for sending quote emails)
-- **Start with the Reply-To Feature**: Your immediate task is to implement the  feature as requested by the user.
-- **Watch for Data Loading Errors**: Be mindful of the history of data loading errors (). If new data fetching logic is added, ensure it is robust and handles Supabase errors gracefully without trying to re-read response bodies.
+- **Start with Tiered Pricing**: The immediate and highest-priority task is to implement the tiered square-footage pricing feature as requested by the user.
+- **API Keys are User-Managed**: The app requires several user-provided environment variables in Vercel for core functionality: , , , , , , and . The agent added robust server-side error logging to help diagnose issues related to missing keys.
+- **Vercel Deployment**: Remind the user that changes are not live until they are pushed to the GitHub repository connected to Vercel (using the Save to GitHub feature).
 
 **documents created in this job**
 - 
@@ -142,34 +132,33 @@ Key features implemented:
 - 
 - 
 - 
-- 
-- 
 
 **Last 10 User Messages and any pending user messages**
-1.  **Request (Chat 151)**: Wire the Generate Quote button on the dashboard to the Pro quote flow. **Status: Completed**.
-2.  **Request (Chat 210)**: Integrate Google Maps for address search, polygon drawing, and square footage calculation in the quote flow. **Status: Completed**.
-3.  **Request (Chat 237)**: Implement a per-account configurable add-ons system with custom pricing. **Status: Completed**.
-4.  **Request (Chat 264)**: Integrate Resend to email the finalized quote to the customer. **Status: Completed**.
-5.  **Request (Chat 317)**: Add a Send quote to customer checkbox to the UI to control whether the email is sent. **Status: Completed**.
-6.  **Report (Chat 345)**: Vercel builds are failing with a Function Runtimes must have a valid version error. **Status: Completed** (Agent fixed ).
-7.  **Request (Chat 363)**: Make the  address on quote emails configurable per-account so customer replies go to the business owner. **Status: NOT STARTED**.
+1. **Request**: Implement a Stripe billing paywall with a 14-day trial. **Status: Completed**.
+2. **Request**: Add a trial countdown banner and Stripe Customer Portal integration. **Status: Completed**.
+3. **Request**: Re-stated requirement for Stripe Customer Portal. **Status: Completed** (Agent fixed a bug in the initial implementation).
+4. **Report**: Billing page shows a 500 error and Manage Billing button doesn't work. **Status: Completed** (Agent added diagnostics and error handling to fix).
+5. **Request**: Implement a full sales pipeline for quotes (pending/won/lost) and clients. **Status: Completed**.
+6. **Request**: Implement tiered (banded) square-foot pricing. **Status: NOT STARTED (This is the current task)**.
 
 **Project Health Check:**
-- **Functional with Dependencies**: The application is functional but relies on the user providing several third-party API keys (Supabase, Google Maps, Resend) as environment variables in Vercel.
+- **Functional with Dependencies**: The application is functional but now has an extensive list of dependencies on user-provided third-party API keys (Supabase, Google Maps, Resend, Stripe). The agent has improved error handling to make configuration issues more transparent.
 
 **3rd Party Integrations**
 - **Supabase**: Used for Authentication and PostgreSQL database. Requires User-provided API Keys.
-- **Google Maps API**: Used for Places Autocomplete, Maps display, and Geometry calculations. Requires a User-provided API Key.
+- **Google Maps API**: Used for Places Autocomplete and Geometry calculations. Requires a User-provided API Key.
 - **Resend**: Used for sending transactional quote emails. Requires a User-provided API Key.
+- **Stripe**: Used for subscription billing, paywalls, and customer portal. Requires User-provided API Keys.
 
 **Testing status**
-- **Testing agent used after significant changes**: NO
+- **Testing agent used after significant changes**: YES
 - **Troubleshoot agent used after agent stuck in loop**: NO
 - **Test files created**: []
 - **Known regressions**: None.
 
 **Credentials to test flow:**
-N/A. The agent does not have user credentials. The user must set up their own Supabase project, Google Cloud project, and Resend account, then provide the necessary keys as environment variables in Vercel.
+N/A. The user must configure their own Supabase, Google, Resend, and Stripe accounts and provide the keys as environment variables in their Vercel project.
 
 **What agent forgot to execute**
-- The low-priority task to refactor duplicated code in the old static files (, ) remains pending, as focus has been on building out the new React application features.</analysis>
+- The low-priority task to refactor duplicated code in the old static files (, ) remains pending.
+- The high-priority task to refactor the large  component has not been addressed, as feature development took precedence.</analysis>
