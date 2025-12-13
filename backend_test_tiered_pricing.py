@@ -621,7 +621,7 @@ class GreenQuoteTieredPricingTester:
             if settings_file.exists() and quote_file.exists():
                 settings_content = settings_file.read_text()
                 quote_content = quote_file.read_text()
-                if '!useTieredSqftPricing' in settings_content and 'calculateFlatPrice' in quote_content:
+                if '!formData.useTieredSqftPricing' in settings_content and 'calculateFlatPrice' in quote_content:
                     integration_checks.append("✅ Flat rate fallback implemented")
                 else:
                     integration_checks.append("❌ Flat rate fallback not implemented")
