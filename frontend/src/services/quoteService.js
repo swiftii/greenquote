@@ -103,11 +103,15 @@ export async function saveQuote(quoteData) {
     frequency,
     monthlyEstimate,
     sendToCustomer,
+    services, // Base service + add-ons snapshot
   } = quoteData;
 
   if (!accountId) {
     throw new Error('Account ID is required to save a quote');
   }
+
+  // Calculate monthly revenue if not provided
+  const estimatedMonthlyRevenue = monthlyEstimate || calculateMonthlyRevenue(totalPricePerVisit, frequency);
 
   try {
     const { data, error } = await supabase
@@ -125,8 +129,10 @@ export async function saveQuote(quoteData) {
         addons: addons || null,
         total_price_per_visit: totalPricePerVisit ? parseFloat(totalPricePerVisit) : null,
         frequency: frequency || null,
-        monthly_estimate: monthlyEstimate ? parseFloat(monthlyEstimate) : null,
+        monthly_estimate: estimatedMonthlyRevenue ? parseFloat(estimatedMonthlyRevenue) : null,
         send_to_customer: sendToCustomer || false,
+        status: 'pending', // All new quotes start as pending
+        services: services || null,
       }])
       .select()
       .single();
