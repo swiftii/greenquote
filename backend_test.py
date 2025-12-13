@@ -257,7 +257,7 @@ class GreenQuotePipelineClientsTester:
                 ('Won.*Lost', 'action buttons present'),
                 ('property_address', 'quote info displayed'),
                 ('monthly_estimate', 'revenue displayed'),
-                ('Select.*sort', 'sorting controls present'),
+                ('SelectTrigger', 'sorting controls present'),
             ]
             
             for pattern, description in ui_checks:
