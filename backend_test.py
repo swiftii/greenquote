@@ -35,14 +35,13 @@ class GreenQuoteWidgetIntegrationTester:
         self.app_dir = Path('/app')
         self.results = {
             'sql_migration': {'status': 'pending', 'details': []},
-            'client_service': {'status': 'pending', 'details': []},
-            'quote_service': {'status': 'pending', 'details': []},
-            'pending_quotes_page': {'status': 'pending', 'details': []},
-            'lost_quotes_page': {'status': 'pending', 'details': []},
-            'clients_page': {'status': 'pending', 'details': []},
-            'dashboard_integration': {'status': 'pending', 'details': []},
-            'app_routing': {'status': 'pending', 'details': []},
-            'quote_services_snapshot': {'status': 'pending', 'details': []},
+            'widget_config_api': {'status': 'pending', 'details': []},
+            'widget_save_quote_api': {'status': 'pending', 'details': []},
+            'widget_service': {'status': 'pending', 'details': []},
+            'settings_integration': {'status': 'pending', 'details': []},
+            'widget_runtime': {'status': 'pending', 'details': []},
+            'quote_service_integration': {'status': 'pending', 'details': []},
+            'vercel_config': {'status': 'pending', 'details': []},
             'integration': {'status': 'pending', 'details': []}
         }
         
