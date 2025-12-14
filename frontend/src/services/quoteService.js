@@ -108,6 +108,8 @@ export async function saveQuote(quoteData) {
     pricingMode,
     pricingTiersSnapshot,
     flatRateSnapshot,
+    // Source tracking
+    source, // 'pro_app' or 'widget'
   } = quoteData;
 
   if (!accountId) {
@@ -141,6 +143,8 @@ export async function saveQuote(quoteData) {
         pricing_mode: pricingMode || 'flat',
         pricing_tiers_snapshot: pricingTiersSnapshot || null,
         flat_rate_snapshot: flatRateSnapshot ? parseFloat(flatRateSnapshot) : null,
+        // Source tracking: 'pro_app' (dashboard) or 'widget' (embedded)
+        source: source || 'pro_app',
       }])
       .select()
       .single();
