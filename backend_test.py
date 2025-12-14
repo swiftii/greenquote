@@ -529,7 +529,7 @@ class GreenQuoteWidgetIntegrationTester:
                     return False
             
             # Check for volume discount messaging
-            if re.search(r'volume discounts.*tiered', content, re.IGNORECASE | re.DOTALL):
+            if re.search(r'Larger lawns receive automatic volume discounts', content, re.IGNORECASE | re.DOTALL):
                 self.results['widget_runtime']['details'].append("✅ Volume discount note for tiered pricing")
             else:
                 self.results['widget_runtime']['details'].append("❌ Volume discount note missing")
