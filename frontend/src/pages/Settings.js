@@ -4,6 +4,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import { ensureUserAccount, updateAccountSettings, updateAccountName } from '@/services/accountService';
 import { getAccountAddons, createAddon, updateAddon, deleteAddon, createDefaultAddons } from '@/services/addonsService';
+import { ensureWidgetInstallation, updateWidgetInstallation, generateEmbedCode } from '@/services/widgetService';
 import { DEFAULT_PRICING_TIERS, validatePricingTiers } from '@/utils/pricingUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 
 /**
  * Settings Page
