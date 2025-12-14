@@ -899,6 +899,139 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        {/* Website Widget Card */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Website Widget</CardTitle>
+            <CardDescription>
+              Embed a quote widget on your website to capture leads automatically
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {widgetLoading ? (
+              <p className="text-gray-500">Loading widget settings...</p>
+            ) : widgetInstallation ? (
+              <div className="space-y-6">
+                {/* Widget Status Toggle */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        id="widgetActive"
+                        checked={widgetInstallation.is_active}
+                        onCheckedChange={async (checked) => {
+                          try {
+                            const updated = await updateWidgetInstallation(
+                              widgetInstallation.id,
+                              { is_active: checked }
+                            );
+                            setWidgetInstallation(updated);
+                            setSuccess(checked ? 'Widget enabled!' : 'Widget disabled');
+                            setTimeout(() => setSuccess(null), 3000);
+                          } catch (err) {
+                            setError('Failed to update widget status');
+                          }
+                        }}
+                      />
+                      <Label htmlFor="widgetActive" className="font-medium cursor-pointer">
+                        {widgetInstallation.is_active ? 'Widget Enabled' : 'Widget Disabled'}
+                      </Label>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 ml-12">
+                      {widgetInstallation.is_active 
+                        ? 'Your widget is live and accepting quote requests.'
+                        : 'Enable the widget to start receiving quotes from your website.'}
+                    </p>
+                  </div>
+                  <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    widgetInstallation.is_active 
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {widgetInstallation.is_active ? '● Active' : '○ Inactive'}
+                  </div>
+                </div>
+
+                {/* Widget ID */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Widget ID</Label>
+                  <div className="mt-1 p-3 bg-gray-100 rounded-lg font-mono text-sm text-gray-800 select-all">
+                    {widgetInstallation.public_widget_id}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    This unique ID connects the widget to your account settings.
+                  </p>
+                </div>
+
+                {/* Embed Code */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm font-medium text-gray-700">Embed Code</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={embedCodeCopied ? 'default' : 'outline'}
+                      className={embedCodeCopied ? 'bg-green-600 text-white' : ''}
+                      onClick={() => {
+                        const code = generateEmbedCode(widgetInstallation.public_widget_id);
+                        navigator.clipboard.writeText(code);
+                        setEmbedCodeCopied(true);
+                        setTimeout(() => setEmbedCodeCopied(false), 3000);
+                      }}
+                    >
+                      {embedCodeCopied ? '✓ Copied!' : 'Copy Code'}
+                    </Button>
+                  </div>
+                  <Textarea
+                    readOnly
+                    value={generateEmbedCode(widgetInstallation.public_widget_id)}
+                    className="font-mono text-sm h-32 bg-gray-50"
+                    onClick={(e) => e.target.select()}
+                  />
+                  <p className="mt-2 text-xs text-gray-500">
+                    Paste this code into your website where you want the quote widget to appear.
+                    The widget will automatically use your pricing settings and add-ons.
+                  </p>
+                </div>
+
+                {/* Preview Info */}
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-medium text-blue-800 mb-2">What customers will see:</h4>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• Your business name: <strong>{account?.name || 'Your Business'}</strong></li>
+                    <li>• Your pricing tiers and minimum price</li>
+                    <li>• Your active add-ons ({addons.filter(a => a.is_active).length} configured)</li>
+                    <li>• Google Maps integration for property measurement</li>
+                  </ul>
+                </div>
+
+                {/* How It Works */}
+                <div className="text-sm text-gray-600">
+                  <h4 className="font-medium text-gray-800 mb-2">How it works:</h4>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Copy the embed code above</li>
+                    <li>Paste it into your website&apos;s HTML</li>
+                    <li>Leads submit quotes through the widget</li>
+                    <li>Quotes appear in your Pending Quotes dashboard</li>
+                  </ol>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>Unable to load widget settings.</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-4"
+                  onClick={loadAccountData}
+                >
+                  Retry
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Billing Settings Card */}
         <Card className="mb-6">
           <CardHeader>
