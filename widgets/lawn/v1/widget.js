@@ -1,12 +1,14 @@
 // Lawn Care Quote Widget - Main JavaScript
-// This widget is designed to work as a standalone HTML/CSS/JS system
-// hosted on GitHub Pages and embedded via iframe.
+// This widget loads configuration from the GreenQuote Pro API
+// and saves quotes to the account's Supabase database.
 
 (function() {
     'use strict';
     
-    // Configuration
+    // Configuration loaded from API
     let config = null;
+    let widgetId = null;
+    let accountId = null;
     let currentStep = 1;
     const TOTAL_STEPS = 3;
     
@@ -24,14 +26,19 @@
         phone: '',
         address: '',
         zipCode: '',
-        addressSource: 'none', // 'autocomplete', 'geocode', or 'none'
+        addressSource: 'none',
         preferredTime: '',
         estimatedPerVisit: 0,
         estimatedMonthlyTotal: 0,
         measuredAreaSqft: 0,
         estimatedAreaSqft: 0,
-        areaSource: 'none', // 'measured', 'estimated', or 'none'
-        placeData: null
+        areaSource: 'none',
+        placeData: null,
+        // Pricing snapshot for saving
+        pricingMode: 'flat',
+        pricingTiersSnapshot: null,
+        flatRateSnapshot: null,
+        basePricePerVisit: 0
     };
     
     // Google Maps objects
@@ -39,7 +46,18 @@
     let drawingManager = null;
     let currentPolygon = null;
     let autocomplete = null;
-    let selectedPlace = null; // Store selected place from autocomplete
+    let selectedPlace = null;
+    
+    // Get API base URL (same origin or configured)
+    function getApiBaseUrl() {
+        // Check for explicit API URL in query params or use current origin
+        const urlParams = new URLSearchParams(window.location.search);
+        const apiUrl = urlParams.get('api');
+        if (apiUrl) return apiUrl;
+        
+        // Default to relative path (same Vercel deployment)
+        return '';
+    }
     
     // Initialize the widget
     function init() {
@@ -47,35 +65,147 @@
         loadConfig();
     }
     
-    // Load configuration based on URL parameter
+    // Load configuration from API endpoint
     function loadConfig() {
         const urlParams = new URLSearchParams(window.location.search);
-        const clientId = urlParams.get('client') || 'default';
+        widgetId = urlParams.get('wid');
         
-        console.log('[Widget] Loading config for client:', clientId);
+        // Fallback to legacy 'client' param for backward compatibility
+        const legacyClientId = urlParams.get('client');
         
-        // Try to load client-specific config
-        fetch(`../../../configs/${clientId}.json`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Client config not found');
-                }
-                return response.json();
-            })
-            .catch(() => {
-                console.log('[Widget] Client config not found, loading default');
-                return fetch('../../../configs/default.json').then(r => r.json());
-            })
-            .then(data => {
-                config = data;
-                console.log('[Widget] Config loaded:', config);
-                applyTheme();
-                loadGoogleMapsAPI();
-            })
-            .catch(error => {
-                console.error('[Widget] Error loading config:', error);
-                showError('There was an issue loading this quote widget. Please contact the business.');
-            });
+        if (!widgetId && !legacyClientId) {
+            showError('Widget ID missing. Please contact the business owner.');
+            return;
+        }
+        
+        // If using wid param, load from API
+        if (widgetId) {
+            console.log('[Widget] Loading config for widget ID:', widgetId);
+            
+            const apiBase = getApiBaseUrl();
+            fetch(`${apiBase}/api/widget/config?wid=${encodeURIComponent(widgetId)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            throw new Error('Widget not found');
+                        } else if (response.status === 403) {
+                            throw new Error('Widget is disabled');
+                        }
+                        throw new Error('Failed to load widget configuration');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('[Widget] Config loaded from API:', data);
+                    
+                    // Store account ID for quote saving
+                    accountId = data.accountId;
+                    
+                    // Transform API response to widget config format
+                    config = transformApiConfig(data);
+                    
+                    // Store pricing mode info
+                    state.pricingMode = config.useTieredPricing ? 'tiered' : 'flat';
+                    state.pricingTiersSnapshot = config.useTieredPricing ? config.pricingTiers : null;
+                    state.flatRateSnapshot = !config.useTieredPricing ? config.pricePerSqFt : null;
+                    
+                    applyTheme();
+                    loadGoogleMapsAPI();
+                })
+                .catch(error => {
+                    console.error('[Widget] Error loading config:', error);
+                    showError('Widget unavailable. ' + error.message);
+                });
+        } else {
+            // Legacy mode: load from static JSON config
+            console.log('[Widget] Legacy mode - loading config for client:', legacyClientId);
+            
+            fetch(`../../../configs/${legacyClientId}.json`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Config not found');
+                    return response.json();
+                })
+                .catch(() => {
+                    return fetch('../../../configs/default.json').then(r => r.json());
+                })
+                .then(data => {
+                    config = data;
+                    console.log('[Widget] Legacy config loaded:', config);
+                    applyTheme();
+                    loadGoogleMapsAPI();
+                })
+                .catch(error => {
+                    console.error('[Widget] Error loading config:', error);
+                    showError('There was an issue loading this quote widget. Please contact the business.');
+                });
+        }
+    }
+    
+    // Transform API config to widget format
+    function transformApiConfig(apiData) {
+        return {
+            businessName: apiData.businessName || 'Lawn Care Service',
+            clientId: widgetId,
+            currencySymbol: '$',
+            
+            // Pricing from API
+            minPricePerVisit: apiData.pricing?.minPricePerVisit || 50,
+            pricePerSqFt: apiData.pricing?.pricePerSqFt || 0.01,
+            useTieredPricing: apiData.pricing?.useTieredPricing ?? true,
+            pricingTiers: apiData.pricing?.tiers || [
+                { up_to_sqft: 5000, rate_per_sqft: 0.012 },
+                { up_to_sqft: 20000, rate_per_sqft: 0.008 },
+                { up_to_sqft: null, rate_per_sqft: 0.005 }
+            ],
+            
+            // Services (default set)
+            services: [
+                { id: 'mowing', label: 'Lawn Mowing' },
+                { id: 'fertilization', label: 'Fertilization' },
+                { id: 'aeration', label: 'Aeration' },
+                { id: 'overseeding', label: 'Overseeding' },
+                { id: 'leaf_cleanup', label: 'Leaf Cleanup' }
+            ],
+            
+            // Add-ons from API
+            addOns: (apiData.addons || []).map(addon => ({
+                id: addon.id,
+                label: addon.name,
+                pricePerVisit: addon.pricePerVisit || 0
+            })),
+            
+            // Frequency multipliers from API
+            frequencyMultipliers: {
+                one_time: apiData.frequency?.one_time?.multiplier || 1.2,
+                weekly: apiData.frequency?.weekly?.multiplier || 0.85,
+                bi_weekly: apiData.frequency?.bi_weekly?.multiplier || 1.0,
+                monthly: apiData.frequency?.monthly?.multiplier || 1.1
+            },
+            
+            // Frequency visits per month
+            frequencyVisits: {
+                one_time: 1,
+                weekly: 4,
+                bi_weekly: 2,
+                monthly: 1
+            },
+            
+            // Default area estimates
+            defaultAreaEstimates: {
+                residential: 8000,
+                commercial: 15000
+            },
+            
+            // Theme (default green)
+            theme: {
+                primaryColor: '#16a34a',
+                accentColor: '#22c55e',
+                borderRadius: '12px'
+            },
+            
+            // Google Maps API key (from environment, not exposed)
+            googleMapsApiKey: null // Will use mock mode if not set
+        };
     }
     
     // Apply theme from config
@@ -150,7 +280,6 @@
         updateProgressIndicator();
         
         const content = document.getElementById('step-content');
-        
         console.log(`[Widget] Step ${step} loaded`);
         
         switch(step) {
@@ -183,11 +312,7 @@
     // Step 1: Service Selection
     function renderStep1(container) {
         const serviceOptions = config.services || [
-            { id: 'mowing', label: 'Lawn Mowing' },
-            { id: 'fertilization', label: 'Fertilization' },
-            { id: 'aeration', label: 'Aeration' },
-            { id: 'overseeding', label: 'Overseeding' },
-            { id: 'leaf_cleanup', label: 'Leaf Cleanup' }
+            { id: 'mowing', label: 'Lawn Mowing' }
         ];
         
         container.innerHTML = `
@@ -209,6 +334,7 @@
                 </select>
             </div>
             
+            ${config.addOns && config.addOns.length > 0 ? `
             <div class="form-group">
                 <label class="form-label">Add-ons (optional)</label>
                 <div class="checkbox-group">
@@ -223,6 +349,7 @@
                     `).join('')}
                 </div>
             </div>
+            ` : ''}
             
             <div class="button-group">
                 <button class="btn btn-primary" id="next-btn">Next</button>
@@ -294,7 +421,7 @@
                 <label class="form-label required">Service Frequency</label>
                 <div class="radio-group">
                     ${Object.keys(config.frequencyMultipliers).map(freq => {
-                        const label = freq.replace('_', '-').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                        const label = freq.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
                         return `
                             <label class="radio-item">
                                 <input type="radio" name="frequency" value="${freq}" ${state.frequency === freq ? 'checked' : ''}>
@@ -315,7 +442,6 @@
         if (!map) {
             initMap();
         } else {
-            // Map already exists, trigger resize and reinitialize autocomplete
             setTimeout(() => {
                 google.maps.event.trigger(map, 'resize');
                 if (state.placeData && state.placeData.geometry) {
@@ -356,17 +482,16 @@
     function initMap() {
         if (typeof google === 'undefined') {
             console.log('[Widget] Google Maps not available, using mock mode');
-            // Show message in map container
             const mapElement = document.getElementById('map');
             if (mapElement) {
-                mapElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:#f5f5f5;color:#666;text-align:center;padding:20px;"><div><p style="margin-bottom:8px;font-weight:600;">Map Preview Unavailable</p><p style="font-size:13px;">Add Google Maps API key to see satellite view and drawing tools.</p></div></div>';
+                mapElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:#f5f5f5;color:#666;text-align:center;padding:20px;"><div><p style="margin-bottom:8px;font-weight:600;">Map Preview Unavailable</p><p style="font-size:13px;">Enter your address and lawn size manually.</p></div></div>';
             }
             return;
         }
         
         try {
             map = new google.maps.Map(document.getElementById('map'), {
-                center: { lat: 39.8283, lng: -98.5795 }, // Center of USA
+                center: { lat: 39.8283, lng: -98.5795 },
                 zoom: 4,
                 mapTypeId: 'satellite',
                 disableDefaultUI: true,
@@ -381,10 +506,10 @@
                 drawingMode: null,
                 drawingControl: false,
                 polygonOptions: {
-                    fillColor: '#2e7d32',
+                    fillColor: '#16a34a',
                     fillOpacity: 0.35,
                     strokeWeight: 3,
-                    strokeColor: '#1b5e20',
+                    strokeColor: '#166534',
                     editable: true,
                     draggable: false
                 }
@@ -399,7 +524,6 @@
                 currentPolygon = polygon;
                 drawingManager.setDrawingMode(null);
                 
-                // Add listeners for polygon editing
                 google.maps.event.addListener(polygon.getPath(), 'set_at', calculatePolygonArea);
                 google.maps.event.addListener(polygon.getPath(), 'insert_at', calculatePolygonArea);
                 google.maps.event.addListener(polygon.getPath(), 'remove_at', calculatePolygonArea);
@@ -408,17 +532,13 @@
                 document.getElementById('draw-btn').disabled = false;
                 document.getElementById('clear-btn').disabled = false;
                 
-                // Update instructions
                 const instructions = document.querySelector('.map-instructions');
                 if (instructions) {
                     instructions.textContent = '✓ Measured area! Drag corners to adjust. This measured area will be used for your quote.';
                 }
             });
             
-            // Initialize Places Autocomplete
             initAutocomplete();
-            
-            // Trigger resize to ensure map renders correctly
             google.maps.event.trigger(map, 'resize');
             
             console.log('[Widget] Google Maps initialized successfully');
@@ -435,10 +555,7 @@
         }
         
         const addressInput = document.getElementById('address-input');
-        if (!addressInput) {
-            console.log('[Widget] Address input not found');
-            return;
-        }
+        if (!addressInput) return;
         
         try {
             autocomplete = new google.maps.places.Autocomplete(addressInput, {
@@ -446,74 +563,52 @@
                 fields: ['address_components', 'geometry', 'formatted_address', 'name']
             });
             
-            // Bias results to current map viewport
             if (map) {
                 autocomplete.bindTo('bounds', map);
             }
             
-            // Listen for place selection
             autocomplete.addListener('place_changed', onPlaceChanged);
-            
             console.log('[Widget] Places Autocomplete initialized');
         } catch (error) {
             console.error('[Widget] Error initializing autocomplete:', error);
         }
     }
     
-    // Handle place selection from autocomplete
+    // Handle place selection
     function onPlaceChanged() {
         const place = autocomplete.getPlace();
         
-        // Validate place has required data
         if (!place || !place.geometry || !place.geometry.location) {
-            console.warn('[Widget] Selected place missing geometry or location');
-            
-            // Show helpful message
-            const instructions = document.querySelector('.map-instructions');
-            if (instructions) {
-                instructions.innerHTML = '⚠️ Please select a complete address from the dropdown suggestions.';
-                instructions.style.background = '#fff3cd';
-                instructions.style.borderLeft = '4px solid #ffc107';
-            }
+            console.warn('[Widget] Selected place missing geometry');
             return;
         }
         
-        console.log('[Widget] Place selected from autocomplete:', place);
-        
-        // Store the selected place as source of truth
+        console.log('[Widget] Place selected:', place);
         selectedPlace = place;
-        
-        // Store place data in state
         state.placeData = place;
         state.address = place.formatted_address || place.name || '';
-        state.addressSource = 'autocomplete'; // Track how address was obtained
+        state.addressSource = 'autocomplete';
         
-        // Extract ZIP code
         extractZipCode(place);
         
-        // Update address input to show formatted address
         const addressInput = document.getElementById('address-input');
         if (addressInput) {
             addressInput.value = state.address;
         }
         
-        // Recenter and zoom map to selected place
         if (map && typeof google !== 'undefined') {
             recenterMapToPlace(place);
         }
         
-        // Estimate area if no polygon drawn
         if (!currentPolygon) {
             estimateAreaFromAddress();
         }
         
-        // Enable buttons
         const drawBtn = document.getElementById('draw-btn');
         const clearBtn = document.getElementById('clear-btn');
         if (drawBtn) drawBtn.disabled = false;
         if (clearBtn) clearBtn.disabled = false;
         
-        // Update instructions with success message
         const instructions = document.querySelector('.map-instructions');
         if (instructions) {
             instructions.innerHTML = '<strong>✓ Property located!</strong> Area estimated at ' + 
@@ -522,13 +617,12 @@
             instructions.style.borderLeft = '4px solid #28a745';
         }
         
-        console.log('[Widget] Address selected via autocomplete:', state.address, 'ZIP:', state.zipCode);
+        console.log('[Widget] Address selected:', state.address, 'ZIP:', state.zipCode);
     }
     
     // Extract ZIP code from place
     function extractZipCode(place) {
         state.zipCode = '';
-        
         if (place.address_components) {
             for (const component of place.address_components) {
                 if (component.types.includes('postal_code')) {
@@ -537,122 +631,63 @@
                 }
             }
         }
-        
-        console.log('[Widget] ZIP code extracted:', state.zipCode);
     }
     
     // Recenter map to selected place
     function recenterMapToPlace(place) {
-        if (!map || !place || !place.geometry) {
-            console.warn('[Widget] Cannot recenter map - invalid place or map not initialized');
-            return;
-        }
+        if (!map || !place || !place.geometry) return;
         
-        console.log('[Widget] Recentering map to place');
-        
-        // Determine if this is a full street address
         const hasStreetNumber = place.address_components && 
             place.address_components.some(c => c.types && c.types.includes('street_number'));
-        
         const hasStreetAddress = place.address_components && 
             place.address_components.some(c => c.types && c.types.includes('route'));
-        
         const isFullAddress = hasStreetNumber && hasStreetAddress;
         
         if (place.geometry.viewport) {
-            // Use viewport bounds if available
             map.fitBounds(place.geometry.viewport);
-            
-            // After fitting to viewport, zoom in closer for property-level view
             google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
                 const currentZoom = map.getZoom();
-                
                 if (isFullAddress && currentZoom < 19) {
-                    // Full street address: zoom to parcel level (20)
                     map.setZoom(20);
                 } else if (!isFullAddress && currentZoom < 14) {
-                    // ZIP or city only: zoom to neighborhood level
                     map.setZoom(14);
                 }
             });
         } else if (place.geometry.location) {
-            // No viewport, use location directly
             map.setCenter(place.geometry.location);
-            
-            // Set appropriate zoom level
-            if (isFullAddress) {
-                // Full address: zoom to individual property (parcel-like)
-                map.setZoom(20);
-                console.log('[Widget] Zooming to parcel level (20) for street address');
-            } else if (state.zipCode) {
-                // ZIP only: zoom to neighborhood level
-                map.setZoom(14);
-                console.log('[Widget] Zooming to neighborhood level (14) for ZIP');
-            } else {
-                // Generic location: moderate zoom
-                map.setZoom(16);
-                console.log('[Widget] Zooming to moderate level (16) for generic location');
-            }
+            map.setZoom(isFullAddress ? 20 : 14);
         }
         
-        // Trigger map resize to ensure proper rendering
         setTimeout(() => {
             google.maps.event.trigger(map, 'resize');
         }, 100);
-        
-        console.log('[Widget] Map recentered successfully');
     }
     
-    // Estimate area from address using config defaults
+    // Estimate area from address
     function estimateAreaFromAddress() {
-        if (!config.defaultAreaEstimates) {
-            console.log('[Widget] No default area estimates in config');
-            return;
-        }
+        let estimatedArea = state.propertyType === 'commercial' 
+            ? (config.defaultAreaEstimates?.commercial || 15000)
+            : (config.defaultAreaEstimates?.residential || 8000);
         
-        let estimatedArea = 0;
-        
-        // Check for ZIP-specific override
-        if (state.zipCode && config.defaultAreaEstimates.zipOverrides) {
-            const zipOverride = config.defaultAreaEstimates.zipOverrides[state.zipCode];
-            if (zipOverride) {
-                estimatedArea = zipOverride;
-                console.log('[Widget] Using ZIP override for', state.zipCode, ':', estimatedArea, 'sq ft');
-            }
-        }
-        
-        // Fall back to property type default
-        if (!estimatedArea) {
-            if (state.propertyType === 'commercial') {
-                estimatedArea = config.defaultAreaEstimates.commercial || 15000;
-            } else {
-                estimatedArea = config.defaultAreaEstimates.residential || 8000;
-            }
-            console.log('[Widget] Using', state.propertyType, 'default:', estimatedArea, 'sq ft');
-        }
-        
-        // Set estimated area
         state.estimatedAreaSqft = estimatedArea;
         state.lawnSizeSqFt = estimatedArea;
         state.areaSource = 'estimated';
         
-        // Update display
         updateLawnSizeDisplay(true);
-        
         console.log('[Widget] Area estimated:', estimatedArea, 'sq ft');
     }
     
-    // Locate property - uses selected place first, falls back to geocoding
+    // Locate property
     function calculatePropertySize() {
         const addressInput = document.getElementById('address-input');
         const address = addressInput ? addressInput.value.trim() : '';
         
         if (!address) {
-            showAddressError('Please enter a property address to continue.');
+            alert('Please enter a property address to continue.');
             return;
         }
         
-        // Mock mode handling
+        // Mock mode
         if (typeof google === 'undefined') {
             const mockSize = Math.floor(Math.random() * 15000) + 3000;
             state.lawnSizeSqFt = mockSize;
@@ -662,38 +697,23 @@
             updateLawnSizeDisplay(true);
             document.getElementById('draw-btn').disabled = true;
             document.getElementById('clear-btn').disabled = false;
-            
-            const instructions = document.querySelector('.map-instructions');
-            if (instructions) {
-                instructions.innerHTML = '<strong>Mock Mode:</strong> Property size estimated. Add Google Maps API key to see satellite view and draw precise boundaries.';
-            }
-            console.log('[Widget] Mock property size calculated:', mockSize);
             return;
         }
         
-        // Disable button during processing
         const calcBtn = document.getElementById('calculate-btn');
         if (calcBtn) {
             calcBtn.disabled = true;
             calcBtn.textContent = 'Locating...';
         }
         
-        // Strategy 1: Use selected place from autocomplete if available
         if (selectedPlace && selectedPlace.geometry && selectedPlace.geometry.location) {
-            console.log('[Widget] Using selected place from autocomplete');
-            
-            // Re-use the already selected place
             processSelectedPlace(selectedPlace, 'autocomplete');
-            
             if (calcBtn) {
                 calcBtn.disabled = false;
                 calcBtn.textContent = 'Locate Property';
             }
             return;
         }
-        
-        // Strategy 2: Fallback to geocoding the raw address text
-        console.log('[Widget] No selected place, attempting geocode of:', address);
         
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ address: address }, (results, status) => {
@@ -703,144 +723,58 @@
             }
             
             if (status === 'OK' && results && results.length > 0) {
-                console.log('[Widget] Geocoding successful');
-                
-                // Convert geocode result to place-like object
                 const place = {
                     geometry: results[0].geometry,
                     formatted_address: results[0].formatted_address,
                     address_components: results[0].address_components,
                     name: results[0].formatted_address
                 };
-                
-                // Store as selected place for future use
                 selectedPlace = place;
-                
-                // Process the geocoded place
                 processSelectedPlace(place, 'geocode');
-                
             } else {
-                // Geocoding failed - show helpful error
-                handleGeocodeError(status, address);
+                alert('Address not found. Please try again or use the dropdown suggestions.');
             }
         });
     }
     
-    // Process a selected place (from autocomplete or geocoding)
+    // Process selected place
     function processSelectedPlace(place, source) {
-        console.log('[Widget] Processing place from', source);
-        
-        // Store in state
         state.placeData = place;
         state.address = place.formatted_address || place.name || '';
         state.addressSource = source;
         
-        // Update address input
         const addressInput = document.getElementById('address-input');
         if (addressInput) {
             addressInput.value = state.address;
         }
         
-        // Extract ZIP code
         extractZipCode(place);
         
-        // Recenter and zoom map
         if (map) {
             recenterMapToPlace(place);
         }
         
-        // Estimate area if no polygon drawn
         if (!currentPolygon) {
             estimateAreaFromAddress();
         }
         
-        // Enable drawing tools
         const drawBtn = document.getElementById('draw-btn');
         const clearBtn = document.getElementById('clear-btn');
         if (drawBtn) drawBtn.disabled = false;
         if (clearBtn) clearBtn.disabled = false;
         
-        // Update instructions with success message
         const instructions = document.querySelector('.map-instructions');
         if (instructions) {
-            const areaText = state.lawnSizeSqFt > 0 ? 
-                state.lawnSizeSqFt.toLocaleString() + ' sq ft' : 'default';
-            
-            instructions.innerHTML = '<strong>✓ Property located!</strong> Area estimated at ' + 
-                areaText + '. Click "Draw Boundary" to measure your exact service area.';
+            instructions.innerHTML = '<strong>✓ Property located!</strong> Click "Draw Boundary" to measure your exact service area.';
             instructions.style.background = '#d4edda';
             instructions.style.borderLeft = '4px solid #28a745';
         }
-        
-        console.log('[Widget] Place processed successfully:', state.address, 'ZIP:', state.zipCode);
     }
     
-    // Handle geocoding errors with helpful messages
-    function handleGeocodeError(status, address) {
-        console.error('[Widget] Geocoding failed with status:', status);
-        
-        let errorMessage = '';
-        let suggestion = '';
-        
-        switch (status) {
-            case 'ZERO_RESULTS':
-                errorMessage = 'Address Not Found';
-                suggestion = 'The address "' + address + '" could not be located. Please try:';
-                break;
-            case 'INVALID_REQUEST':
-                errorMessage = 'Invalid Address Format';
-                suggestion = 'Please check the address and try again. Make sure to include street number, name, city, and state.';
-                break;
-            case 'OVER_QUERY_LIMIT':
-                errorMessage = 'Service Temporarily Unavailable';
-                suggestion = 'Too many requests. Please wait a moment and try again.';
-                break;
-            case 'REQUEST_DENIED':
-                errorMessage = 'Service Error';
-                suggestion = 'Unable to verify address at this time. Please contact support if this continues.';
-                break;
-            default:
-                errorMessage = 'Unable to Locate Address';
-                suggestion = 'We couldn\'t find that address. Please try:';
-        }
-        
-        // Show error in instructions area
-        const instructions = document.querySelector('.map-instructions');
-        if (instructions) {
-            let helpText = '<strong>❌ ' + errorMessage + '</strong><br>';
-            helpText += suggestion;
-            
-            if (status === 'ZERO_RESULTS' || status === 'INVALID_REQUEST') {
-                helpText += '<br>• Start typing and <strong>select from the dropdown suggestions</strong>';
-                helpText += '<br>• Include full address (street, city, state, ZIP)';
-                helpText += '<br>• Check spelling and try variations';
-            }
-            
-            instructions.innerHTML = helpText;
-            instructions.style.background = '#f8d7da';
-            instructions.style.borderLeft = '4px solid #dc3545';
-        }
-        
-        // Also show alert for immediate feedback
-        if (status === 'ZERO_RESULTS') {
-            showAddressError(
-                'Address not found. Please start typing and select from the dropdown suggestions, ' +
-                'or try including more details (street number, city, state).'
-            );
-        } else {
-            showAddressError(suggestion);
-        }
-    }
-    
-    // Show address error message
-    function showAddressError(message) {
-        alert(message);
-    }
-    
-    // Enable manual drawing
+    // Enable drawing
     function enableDrawing() {
         if (typeof google === 'undefined') {
-            alert('Google Maps is required for drawing. Please add your API key in the admin panel.');
+            alert('Google Maps is required for drawing.');
             return;
         }
         
@@ -854,20 +788,16 @@
         
         drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
         
-        // Update button state
         document.getElementById('draw-btn').textContent = 'Drawing...';
         document.getElementById('draw-btn').style.background = config.theme.primaryColor;
         document.getElementById('draw-btn').style.color = 'white';
         
-        // Update instructions
         const instructions = document.querySelector('.map-instructions');
         if (instructions) {
-            instructions.innerHTML = '<strong>Draw Mode:</strong> Click on the map to create points around your service area. Double-click to complete.';
+            instructions.innerHTML = '<strong>Draw Mode:</strong> Click to create points around your service area. Double-click to complete.';
             instructions.style.background = '#fff3cd';
             instructions.style.borderLeft = '4px solid #ffc107';
         }
-        
-        console.log('[Widget] Drawing mode enabled');
     }
     
     // Clear polygon
@@ -877,10 +807,8 @@
             currentPolygon = null;
         }
         
-        // Clear measured area
         state.measuredAreaSqft = 0;
         
-        // If we have an address, fall back to estimated area
         if (state.placeData || state.address) {
             estimateAreaFromAddress();
             document.getElementById('draw-btn').disabled = false;
@@ -896,46 +824,24 @@
         document.getElementById('draw-btn').style.background = '';
         document.getElementById('draw-btn').style.color = '';
         
-        // Reset instructions
-        const instructions = document.querySelector('.map-instructions');
-        if (instructions) {
-            if (state.address) {
-                instructions.innerHTML = 'Boundary cleared. Using estimated area. Draw boundary for accurate measurement.';
-                instructions.style.background = '#fff3cd';
-                instructions.style.borderLeft = '4px solid #ffc107';
-            } else {
-                instructions.innerHTML = 'Enter your address and select from suggestions to locate your property.';
-                instructions.style.background = '';
-                instructions.style.borderLeft = '';
-            }
-        }
-        
         validateStep2();
-        console.log('[Widget] Polygon cleared, reverted to estimated area');
     }
     
     // Calculate polygon area
     function calculatePolygonArea() {
-        if (!currentPolygon) return;
-        
-        if (typeof google === 'undefined') {
-            console.log('[Widget] Cannot calculate area without Google Maps');
-            return;
-        }
+        if (!currentPolygon || typeof google === 'undefined') return;
         
         try {
             const area = google.maps.geometry.spherical.computeArea(currentPolygon.getPath());
-            const sqFt = Math.round(area * 10.7639); // Convert sq meters to sq feet
+            const sqFt = Math.round(area * 10.7639);
             
-            // This is measured area from polygon
             state.measuredAreaSqft = sqFt;
             state.lawnSizeSqFt = sqFt;
-            state.estimatedAreaSqft = 0; // Clear estimated
+            state.estimatedAreaSqft = 0;
             state.areaSource = 'measured';
             
-            updateLawnSizeDisplay(false); // false = measured, not estimated
+            updateLawnSizeDisplay(false);
             
-            // Reset draw button after completing polygon
             const drawBtn = document.getElementById('draw-btn');
             if (drawBtn) {
                 drawBtn.textContent = 'Adjust Boundary';
@@ -943,7 +849,7 @@
                 drawBtn.style.color = '';
             }
             
-            console.log('[Widget] Measured area calculated:', state.measuredAreaSqft, 'sq ft');
+            console.log('[Widget] Measured area:', state.measuredAreaSqft, 'sq ft');
         } catch (error) {
             console.error('[Widget] Error calculating polygon area:', error);
         }
@@ -975,41 +881,96 @@
         return isValid;
     }
     
+    // Calculate tiered price (blended rate like tax brackets)
+    function calculateTieredPrice(totalSqFt, tiers) {
+        if (!totalSqFt || totalSqFt <= 0) {
+            return { totalPrice: 0, breakdown: [] };
+        }
+        
+        const sortedTiers = [...(tiers || config.pricingTiers)]
+            .sort((a, b) => {
+                if (a.up_to_sqft === null) return 1;
+                if (b.up_to_sqft === null) return -1;
+                return a.up_to_sqft - b.up_to_sqft;
+            });
+        
+        let remainingSqFt = totalSqFt;
+        let totalPrice = 0;
+        let previousMax = 0;
+        const breakdown = [];
+        
+        for (const tier of sortedTiers) {
+            const tierMax = tier.up_to_sqft ?? Infinity;
+            const tierSize = tierMax - previousMax;
+            const sqftInTier = Math.min(remainingSqFt, tierSize);
+            
+            if (sqftInTier > 0) {
+                const tierPrice = sqftInTier * tier.rate_per_sqft;
+                totalPrice += tierPrice;
+                
+                breakdown.push({
+                    sqftInTier,
+                    rate: tier.rate_per_sqft,
+                    price: tierPrice
+                });
+                
+                remainingSqFt -= sqftInTier;
+                previousMax = tierMax;
+            }
+            
+            if (remainingSqFt <= 0) break;
+        }
+        
+        return {
+            totalPrice: Math.round(totalPrice * 100) / 100,
+            breakdown
+        };
+    }
+    
     // Calculate pricing
     function calculatePricing() {
-        // Determine lawn size tier
-        state.lawnSizeTier = config.lawnSizeTiers.find(tier => {
-            if (tier.id === 'small') return state.lawnSizeSqFt <= 5000;
-            if (tier.id === 'medium') return state.lawnSizeSqFt > 5000 && state.lawnSizeSqFt <= 10000;
-            if (tier.id === 'large') return state.lawnSizeSqFt > 10000 && state.lawnSizeSqFt <= 20000;
-            return state.lawnSizeSqFt > 20000;
-        });
+        const sqFt = state.lawnSizeSqFt;
+        const minPrice = config.minPricePerVisit || 50;
         
-        // Calculate base visit price
-        let baseVisitPrice = config.baseVisitFee + state.lawnSizeTier.pricePerVisit;
+        let calculatedFromArea = 0;
+        
+        // Use tiered or flat pricing
+        if (config.useTieredPricing && config.pricingTiers) {
+            const { totalPrice } = calculateTieredPrice(sqFt, config.pricingTiers);
+            calculatedFromArea = totalPrice;
+            state.pricingMode = 'tiered';
+            state.pricingTiersSnapshot = config.pricingTiers;
+            state.flatRateSnapshot = null;
+        } else {
+            calculatedFromArea = sqFt * (config.pricePerSqFt || 0.01);
+            state.pricingMode = 'flat';
+            state.pricingTiersSnapshot = null;
+            state.flatRateSnapshot = config.pricePerSqFt;
+        }
+        
+        // Enforce minimum price
+        const basePrice = Math.max(calculatedFromArea, minPrice);
+        state.basePricePerVisit = Math.round(basePrice);
         
         // Add add-ons
+        let addonsTotal = 0;
         state.addOns.forEach(addonId => {
             const addon = config.addOns.find(a => a.id === addonId);
             if (addon) {
-                baseVisitPrice += addon.pricePerVisit;
+                addonsTotal += addon.pricePerVisit || 0;
             }
         });
         
         // Apply frequency multiplier
         const frequencyMultiplier = config.frequencyMultipliers[state.frequency] || 1.0;
-        state.estimatedPerVisit = Math.round(baseVisitPrice * frequencyMultiplier);
+        state.estimatedPerVisit = Math.round((basePrice + addonsTotal) * frequencyMultiplier);
         
         // Calculate monthly total
-        if (state.frequency === 'weekly') {
-            state.estimatedMonthlyTotal = state.estimatedPerVisit * 4;
-        } else if (state.frequency === 'bi_weekly') {
-            state.estimatedMonthlyTotal = state.estimatedPerVisit * 2;
-        } else {
-            state.estimatedMonthlyTotal = state.estimatedPerVisit;
-        }
+        const visitsPerMonth = config.frequencyVisits?.[state.frequency] || 1;
+        state.estimatedMonthlyTotal = state.estimatedPerVisit * visitsPerMonth;
         
         console.log('[Widget] Quote calculated:', {
+            pricingMode: state.pricingMode,
             perVisit: state.estimatedPerVisit,
             monthly: state.estimatedMonthlyTotal
         });
@@ -1026,13 +987,16 @@
             return addon ? addon.label : id;
         }).join(', ') || 'None';
         
-        const frequencyLabel = state.frequency.replace('_', '-').split('-').map(w => 
+        const frequencyLabel = state.frequency.replace('_', ' ').split(' ').map(w => 
             w.charAt(0).toUpperCase() + w.slice(1)
         ).join(' ');
         
         container.innerHTML = `
             <div class="quote-summary">
                 <h3>Your Estimated Quote</h3>
+                ${state.pricingMode === 'tiered' ? `
+                <p style="font-size: 12px; color: #16a34a; margin-bottom: 12px;">💡 Larger lawns receive automatic volume discounts.</p>
+                ` : ''}
                 <div class="quote-details">
                     <div class="quote-detail-item">
                         <span>Service:</span>
@@ -1139,83 +1103,68 @@
     
     // Submit quote
     function submitQuote() {
-        console.log('[Widget] Form submission attempt');
+        console.log('[Widget] Submitting quote');
         
-        // Capture UTM parameters and tracking codes
-        const urlParams = new URLSearchParams(window.location.search);
-        const trackingData = {
-            utm_source: urlParams.get('utm_source'),
-            utm_medium: urlParams.get('utm_medium'),
-            utm_campaign: urlParams.get('utm_campaign'),
-            utm_term: urlParams.get('utm_term'),
-            utm_content: urlParams.get('utm_content'),
-            gclid: urlParams.get('gclid'),
-            fbclid: urlParams.get('fbclid'),
-            ref: urlParams.get('ref')
-        };
+        // Build add-ons snapshot
+        const addonsSnapshot = state.addOns.map(addonId => {
+            const addon = config.addOns.find(a => a.id === addonId);
+            return addon ? {
+                id: addon.id,
+                name: addon.label,
+                pricePerVisit: addon.pricePerVisit
+            } : null;
+        }).filter(Boolean);
         
-        // Build payload
         const payload = {
-            clientId: config.clientId,
-            monthlyQuoteLimit: config.monthlyQuoteLimit || 100,
-            timestamp: new Date().toISOString(),
+            widgetId: widgetId,
+            accountId: accountId,
+            customerName: `${state.firstName} ${state.lastName}`,
+            customerEmail: state.email,
+            customerPhone: state.phone,
+            propertyAddress: state.address,
             propertyType: state.propertyType,
+            areaSqFt: state.lawnSizeSqFt,
+            areaSource: state.areaSource,
             primaryService: state.primaryService,
-            addOns: state.addOns,
-            lawnSizeSqFt: state.lawnSizeSqFt,
-            lawnSizeTier: state.lawnSizeTier.id,
+            addons: addonsSnapshot,
             frequency: state.frequency,
-            areaData: {
-                measuredAreaSqft: state.measuredAreaSqft,
-                estimatedAreaSqft: state.estimatedAreaSqft,
-                areaSource: state.areaSource, // 'measured', 'estimated', or 'none'
-                usedForPricing: state.lawnSizeSqFt
-            },
-            pricing: {
-                estimatedPerVisit: state.estimatedPerVisit,
-                estimatedMonthlyTotal: state.estimatedMonthlyTotal,
-                currencySymbol: config.currencySymbol
-            },
-            lead: {
-                firstName: state.firstName,
-                lastName: state.lastName,
-                email: state.email,
-                phone: state.phone,
-                address: state.address,
-                zipCode: state.zipCode,
-                addressSource: state.addressSource,
-                preferredTime: state.preferredTime
-            },
-            tracking: trackingData
+            basePricePerVisit: state.basePricePerVisit,
+            totalPricePerVisit: state.estimatedPerVisit,
+            monthlyEstimate: state.estimatedMonthlyTotal,
+            pricingMode: state.pricingMode,
+            pricingTiersSnapshot: state.pricingTiersSnapshot,
+            flatRateSnapshot: state.flatRateSnapshot,
+            preferredTime: state.preferredTime
         };
         
-        console.log('[Widget] Submitting payload:', payload);
+        console.log('[Widget] Payload:', payload);
         
-        // Submit to central webhook
-        const webhookUrl = config.centralWebhookUrl || 'https://mock-webhook.example.com/quotes';
-        
-        fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-            .then(response => response.json())
-            .then(data => {
-                console.log('[Widget] Form submission success');
-                console.log('[Widget] Usage info from server:', data);
-                console.log('Plan status:', data.planStatus, 'Used this month:', data.usedThisMonth);
-                
-                // Trigger custom event for tracking
-                window.dispatchEvent(new CustomEvent('LawnQuoteSubmitted', { detail: payload }));
-                
-                // Always show success message regardless of plan status
-                showSuccessMessage();
+        // If we have widgetId and accountId, save to Supabase via API
+        if (widgetId && accountId) {
+            const apiBase = getApiBaseUrl();
+            fetch(`${apiBase}/api/widget/save-quote`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             })
-            .catch(error => {
-                console.error('[Widget] Form submission error:', error);
-                // Still show success to user even if tracking fails
-                showSuccessMessage();
-            });
+                .then(response => response.json())
+                .then(data => {
+                    console.log('[Widget] Quote saved:', data);
+                    showSuccessMessage();
+                })
+                .catch(error => {
+                    console.error('[Widget] Error saving quote:', error);
+                    // Still show success to user
+                    showSuccessMessage();
+                });
+        } else {
+            // Legacy mode or no account - just show success
+            console.log('[Widget] Legacy mode - quote not saved to database');
+            showSuccessMessage();
+        }
+        
+        // Trigger custom event for tracking
+        window.dispatchEvent(new CustomEvent('LawnQuoteSubmitted', { detail: payload }));
     }
     
     // Show success message
@@ -1240,7 +1189,8 @@
         root.innerHTML = `
             <div class="widget-card">
                 <div class="error-message">
-                    ${message}
+                    <h3>Widget Unavailable</h3>
+                    <p>${message}</p>
                 </div>
             </div>
         `;
