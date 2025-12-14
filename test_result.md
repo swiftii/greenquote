@@ -132,6 +132,30 @@ backend:
         agent: "testing"
         comment: "✅ VERIFIED: Basic FastAPI backend with status endpoints working correctly. Note: Billing functionality is implemented as separate Vercel serverless functions, not FastAPI routes."
 
+  - task: "Widget Config API - Account Settings Endpoint"
+    implemented: true
+    working: true
+    file: "api/widget/config.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Widget Config API properly implemented with Supabase service role access, widget ID validation, account settings loading, CORS headers, and comprehensive error handling. Returns account pricing, addons, and frequency settings for widget configuration."
+
+  - task: "Widget Save Quote API - Quote Persistence Endpoint"
+    implemented: true
+    working: true
+    file: "api/widget/save-quote.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Widget Save Quote API properly validates widget ownership, saves quotes with source='widget', includes pricing snapshots, and handles all required fields. CORS headers configured for cross-origin widget access."
+
 frontend:
   - task: "BillingSettings Page - Subscription Status and Portal Management"
     implemented: true
