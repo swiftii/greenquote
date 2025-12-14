@@ -30,7 +30,7 @@ from pathlib import Path
 # Add the app directory to Python path
 sys.path.insert(0, '/app')
 
-class GreenQuotePipelineClientsTester:
+class GreenQuoteWidgetIntegrationTester:
     def __init__(self):
         self.app_dir = Path('/app')
         self.results = {
