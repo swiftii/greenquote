@@ -128,15 +128,202 @@ class GreenQuoteWidgetIntegrationTester:
             self.results['sql_migration']['details'].append(f"Error reading migration file: {str(e)}")
             return False
     
-    def test_client_service(self):
-        """Test clientService.js functions"""
-        print("🔍 Testing Client Service...")
+    def test_widget_config_api(self):
+        """Test Widget Config API endpoint"""
+        print("🔍 Testing Widget Config API...")
         
-        service_file = self.app_dir / 'frontend' / 'src' / 'services' / 'clientService.js'
+        api_file = self.app_dir / 'api' / 'widget' / 'config.js'
+        
+        if not api_file.exists():
+            self.results['widget_config_api']['status'] = 'failed'
+            self.results['widget_config_api']['details'].append('Widget Config API file not found')
+            return False
+            
+        try:
+            content = api_file.read_text()
+            
+            # Check for required imports and setup
+            setup_checks = [
+                ('import.*createClient.*@supabase/supabase-js', 'Supabase client import'),
+                ('export default.*function handler', 'Default handler function export'),
+                ('SUPABASE_SERVICE_ROLE_KEY', 'Service role key usage'),
+                ('req.method.*GET', 'GET method validation'),
+            ]
+            
+            for pattern, description in setup_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['widget_config_api']['details'].append(f"✅ {description}")
+                else:
+                    self.results['widget_config_api']['details'].append(f"❌ {description}")
+                    self.results['widget_config_api']['status'] = 'failed'
+                    return False
+            
+            # Check for CORS headers
+            cors_checks = [
+                ('Access-Control-Allow-Origin', 'CORS origin header'),
+                ('Access-Control-Allow-Methods', 'CORS methods header'),
+                ('Access-Control-Allow-Headers', 'CORS headers header'),
+            ]
+            
+            for pattern, description in cors_checks:
+                if pattern in content:
+                    self.results['widget_config_api']['details'].append(f"✅ {description}")
+                else:
+                    self.results['widget_config_api']['details'].append(f"❌ {description}")
+                    self.results['widget_config_api']['status'] = 'failed'
+                    return False
+            
+            # Check for widget ID validation
+            validation_checks = [
+                ('wid.*req.query', 'Widget ID parameter extraction'),
+                ('wid.startsWith.*wg_', 'Widget ID format validation'),
+                ('widget_installations.*public_widget_id.*wid', 'Widget lookup query'),
+                ('is_active', 'Widget active status check'),
+            ]
+            
+            for pattern, description in validation_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['widget_config_api']['details'].append(f"✅ {description}")
+                else:
+                    self.results['widget_config_api']['details'].append(f"❌ {description}")
+                    self.results['widget_config_api']['status'] = 'failed'
+                    return False
+            
+            # Check for account settings loading
+            settings_checks = [
+                ('account_settings.*min_price_per_visit', 'Account settings query'),
+                ('use_tiered_sqft_pricing', 'Tiered pricing setting'),
+                ('sqft_pricing_tiers', 'Pricing tiers loading'),
+                ('account_addons.*is_active.*true', 'Active addons loading'),
+            ]
+            
+            for pattern, description in settings_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['widget_config_api']['details'].append(f"✅ {description}")
+                else:
+                    self.results['widget_config_api']['details'].append(f"❌ {description}")
+                    self.results['widget_config_api']['status'] = 'failed'
+                    return False
+            
+            # Check for response payload structure
+            payload_checks = [
+                ('accountId.*businessName', 'Basic account info in payload'),
+                ('pricing.*minPricePerVisit', 'Pricing configuration'),
+                ('addons.*map', 'Addons mapping'),
+                ('frequency.*multiplier', 'Frequency configuration'),
+            ]
+            
+            for pattern, description in payload_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['widget_config_api']['details'].append(f"✅ {description}")
+                else:
+                    self.results['widget_config_api']['details'].append(f"❌ {description}")
+                    self.results['widget_config_api']['status'] = 'failed'
+                    return False
+            
+            self.results['widget_config_api']['status'] = 'passed'
+            return True
+            
+        except Exception as e:
+            self.results['widget_config_api']['status'] = 'failed'
+            self.results['widget_config_api']['details'].append(f"Error reading widget config API: {str(e)}")
+            return False
+    
+    def test_widget_save_quote_api(self):
+        """Test Widget Save Quote API endpoint"""
+        print("🔍 Testing Widget Save Quote API...")
+        
+        api_file = self.app_dir / 'api' / 'widget' / 'save-quote.js'
+        
+        if not api_file.exists():
+            self.results['widget_save_quote_api']['status'] = 'failed'
+            self.results['widget_save_quote_api']['details'].append('Widget Save Quote API file not found')
+            return False
+            
+        try:
+            content = api_file.read_text()
+            
+            # Check for required imports and setup
+            setup_checks = [
+                ('import.*createClient.*@supabase/supabase-js', 'Supabase client import'),
+                ('export default.*function handler', 'Default handler function export'),
+                ('SUPABASE_SERVICE_ROLE_KEY', 'Service role key usage'),
+                ('req.method.*POST', 'POST method validation'),
+            ]
+            
+            for pattern, description in setup_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['widget_save_quote_api']['details'].append(f"✅ {description}")
+                else:
+                    self.results['widget_save_quote_api']['details'].append(f"❌ {description}")
+                    self.results['widget_save_quote_api']['status'] = 'failed'
+                    return False
+            
+            # Check for CORS headers
+            cors_checks = [
+                ('Access-Control-Allow-Origin', 'CORS origin header'),
+                ('Access-Control-Allow-Methods', 'CORS methods header'),
+                ('Access-Control-Allow-Headers', 'CORS headers header'),
+            ]
+            
+            for pattern, description in cors_checks:
+                if pattern in content:
+                    self.results['widget_save_quote_api']['details'].append(f"✅ {description}")
+                else:
+                    self.results['widget_save_quote_api']['details'].append(f"❌ {description}")
+                    self.results['widget_save_quote_api']['status'] = 'failed'
+                    return False
+            
+            # Check for request validation
+            validation_checks = [
+                ('widgetId.*accountId.*req.body', 'Required fields extraction'),
+                ('widget_installations.*public_widget_id.*widgetId', 'Widget verification'),
+                ('account_id.*accountId', 'Account verification'),
+                ('is_active', 'Widget active status verification'),
+            ]
+            
+            for pattern, description in validation_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['widget_save_quote_api']['details'].append(f"✅ {description}")
+                else:
+                    self.results['widget_save_quote_api']['details'].append(f"❌ {description}")
+                    self.results['widget_save_quote_api']['status'] = 'failed'
+                    return False
+            
+            # Check for quote insertion
+            quote_checks = [
+                ('servicesSnapshot.*baseService.*addons', 'Services snapshot structure'),
+                ('quotes.*insert', 'Quote insertion'),
+                ('source.*widget', 'Source field set to widget'),
+                ('status.*pending', 'Status set to pending'),
+                ('pricing_mode.*pricingTiersSnapshot', 'Pricing snapshot fields'),
+            ]
+            
+            for pattern, description in quote_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['widget_save_quote_api']['details'].append(f"✅ {description}")
+                else:
+                    self.results['widget_save_quote_api']['details'].append(f"❌ {description}")
+                    self.results['widget_save_quote_api']['status'] = 'failed'
+                    return False
+            
+            self.results['widget_save_quote_api']['status'] = 'passed'
+            return True
+            
+        except Exception as e:
+            self.results['widget_save_quote_api']['status'] = 'failed'
+            self.results['widget_save_quote_api']['details'].append(f"Error reading widget save quote API: {str(e)}")
+            return False
+    
+    def test_widget_service(self):
+        """Test widgetService.js functions"""
+        print("🔍 Testing Widget Service...")
+        
+        service_file = self.app_dir / 'frontend' / 'src' / 'services' / 'widgetService.js'
         
         if not service_file.exists():
-            self.results['client_service']['status'] = 'failed'
-            self.results['client_service']['details'].append('clientService.js file not found')
+            self.results['widget_service']['status'] = 'failed'
+            self.results['widget_service']['details'].append('widgetService.js file not found')
             return False
             
         try:
@@ -144,439 +331,351 @@ class GreenQuoteWidgetIntegrationTester:
             
             # Check for required functions
             functions = [
-                ('export.*function getClients', 'getClients function exported'),
-                ('export.*function getTotalMonthlyRevenue', 'getTotalMonthlyRevenue function exported'),
-                ('export.*function getClientCount', 'getClientCount function exported'),
-                ('export.*function createClientFromQuote', 'createClientFromQuote function exported'),
+                ('function generateWidgetId', 'generateWidgetId function'),
+                ('export.*function ensureWidgetInstallation', 'ensureWidgetInstallation function exported'),
+                ('export.*function updateWidgetInstallation', 'updateWidgetInstallation function exported'),
+                ('export.*function generateEmbedCode', 'generateEmbedCode function exported'),
+                ('export.*function getWidgetHostUrl', 'getWidgetHostUrl function exported'),
             ]
             
             for pattern, description in functions:
                 if re.search(pattern, content, re.IGNORECASE):
-                    self.results['client_service']['details'].append(f"✅ {description}")
+                    self.results['widget_service']['details'].append(f"✅ {description}")
                 else:
-                    self.results['client_service']['details'].append(f"❌ {description}")
-                    self.results['client_service']['status'] = 'failed'
+                    self.results['widget_service']['details'].append(f"❌ {description}")
+                    self.results['widget_service']['status'] = 'failed'
                     return False
             
             # Check function implementations
             impl_checks = [
-                ('from.*clients.*select.*account_id.*is_active', 'getClients filters by account and active status'),
-                ('estimated_monthly_revenue.*reduce.*sum', 'getTotalMonthlyRevenue sums revenue'),
-                ('count.*exact.*head.*true', 'getClientCount uses count query'),
-                ('source_quote_id.*quoteId', 'createClientFromQuote prevents duplicates'),
-                ('supabase.*from.*clients.*insert', 'createClientFromQuote inserts client'),
+                ('wg_.*chars.*20', 'generateWidgetId creates wg_ prefixed ID with 20 chars'),
+                ('widget_installations.*account_id', 'ensureWidgetInstallation queries by account'),
+                ('PGRST116.*no rows found', 'ensureWidgetInstallation handles no existing widget'),
+                ('iframe.*src.*widgets/lawn/v1', 'generateEmbedCode creates iframe with correct URL'),
+                ('window.location.origin', 'getWidgetHostUrl uses current origin'),
             ]
             
             for pattern, description in impl_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['client_service']['details'].append(f"✅ {description}")
+                    self.results['widget_service']['details'].append(f"✅ {description}")
                 else:
-                    self.results['client_service']['details'].append(f"❌ {description}")
-                    self.results['client_service']['status'] = 'failed'
+                    self.results['widget_service']['details'].append(f"❌ {description}")
+                    self.results['widget_service']['status'] = 'failed'
                     return False
             
-            self.results['client_service']['status'] = 'passed'
+            self.results['widget_service']['status'] = 'passed'
             return True
             
         except Exception as e:
-            self.results['client_service']['status'] = 'failed'
-            self.results['client_service']['details'].append(f"Error reading client service file: {str(e)}")
+            self.results['widget_service']['status'] = 'failed'
+            self.results['widget_service']['details'].append(f"Error reading widget service file: {str(e)}")
             return False
     
-    def test_quote_service(self):
-        """Test quoteService.js pipeline functions"""
-        print("🔍 Testing Quote Service Pipeline Functions...")
+    def test_settings_integration(self):
+        """Test Settings.js widget integration"""
+        print("🔍 Testing Settings Page Widget Integration...")
+        
+        settings_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Settings.js'
+        
+        if not settings_file.exists():
+            self.results['settings_integration']['status'] = 'failed'
+            self.results['settings_integration']['details'].append('Settings.js file not found')
+            return False
+            
+        try:
+            content = settings_file.read_text()
+            
+            # Check for widget service imports
+            import_checks = [
+                ('import.*ensureWidgetInstallation.*updateWidgetInstallation.*generateEmbedCode.*widgetService', 'Widget service functions imported'),
+            ]
+            
+            for pattern, description in import_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['settings_integration']['details'].append(f"✅ {description}")
+                else:
+                    self.results['settings_integration']['details'].append(f"❌ {description}")
+                    self.results['settings_integration']['status'] = 'failed'
+                    return False
+            
+            # Check for widget state management
+            state_checks = [
+                ('widgetInstallation.*setWidgetInstallation', 'Widget installation state'),
+                ('widgetLoading.*setWidgetLoading', 'Widget loading state'),
+                ('embedCodeCopied.*setEmbedCodeCopied', 'Embed code copied state'),
+            ]
+            
+            for pattern, description in state_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['settings_integration']['details'].append(f"✅ {description}")
+                else:
+                    self.results['settings_integration']['details'].append(f"❌ {description}")
+                    self.results['settings_integration']['status'] = 'failed'
+                    return False
+            
+            # Check for widget loading in useEffect
+            loading_checks = [
+                ('ensureWidgetInstallation.*userAccount.id', 'Widget installation loading'),
+                ('setWidgetInstallation.*widget', 'Widget installation state setting'),
+            ]
+            
+            for pattern, description in loading_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['settings_integration']['details'].append(f"✅ {description}")
+                else:
+                    self.results['settings_integration']['details'].append(f"❌ {description}")
+                    self.results['settings_integration']['status'] = 'failed'
+                    return False
+            
+            # Check for widget UI components
+            ui_checks = [
+                ('Website Widget.*CardTitle', 'Widget card section'),
+                ('Widget ID.*public_widget_id', 'Widget ID display'),
+                ('Embed Code.*generateEmbedCode', 'Embed code display'),
+                ('Switch.*widgetActive.*is_active', 'Widget toggle switch'),
+                ('Copy Code.*navigator.clipboard', 'Copy to clipboard functionality'),
+            ]
+            
+            for pattern, description in ui_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['settings_integration']['details'].append(f"✅ {description}")
+                else:
+                    self.results['settings_integration']['details'].append(f"❌ {description}")
+                    self.results['settings_integration']['status'] = 'failed'
+                    return False
+            
+            self.results['settings_integration']['status'] = 'passed'
+            return True
+            
+        except Exception as e:
+            self.results['settings_integration']['status'] = 'failed'
+            self.results['settings_integration']['details'].append(f"Error reading settings file: {str(e)}")
+            return False
+    
+    def test_widget_runtime(self):
+        """Test widget runtime JavaScript"""
+        print("🔍 Testing Widget Runtime...")
+        
+        widget_file = self.app_dir / 'widgets' / 'lawn' / 'v1' / 'widget.js'
+        
+        if not widget_file.exists():
+            self.results['widget_runtime']['status'] = 'failed'
+            self.results['widget_runtime']['details'].append('Widget runtime file not found')
+            return False
+            
+        try:
+            content = widget_file.read_text()
+            
+            # Check for widget ID parameter reading
+            param_checks = [
+                ('window.location.search', 'URL parameter reading'),
+                ('urlParams.get.*wid', 'Widget ID parameter extraction'),
+                ('urlParams.get.*client', 'Legacy client parameter support'),
+            ]
+            
+            for pattern, description in param_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['widget_runtime']['details'].append(f"✅ {description}")
+                else:
+                    self.results['widget_runtime']['details'].append(f"❌ {description}")
+                    self.results['widget_runtime']['status'] = 'failed'
+                    return False
+            
+            # Check for API configuration loading
+            api_checks = [
+                ('api/widget/config.*wid', 'Config API endpoint call'),
+                ('transformApiConfig', 'API config transformation function'),
+                ('accountId.*data.accountId', 'Account ID extraction'),
+            ]
+            
+            for pattern, description in api_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['widget_runtime']['details'].append(f"✅ {description}")
+                else:
+                    self.results['widget_runtime']['details'].append(f"❌ {description}")
+                    self.results['widget_runtime']['status'] = 'failed'
+                    return False
+            
+            # Check for pricing calculations
+            pricing_checks = [
+                ('calculateTieredPrice', 'Tiered pricing calculation function'),
+                ('useTieredPricing.*pricingTiers', 'Tiered pricing usage'),
+                ('pricingMode.*tiered.*flat', 'Pricing mode handling'),
+                ('frequencyMultipliers', 'Frequency multiplier application'),
+            ]
+            
+            for pattern, description in pricing_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['widget_runtime']['details'].append(f"✅ {description}")
+                else:
+                    self.results['widget_runtime']['details'].append(f"❌ {description}")
+                    self.results['widget_runtime']['status'] = 'failed'
+                    return False
+            
+            # Check for quote submission
+            submission_checks = [
+                ('submitQuote', 'Quote submission function'),
+                ('api/widget/save-quote', 'Save quote API endpoint call'),
+                ('widgetId.*accountId.*payload', 'Required payload fields'),
+                ('pricingTiersSnapshot.*flatRateSnapshot', 'Pricing snapshot in payload'),
+            ]
+            
+            for pattern, description in submission_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['widget_runtime']['details'].append(f"✅ {description}")
+                else:
+                    self.results['widget_runtime']['details'].append(f"❌ {description}")
+                    self.results['widget_runtime']['status'] = 'failed'
+                    return False
+            
+            # Check for volume discount messaging
+            if re.search(r'volume discounts.*tiered', content, re.IGNORECASE | re.DOTALL):
+                self.results['widget_runtime']['details'].append("✅ Volume discount note for tiered pricing")
+            else:
+                self.results['widget_runtime']['details'].append("❌ Volume discount note missing")
+                self.results['widget_runtime']['status'] = 'failed'
+                return False
+            
+            self.results['widget_runtime']['status'] = 'passed'
+            return True
+            
+        except Exception as e:
+            self.results['widget_runtime']['status'] = 'failed'
+            self.results['widget_runtime']['details'].append(f"Error reading widget runtime file: {str(e)}")
+            return False
+    
+    def test_quote_service_integration(self):
+        """Test Quote Service source field integration"""
+        print("🔍 Testing Quote Service Integration...")
         
         service_file = self.app_dir / 'frontend' / 'src' / 'services' / 'quoteService.js'
         
         if not service_file.exists():
-            self.results['quote_service']['status'] = 'failed'
-            self.results['quote_service']['details'].append('quoteService.js file not found')
+            self.results['quote_service_integration']['status'] = 'failed'
+            self.results['quote_service_integration']['details'].append('quoteService.js file not found')
             return False
             
         try:
             content = service_file.read_text()
             
-            # Check for new pipeline functions
-            functions = [
-                ('export.*function getQuotesByStatus', 'getQuotesByStatus function exported'),
-                ('export.*function updateQuoteStatus', 'updateQuoteStatus function exported'),
-                ('export.*function getQuoteCountByStatus', 'getQuoteCountByStatus function exported'),
-                ('export.*function calculateMonthlyRevenue', 'calculateMonthlyRevenue helper function'),
-                ('FREQUENCY_VISITS', 'FREQUENCY_VISITS mapping defined'),
+            # Check for source field in saveQuote function
+            source_checks = [
+                ('source.*pro_app.*widget', 'Source field documentation'),
+                ('source.*source.*pro_app', 'Source field in saveQuote parameters and default'),
             ]
             
-            for pattern, description in functions:
-                if re.search(pattern, content, re.IGNORECASE):
-                    self.results['quote_service']['details'].append(f"✅ {description}")
-                else:
-                    self.results['quote_service']['details'].append(f"❌ {description}")
-                    self.results['quote_service']['status'] = 'failed'
-                    return False
-            
-            # Check function implementations
-            impl_checks = [
-                ('pending.*won.*lost', 'updateQuoteStatus validates status values'),
-                ('from.*quotes.*eq.*status', 'getQuotesByStatus filters by status'),
-                ('order.*created_at', 'getQuotesByStatus supports sorting'),
-                ('status.*pending', 'saveQuote sets status to pending'),
-                ('services.*services.*null', 'saveQuote includes services snapshot'),
-            ]
-            
-            for pattern, description in impl_checks:
+            for pattern, description in source_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['quote_service']['details'].append(f"✅ {description}")
+                    self.results['quote_service_integration']['details'].append(f"✅ {description}")
                 else:
-                    self.results['quote_service']['details'].append(f"❌ {description}")
-                    self.results['quote_service']['status'] = 'failed'
+                    self.results['quote_service_integration']['details'].append(f"❌ {description}")
+                    self.results['quote_service_integration']['status'] = 'failed'
                     return False
             
-            self.results['quote_service']['status'] = 'passed'
+            self.results['quote_service_integration']['status'] = 'passed'
             return True
             
         except Exception as e:
-            self.results['quote_service']['status'] = 'failed'
-            self.results['quote_service']['details'].append(f"Error reading quote service file: {str(e)}")
+            self.results['quote_service_integration']['status'] = 'failed'
+            self.results['quote_service_integration']['details'].append(f"Error reading quote service file: {str(e)}")
             return False
     
-    def test_pending_quotes_page(self):
-        """Test PendingQuotes.js page component"""
-        print("🔍 Testing Pending Quotes Page...")
+    def test_vercel_config(self):
+        """Test Vercel configuration for widget routes"""
+        print("🔍 Testing Vercel Configuration...")
         
-        page_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'PendingQuotes.js'
+        vercel_file = self.app_dir / 'vercel.json'
         
-        if not page_file.exists():
-            self.results['pending_quotes_page']['status'] = 'failed'
-            self.results['pending_quotes_page']['details'].append('PendingQuotes.js file not found')
+        if not vercel_file.exists():
+            self.results['vercel_config']['status'] = 'failed'
+            self.results['vercel_config']['details'].append('vercel.json file not found')
             return False
             
         try:
-            content = page_file.read_text()
+            content = vercel_file.read_text()
             
-            # Check for required imports and functionality
-            checks = [
-                ('import.*getQuotesByStatus.*updateQuoteStatus', 'imports quote service functions'),
-                ('import.*createClientFromQuote', 'imports client service function'),
-                ('getQuotesByStatus.*pending', 'loads pending quotes'),
-                ('handleClosedWon.*updateQuoteStatus.*won', 'Won action updates status'),
-                ('handleClosedLost.*updateQuoteStatus.*lost', 'Lost action updates status'),
-                ('createClientFromQuote.*handleClosedWon', 'Won action creates client'),
-                ('sortBy.*sortOrder', 'sorting functionality implemented'),
-                ('FREQUENCY_LABELS', 'frequency labels for display'),
-            ]
-            
-            for pattern, description in checks:
-                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['pending_quotes_page']['details'].append(f"✅ {description}")
-                else:
-                    self.results['pending_quotes_page']['details'].append(f"❌ {description}")
-                    self.results['pending_quotes_page']['status'] = 'failed'
-                    return False
-            
-            # Check UI elements
-            ui_checks = [
-                ('Pending Quotes', 'page title present'),
-                ('Won.*Lost', 'action buttons present'),
-                ('property_address', 'quote info displayed'),
-                ('monthly_estimate', 'revenue displayed'),
-                ('SelectTrigger', 'sorting controls present'),
-            ]
-            
-            for pattern, description in ui_checks:
-                if re.search(pattern, content, re.IGNORECASE):
-                    self.results['pending_quotes_page']['details'].append(f"✅ {description}")
-                else:
-                    self.results['pending_quotes_page']['details'].append(f"❌ {description}")
-                    self.results['pending_quotes_page']['status'] = 'failed'
-                    return False
-            
-            self.results['pending_quotes_page']['status'] = 'passed'
-            return True
-            
-        except Exception as e:
-            self.results['pending_quotes_page']['status'] = 'failed'
-            self.results['pending_quotes_page']['details'].append(f"Error reading pending quotes page: {str(e)}")
-            return False
-    
-    def test_lost_quotes_page(self):
-        """Test LostQuotes.js page component"""
-        print("🔍 Testing Lost Quotes Page...")
-        
-        page_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'LostQuotes.js'
-        
-        if not page_file.exists():
-            self.results['lost_quotes_page']['status'] = 'failed'
-            self.results['lost_quotes_page']['details'].append('LostQuotes.js file not found')
-            return False
-            
-        try:
-            content = page_file.read_text()
-            
-            # Check for required functionality
-            checks = [
-                ('getQuotesByStatus.*lost', 'loads lost quotes'),
-                ('handleReopen.*updateQuoteStatus.*pending', 'Reopen action updates to pending'),
-                ('handleClosedWon.*updateQuoteStatus.*won', 'Won action updates status'),
-                ('createClientFromQuote.*handleClosedWon', 'Won action creates client'),
-                ('Closed Lost Quotes', 'page title present'),
-                ('Reopen.*Won', 'action buttons present'),
-                ('Re-engage lost leads', 'help text present'),
-            ]
-            
-            for pattern, description in checks:
-                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['lost_quotes_page']['details'].append(f"✅ {description}")
-                else:
-                    self.results['lost_quotes_page']['details'].append(f"❌ {description}")
-                    self.results['lost_quotes_page']['status'] = 'failed'
-                    return False
-            
-            self.results['lost_quotes_page']['status'] = 'passed'
-            return True
-            
-        except Exception as e:
-            self.results['lost_quotes_page']['status'] = 'failed'
-            self.results['lost_quotes_page']['details'].append(f"Error reading lost quotes page: {str(e)}")
-            return False
-    
-    def test_clients_page(self):
-        """Test Clients.js page component"""
-        print("🔍 Testing Clients Page...")
-        
-        page_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Clients.js'
-        
-        if not page_file.exists():
-            self.results['clients_page']['status'] = 'failed'
-            self.results['clients_page']['details'].append('Clients.js file not found')
-            return False
-            
-        try:
-            content = page_file.read_text()
-            
-            # Check for required functionality
-            checks = [
-                ('import.*getClients.*getTotalMonthlyRevenue', 'imports client service functions'),
-                ('getClients.*getTotalMonthlyRevenue', 'loads clients and revenue'),
-                ('Active Clients', 'page title present'),
-                ('Total Clients.*Monthly Revenue', 'stats summary present'),
-                ('property_address.*customer_name', 'client info displayed'),
-                ('estimated_monthly_revenue', 'revenue per client displayed'),
-                ('services.*addons', 'services tags displayed'),
-                ('customer_email.*customer_phone', 'contact info displayed'),
-            ]
-            
-            for pattern, description in checks:
-                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['clients_page']['details'].append(f"✅ {description}")
-                else:
-                    self.results['clients_page']['details'].append(f"❌ {description}")
-                    self.results['clients_page']['status'] = 'failed'
-                    return False
-            
-            self.results['clients_page']['status'] = 'passed'
-            return True
-            
-        except Exception as e:
-            self.results['clients_page']['status'] = 'failed'
-            self.results['clients_page']['details'].append(f"Error reading clients page: {str(e)}")
-            return False
-    
-    def test_dashboard_integration(self):
-        """Test Dashboard.js integration with client data"""
-        print("🔍 Testing Dashboard Integration...")
-        
-        dashboard_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Dashboard.js'
-        
-        if not dashboard_file.exists():
-            self.results['dashboard_integration']['status'] = 'failed'
-            self.results['dashboard_integration']['details'].append('Dashboard.js file not found')
-            return False
-            
-        try:
-            content = dashboard_file.read_text()
-            
-            # Check for client service integration
-            checks = [
-                ('import.*getClientCount.*getTotalMonthlyRevenue', 'imports client service functions'),
-                ('import.*getQuoteCountByStatus', 'imports quote count function'),
-                ('getClientCount.*getTotalMonthlyRevenue.*getQuoteCountByStatus', 'loads client data'),
-                ('clientCount.*monthlyRevenue.*pendingQuotesCount', 'state variables for client data'),
-                ('Active Clients.*clientCount', 'displays client count'),
-                ('Revenue.*monthlyRevenue', 'displays monthly revenue'),
-                ('View Pending Quotes.*pendingQuotesCount', 'shows pending quotes badge'),
-                ('Manage Clients', 'client management quick action'),
-                ('Closed Lost Quotes', 'lost quotes quick action'),
-            ]
-            
-            for pattern, description in checks:
-                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['dashboard_integration']['details'].append(f"✅ {description}")
-                else:
-                    self.results['dashboard_integration']['details'].append(f"❌ {description}")
-                    self.results['dashboard_integration']['status'] = 'failed'
-                    return False
-            
-            self.results['dashboard_integration']['status'] = 'passed'
-            return True
-            
-        except Exception as e:
-            self.results['dashboard_integration']['status'] = 'failed'
-            self.results['dashboard_integration']['details'].append(f"Error reading dashboard file: {str(e)}")
-            return False
-    
-    def test_app_routing(self):
-        """Test App.js routing configuration"""
-        print("🔍 Testing App.js Routing...")
-        
-        app_file = self.app_dir / 'frontend' / 'src' / 'App.js'
-        
-        if not app_file.exists():
-            self.results['app_routing']['status'] = 'failed'
-            self.results['app_routing']['details'].append('App.js file not found')
-            return False
-            
-        try:
-            content = app_file.read_text()
-            
-            # Check for required imports
-            import_checks = [
-                ('import.*PendingQuotes', 'PendingQuotes component imported'),
-                ('import.*LostQuotes', 'LostQuotes component imported'),
-                ('import.*Clients', 'Clients component imported'),
-            ]
-            
-            for pattern, description in import_checks:
-                if re.search(pattern, content, re.IGNORECASE):
-                    self.results['app_routing']['details'].append(f"✅ {description}")
-                else:
-                    self.results['app_routing']['details'].append(f"❌ {description}")
-                    self.results['app_routing']['status'] = 'failed'
-                    return False
-            
-            # Check for route configurations
+            # Check for widget API routes
             route_checks = [
-                ('path.*quotes/pending.*PendingQuotes', '/quotes/pending route configured'),
-                ('path.*quotes/lost.*LostQuotes', '/quotes/lost route configured'),
-                ('path.*clients.*Clients', '/clients route configured'),
-                ('ProtectedRoute.*SubscriptionGuard.*PendingQuotes', 'PendingQuotes route protected'),
-                ('ProtectedRoute.*SubscriptionGuard.*LostQuotes', 'LostQuotes route protected'),
-                ('ProtectedRoute.*SubscriptionGuard.*Clients', 'Clients route protected'),
+                ('api/widget/config.*api/widget/config.js', 'Widget config API route'),
+                ('api/widget/save-quote.*api/widget/save-quote.js', 'Widget save quote API route'),
+                ('widgets/.*widgets/', 'Widget static files route'),
             ]
             
             for pattern, description in route_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['app_routing']['details'].append(f"✅ {description}")
+                    self.results['vercel_config']['details'].append(f"✅ {description}")
                 else:
-                    self.results['app_routing']['details'].append(f"❌ {description}")
-                    self.results['app_routing']['status'] = 'failed'
+                    self.results['vercel_config']['details'].append(f"❌ {description}")
+                    self.results['vercel_config']['status'] = 'failed'
                     return False
             
-            self.results['app_routing']['status'] = 'passed'
+            self.results['vercel_config']['status'] = 'passed'
             return True
             
         except Exception as e:
-            self.results['app_routing']['status'] = 'failed'
-            self.results['app_routing']['details'].append(f"Error reading app file: {str(e)}")
-            return False
-    
-    def test_quote_services_snapshot(self):
-        """Test Quote.js services snapshot saving"""
-        print("🔍 Testing Quote.js Services Snapshot...")
-        
-        quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
-        
-        if not quote_file.exists():
-            self.results['quote_services_snapshot']['status'] = 'failed'
-            self.results['quote_services_snapshot']['details'].append('Quote.js file not found')
-            return False
-            
-        try:
-            content = quote_file.read_text()
-            
-            # Check for services snapshot implementation
-            checks = [
-                ('servicesSnapshot.*baseService.*addons', 'services snapshot structure'),
-                ('services.*servicesSnapshot.*saveQuote', 'services snapshot passed to saveQuote'),
-                ('baseService.*formData\.primaryService', 'base service included'),
-                ('addons.*selectedAddonsDetails', 'addons details included'),
-                ('selectedAddonsDetails.*id.*name.*price', 'addon details structure'),
-            ]
-            
-            for pattern, description in checks:
-                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['quote_services_snapshot']['details'].append(f"✅ {description}")
-                else:
-                    self.results['quote_services_snapshot']['details'].append(f"❌ {description}")
-                    self.results['quote_services_snapshot']['status'] = 'failed'
-                    return False
-            
-            self.results['quote_services_snapshot']['status'] = 'passed'
-            return True
-            
-        except Exception as e:
-            self.results['quote_services_snapshot']['status'] = 'failed'
-            self.results['quote_services_snapshot']['details'].append(f"Error reading quote file: {str(e)}")
+            self.results['vercel_config']['status'] = 'failed'
+            self.results['vercel_config']['details'].append(f"Error reading vercel config: {str(e)}")
             return False
     
     def test_integration_flow(self):
-        """Test the complete integration flow"""
+        """Test the complete widget integration flow"""
         print("🔍 Testing Integration Flow...")
         
         try:
             integration_checks = []
             
-            # 1. Quote creation saves services snapshot and status
-            quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
-            if quote_file.exists():
-                quote_content = quote_file.read_text()
-                if 'services.*servicesSnapshot' in quote_content and 'status.*pending' in quote_content:
-                    integration_checks.append("✅ Quote creation saves services snapshot with pending status")
+            # 1. Settings page can manage widget
+            settings_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Settings.js'
+            if settings_file.exists():
+                settings_content = settings_file.read_text()
+                if 'ensureWidgetInstallation' in settings_content and 'generateEmbedCode' in settings_content:
+                    integration_checks.append("✅ Settings page manages widget installation and embed code")
                 else:
-                    integration_checks.append("✅ Quote creation saves services snapshot with pending status")
+                    integration_checks.append("❌ Settings page doesn't manage widget properly")
             
-            # 2. Pending quotes page loads and manages quotes
-            pending_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'PendingQuotes.js'
-            if pending_file.exists():
-                pending_content = pending_file.read_text()
-                if 'getQuotesByStatus.*pending' in pending_content and 'updateQuoteStatus.*won' in pending_content:
-                    integration_checks.append("✅ Pending quotes page manages quote status transitions")
+            # 2. Widget runtime loads config from API
+            widget_file = self.app_dir / 'widgets' / 'lawn' / 'v1' / 'widget.js'
+            if widget_file.exists():
+                widget_content = widget_file.read_text()
+                if 'api/widget/config' in widget_content and 'transformApiConfig' in widget_content:
+                    integration_checks.append("✅ Widget runtime loads config from API")
                 else:
-                    integration_checks.append("✅ Pending quotes page manages quote status transitions")
+                    integration_checks.append("❌ Widget runtime doesn't load config properly")
             
-            # 3. Won quotes create clients
-            if pending_file.exists():
-                pending_content = pending_file.read_text()
-                if 'createClientFromQuote' in pending_content and 'handleClosedWon' in pending_content:
-                    integration_checks.append("✅ Won quotes create clients automatically")
+            # 3. Widget saves quotes via API
+            if widget_file.exists():
+                widget_content = widget_file.read_text()
+                if 'api/widget/save-quote' in widget_content and 'submitQuote' in widget_content:
+                    integration_checks.append("✅ Widget saves quotes via API")
                 else:
-                    integration_checks.append("❌ Won quotes don't create clients")
+                    integration_checks.append("❌ Widget doesn't save quotes properly")
             
-            # 4. Clients page displays client data
-            clients_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Clients.js'
-            if clients_file.exists():
-                clients_content = clients_file.read_text()
-                if 'getClients' in clients_content and 'getTotalMonthlyRevenue' in clients_content:
-                    integration_checks.append("✅ Clients page displays client data and revenue")
+            # 4. Config API returns account settings
+            config_api_file = self.app_dir / 'api' / 'widget' / 'config.js'
+            if config_api_file.exists():
+                config_content = config_api_file.read_text()
+                if 'account_settings' in config_content and 'account_addons' in config_content:
+                    integration_checks.append("✅ Config API returns account settings and addons")
                 else:
-                    integration_checks.append("❌ Clients page doesn't display data properly")
+                    integration_checks.append("❌ Config API doesn't return proper settings")
             
-            # 5. Dashboard shows client metrics
-            dashboard_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Dashboard.js'
-            if dashboard_file.exists():
-                dashboard_content = dashboard_file.read_text()
-                if 'getClientCount' in dashboard_content and 'getTotalMonthlyRevenue' in dashboard_content:
-                    integration_checks.append("✅ Dashboard displays client metrics")
+            # 5. Save Quote API validates widget and saves to database
+            save_api_file = self.app_dir / 'api' / 'widget' / 'save-quote.js'
+            if save_api_file.exists():
+                save_content = save_api_file.read_text()
+                if 'widget_installations' in save_content and 'quotes.*insert' in save_content:
+                    integration_checks.append("✅ Save Quote API validates widget and saves quotes")
                 else:
-                    integration_checks.append("❌ Dashboard doesn't display client metrics")
+                    integration_checks.append("❌ Save Quote API doesn't validate or save properly")
             
-            # 6. All routes are properly configured
-            app_file = self.app_dir / 'frontend' / 'src' / 'App.js'
-            if app_file.exists():
-                app_content = app_file.read_text()
-                if 'quotes/pending' in app_content and 'quotes/lost' in app_content and '/clients' in app_content:
-                    integration_checks.append("✅ All pipeline routes are configured")
+            # 6. Vercel routes are configured
+            vercel_file = self.app_dir / 'vercel.json'
+            if vercel_file.exists():
+                vercel_content = vercel_file.read_text()
+                if 'api/widget/config' in vercel_content and 'api/widget/save-quote' in vercel_content:
+                    integration_checks.append("✅ Vercel routes configured for widget APIs")
                 else:
-                    integration_checks.append("❌ Pipeline routes not properly configured")
+                    integration_checks.append("❌ Vercel routes not properly configured")
             
             self.results['integration']['details'] = integration_checks
             
@@ -596,18 +695,17 @@ class GreenQuoteWidgetIntegrationTester:
     
     def run_all_tests(self):
         """Run all tests and return results"""
-        print("🚀 Starting GreenQuote Pro Quote Pipeline & Clients Feature Tests\n")
+        print("🚀 Starting GreenQuote Pro Widget Integration Feature Tests\n")
         
         tests = [
             ('SQL Migration', self.test_sql_migration),
-            ('Client Service', self.test_client_service),
-            ('Quote Service', self.test_quote_service),
-            ('Pending Quotes Page', self.test_pending_quotes_page),
-            ('Lost Quotes Page', self.test_lost_quotes_page),
-            ('Clients Page', self.test_clients_page),
-            ('Dashboard Integration', self.test_dashboard_integration),
-            ('App Routing', self.test_app_routing),
-            ('Quote Services Snapshot', self.test_quote_services_snapshot),
+            ('Widget Config API', self.test_widget_config_api),
+            ('Widget Save Quote API', self.test_widget_save_quote_api),
+            ('Widget Service', self.test_widget_service),
+            ('Settings Integration', self.test_settings_integration),
+            ('Widget Runtime', self.test_widget_runtime),
+            ('Quote Service Integration', self.test_quote_service_integration),
+            ('Vercel Configuration', self.test_vercel_config),
             ('Integration Flow', self.test_integration_flow)
         ]
         
@@ -642,7 +740,7 @@ class GreenQuoteWidgetIntegrationTester:
 
 def main():
     """Main test execution"""
-    tester = GreenQuotePipelineClientsTester()
+    tester = GreenQuoteWidgetIntegrationTester()
     passed, total, results = tester.run_all_tests()
     
     print("\n" + "=" * 60)
@@ -653,7 +751,7 @@ def main():
     
     # Determine overall result
     if passed == total:
-        print("\n🎉 ALL TESTS PASSED! Quote Pipeline & Clients feature is properly implemented.")
+        print("\n🎉 ALL TESTS PASSED! Widget Integration feature is properly implemented.")
         return True
     else:
         print(f"\n⚠️  {total - passed} test(s) failed. Review the implementation.")
