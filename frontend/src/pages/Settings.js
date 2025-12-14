@@ -69,12 +69,14 @@ export default function Settings() {
       setError('Supabase is not configured. Please set environment variables.');
       setAccountLoading(false);
       setAddonsLoading(false);
+      setWidgetLoading(false);
       return;
     }
 
     try {
       setAccountLoading(true);
       setAddonsLoading(true);
+      setWidgetLoading(true);
       setError(null);
       
       const result = await ensureUserAccount(user);
@@ -98,6 +100,15 @@ export default function Settings() {
       if (userAccount?.id) {
         const accountAddons = await getAccountAddons(userAccount.id);
         setAddons(accountAddons);
+
+        // Load or create widget installation
+        try {
+          const widget = await ensureWidgetInstallation(userAccount.id);
+          setWidgetInstallation(widget);
+        } catch (widgetErr) {
+          console.warn('Failed to load widget installation:', widgetErr);
+          // Non-critical error, don't block the page
+        }
       }
     } catch (err) {
       console.error('Error loading account data:', err);
@@ -105,6 +116,7 @@ export default function Settings() {
     } finally {
       setAccountLoading(false);
       setAddonsLoading(false);
+      setWidgetLoading(false);
     }
   };
 
