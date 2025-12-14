@@ -433,7 +433,7 @@ class GreenQuoteWidgetIntegrationTester:
                 ('Widget ID.*public_widget_id', 'Widget ID display'),
                 ('Embed Code.*generateEmbedCode', 'Embed code display'),
                 ('Switch.*widgetActive.*is_active', 'Widget toggle switch'),
-                ('Copy Code.*navigator.clipboard', 'Copy to clipboard functionality'),
+                ('navigator.clipboard.writeText', 'Copy to clipboard functionality'),
             ]
             
             for pattern, description in ui_checks:
