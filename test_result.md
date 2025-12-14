@@ -247,6 +247,54 @@ frontend:
         agent: "testing"
         comment: "✅ VERIFIED: App.js properly imports BillingSettings component, configures /settings/billing route with ProtectedRoute and SubscriptionGuard protection, maintaining consistency with other protected routes."
 
+  - task: "Widget Service - Installation and Embed Code Management"
+    implemented: true
+    working: true
+    file: "frontend/src/services/widgetService.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Widget service includes all required functions: generateWidgetId (wg_ prefix with 20 chars), ensureWidgetInstallation (auto-provisioning), updateWidgetInstallation, generateEmbedCode (iframe with correct URL), and getWidgetHostUrl. Proper error handling and Supabase integration."
+
+  - task: "Settings Page - Widget Management Integration"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/Settings.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Settings page properly integrates widget management with widget installation state, loading states, embed code display, copy to clipboard functionality, and widget toggle switch. All widget service functions properly imported and used."
+
+  - task: "Widget Runtime - Embeddable Quote Widget"
+    implemented: true
+    working: true
+    file: "widgets/lawn/v1/widget.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Widget runtime properly reads widget ID from URL parameters, loads configuration from API, implements tiered pricing calculations, handles quote submission, and includes volume discount messaging for tiered pricing. Full integration with widget APIs."
+
+  - task: "Quote Service - Source Field Integration"
+    implemented: true
+    working: true
+    file: "frontend/src/services/quoteService.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Quote service properly includes source field with 'pro_app' and 'widget' options, defaults to 'pro_app', and passes source parameter to database for quote origin tracking."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
