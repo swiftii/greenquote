@@ -46,10 +46,10 @@ class GreenQuoteWidgetIntegrationTester:
         }
         
     def test_sql_migration(self):
-        """Test the SQL migration file for Quote Pipeline & Clients feature"""
+        """Test the SQL migration file for Widget Integration feature"""
         print("🔍 Testing SQL Migration File...")
         
-        migration_file = self.app_dir / 'SUPABASE_PIPELINE_CLIENTS_MIGRATION.sql'
+        migration_file = self.app_dir / 'SUPABASE_WIDGET_INSTALLATIONS.sql'
         
         if not migration_file.exists():
             self.results['sql_migration']['status'] = 'failed'
@@ -59,41 +59,62 @@ class GreenQuoteWidgetIntegrationTester:
         try:
             content = migration_file.read_text()
             
-            # Check for required SQL elements for quotes table updates
-            quotes_checks = [
-                ('ALTER TABLE quotes.*ADD COLUMN.*status', 'status column addition to quotes'),
-                ('ALTER TABLE quotes.*ADD COLUMN.*services', 'services JSONB column addition'),
-                ('DEFAULT.*pending', 'status defaults to pending'),
-                ('JSONB', 'services column is JSONB type'),
-                ('CREATE INDEX.*quotes.*account.*status', 'index for pipeline queries'),
-            ]
-            
-            for pattern, description in quotes_checks:
-                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['sql_migration']['details'].append(f"✅ {description}")
-                else:
-                    self.results['sql_migration']['details'].append(f"❌ {description}")
-                    self.results['sql_migration']['status'] = 'failed'
-                    return False
-            
-            # Check for clients table creation
-            clients_checks = [
-                ('CREATE TABLE.*clients', 'clients table creation'),
+            # Check for widget_installations table creation
+            widget_table_checks = [
+                ('CREATE TABLE.*widget_installations', 'widget_installations table creation'),
                 ('account_id.*REFERENCES accounts', 'account relationship'),
-                ('source_quote_id.*REFERENCES quotes', 'quote relationship'),
-                ('estimated_monthly_revenue', 'monthly revenue column'),
-                ('is_active.*BOOLEAN', 'active status column'),
-                ('ENABLE ROW LEVEL SECURITY', 'RLS enabled for clients'),
-                ('CREATE POLICY.*clients', 'RLS policies for clients'),
+                ('public_widget_id.*TEXT.*UNIQUE', 'public_widget_id column with unique constraint'),
+                ('is_active.*BOOLEAN.*DEFAULT true', 'is_active column with default'),
+                ('created_at.*TIMESTAMPTZ', 'created_at timestamp column'),
+                ('updated_at.*TIMESTAMPTZ', 'updated_at timestamp column'),
             ]
             
-            for pattern, description in clients_checks:
+            for pattern, description in widget_table_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
                     self.results['sql_migration']['details'].append(f"✅ {description}")
                 else:
                     self.results['sql_migration']['details'].append(f"❌ {description}")
                     self.results['sql_migration']['status'] = 'failed'
                     return False
+            
+            # Check for indexes
+            index_checks = [
+                ('CREATE INDEX.*widget_installations_account_id', 'account_id index'),
+                ('CREATE INDEX.*widget_installations_public_widget_id', 'public_widget_id index'),
+            ]
+            
+            for pattern, description in index_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['sql_migration']['details'].append(f"✅ {description}")
+                else:
+                    self.results['sql_migration']['details'].append(f"❌ {description}")
+                    self.results['sql_migration']['status'] = 'failed'
+                    return False
+            
+            # Check for RLS policies
+            rls_checks = [
+                ('ENABLE ROW LEVEL SECURITY', 'RLS enabled for widget_installations'),
+                ('CREATE POLICY.*view own widget installations', 'SELECT policy'),
+                ('CREATE POLICY.*create widget installations', 'INSERT policy'),
+                ('CREATE POLICY.*update own widget installations', 'UPDATE policy'),
+                ('CREATE POLICY.*delete own widget installations', 'DELETE policy'),
+            ]
+            
+            for pattern, description in rls_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['sql_migration']['details'].append(f"✅ {description}")
+                else:
+                    self.results['sql_migration']['details'].append(f"❌ {description}")
+                    self.results['sql_migration']['status'] = 'failed'
+                    return False
+            
+            # Check for quotes table source column
+            if re.search(r'ALTER TABLE quotes.*ADD COLUMN.*source', content, re.IGNORECASE | re.DOTALL):
+                self.results['sql_migration']['details'].append("✅ source column added to quotes table")
+            else:
+                self.results['sql_migration']['details'].append("❌ source column not added to quotes table")
+                self.results['sql_migration']['status'] = 'failed'
+                return False
             
             # Check for verification queries
             if 'information_schema.columns' in content:
