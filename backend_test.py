@@ -663,7 +663,7 @@ class GreenQuoteWidgetIntegrationTester:
             save_api_file = self.app_dir / 'api' / 'widget' / 'save-quote.js'
             if save_api_file.exists():
                 save_content = save_api_file.read_text()
-                if 'widget_installations' in save_content and 'quotes.*insert' in save_content:
+                if 'widget_installations' in save_content and '.from(\'quotes\')' in save_content and '.insert(' in save_content:
                     integration_checks.append("✅ Save Quote API validates widget and saves quotes")
                 else:
                     integration_checks.append("❌ Save Quote API doesn't validate or save properly")
