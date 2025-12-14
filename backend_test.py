@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 """
-Backend Testing for GreenQuote Pro Quote Pipeline & Clients Feature
+Backend Testing for GreenQuote Pro Widget Integration Feature
 
-This test suite verifies the Quote Pipeline & Clients feature implementation:
-1. SQL migration file syntax and structure
-2. Client Service functions (getClients, getTotalMonthlyRevenue, etc.)
-3. Quote Service pipeline functions (getQuotesByStatus, updateQuoteStatus, etc.)
-4. Page components (PendingQuotes.js, LostQuotes.js, Clients.js)
-5. Dashboard integration with client data
-6. App.js routing configuration
-7. Quote.js services snapshot saving
+This test suite verifies the Widget Integration feature implementation:
+1. SQL migration file for widget_installations table
+2. Widget Config API endpoint (/api/widget/config.js)
+3. Widget Save Quote API endpoint (/api/widget/save-quote.js)
+4. Widget Service functions (ensureWidgetInstallation, generateEmbedCode, etc.)
+5. Settings page widget management integration
+6. Widget runtime JavaScript (widgets/lawn/v1/widget.js)
+7. Quote service source field integration
+8. Vercel configuration for widget routes
 
-Since this is a Supabase-based app with frontend components, we focus on:
+Since this is a Supabase-based app with Vercel serverless functions, we focus on:
 - Code syntax and logic verification
-- Integration point validation
-- Component structure validation
-- Service function implementation
+- API endpoint structure validation
+- Widget service implementation
+- Settings page integration
+- Widget runtime functionality
 """
 
 import os
