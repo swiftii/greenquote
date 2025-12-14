@@ -9,6 +9,18 @@
       "dest": "/api/send-quote-email.js"
     },
     {
+      "src": "/api/widget/config",
+      "dest": "/api/widget/config.js"
+    },
+    {
+      "src": "/api/widget/save-quote",
+      "dest": "/api/widget/save-quote.js"
+    },
+    {
+      "src": "/api/billing/(.*)",
+      "dest": "/api/billing/$1.js"
+    },
+    {
       "src": "/widgets/(.*)",
       "dest": "/widgets/$1"
     },
@@ -41,7 +53,7 @@
       "dest": "/$1"
     },
     {
-      "src": "/(login|signup|dashboard|settings|quote).*",
+      "src": "/(login|signup|dashboard|settings|quote|quotes|clients).*",
       "dest": "/index.html"
     },
     {
