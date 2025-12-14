@@ -351,7 +351,7 @@ class GreenQuoteWidgetIntegrationTester:
                 ('wg_.*chars.*20', 'generateWidgetId creates wg_ prefixed ID with 20 chars'),
                 ('widget_installations.*account_id', 'ensureWidgetInstallation queries by account'),
                 ('PGRST116.*no rows found', 'ensureWidgetInstallation handles no existing widget'),
-                ('iframe.*src.*widgets/lawn/v1', 'generateEmbedCode creates iframe with correct URL'),
+                ('iframe.*widgets/lawn/v1.*wid', 'generateEmbedCode creates iframe with correct URL'),
                 ('window.location.origin', 'getWidgetHostUrl uses current origin'),
             ]
             
