@@ -41,6 +41,11 @@ export default function Settings() {
   const [newAddon, setNewAddon] = useState({ name: '', price_per_visit: '', description: '' });
   const [showNewAddonForm, setShowNewAddonForm] = useState(false);
 
+  // Widget state
+  const [widgetInstallation, setWidgetInstallation] = useState(null);
+  const [widgetLoading, setWidgetLoading] = useState(true);
+  const [embedCodeCopied, setEmbedCodeCopied] = useState(false);
+
   const [formData, setFormData] = useState({
     accountName: '',
     minPricePerVisit: '',
