@@ -201,10 +201,9 @@ export default function Quote() {
     }
   };
 
-  // Calculate area from polygon
-  const calculatePolygonArea = useCallback((path) => {
+  // Calculate area from a single polygon path
+  const calculateSinglePolygonArea = useCallback((path) => {
     if (!path || path.length < 3 || !window.google?.maps?.geometry) {
-      setCalculatedArea(0);
       return 0;
     }
 
@@ -214,21 +213,133 @@ export default function Quote() {
       );
       const mvcArray = new window.google.maps.MVCArray(latLngArray);
       const areaInSqMeters = window.google.maps.geometry.spherical.computeArea(mvcArray);
-      const areaInSqFt = Math.round(areaInSqMeters * 10.7639);
-      
-      setCalculatedArea(areaInSqFt);
-      setFormData(prev => ({
-        ...prev,
-        lawnSizeSqFt: areaInSqFt.toString(),
-        areaSource: 'measured',
-      }));
-      
-      return areaInSqFt;
+      return Math.round(areaInSqMeters * 10.7639);
     } catch (err) {
-      console.error('[Quote] Error calculating area:', err);
+      console.error('[Quote] Error calculating single polygon area:', err);
       return 0;
     }
   }, []);
+
+  // Recalculate total area from all polygons
+  const recalculateTotalArea = useCallback((currentPolygons) => {
+    let total = 0;
+    const updatedPolygons = currentPolygons.map(p => {
+      const areaSqFt = calculateSinglePolygonArea(p.path);
+      total += areaSqFt;
+      return { ...p, areaSqFt };
+    });
+    
+    setTotalCalculatedArea(total);
+    setFormData(prev => ({
+      ...prev,
+      lawnSizeSqFt: total > 0 ? total.toString() : '',
+      areaSource: total > 0 ? 'measured' : 'manual',
+    }));
+    
+    console.log('[Quote] Total area:', total, 'sq ft from', currentPolygons.length, 'polygon(s)');
+    return updatedPolygons;
+  }, [calculateSinglePolygonArea]);
+
+  // Handle polygon vertex changes (drag, insert, remove)
+  const handlePolygonPathChange = useCallback((polygonIndex, newPath) => {
+    setPolygons(prev => {
+      const updated = [...prev];
+      updated[polygonIndex] = {
+        ...updated[polygonIndex],
+        path: newPath,
+      };
+      return recalculateTotalArea(updated);
+    });
+  }, [recalculateTotalArea]);
+
+  // Auto-estimate lawn area after address selection
+  const autoEstimateLawnArea = useCallback((center, propertyType) => {
+    if (!window.google?.maps) {
+      console.log('[Quote] Google Maps not available for auto-estimation');
+      return;
+    }
+
+    setIsAutoEstimating(true);
+    console.log('[Quote] Auto-estimating lawn area for', propertyType, 'at', center);
+
+    // Simulate detection delay for UX
+    setTimeout(() => {
+      try {
+        // Get estimated area based on property type
+        const estimatedArea = DEFAULT_AREA_ESTIMATES[propertyType] || 8000;
+        
+        // Calculate polygon dimensions
+        const sqMeters = estimatedArea / 10.7639;
+        const sideLength = Math.sqrt(sqMeters);
+        
+        // Convert to lat/lng offset (rough approximation)
+        const latOffset = (sideLength / 2) / 111320;
+        const lngOffset = (sideLength / 2) / (111320 * Math.cos(center.lat * Math.PI / 180));
+        
+        // Create front yard polygon (30% of area, wider and shallower)
+        const frontYardArea = estimatedArea * 0.3;
+        const frontSqMeters = frontYardArea / 10.7639;
+        const frontWidth = Math.sqrt(frontSqMeters * 2.5);
+        const frontDepth = frontSqMeters / frontWidth;
+        const frontLatOffset = (frontDepth / 2) / 111320;
+        const frontLngOffset = (frontWidth / 2) / (111320 * Math.cos(center.lat * Math.PI / 180));
+        
+        // Front yard: closer to road (south of center)
+        const frontYardPath = [
+          { lat: center.lat - latOffset * 0.8, lng: center.lng - frontLngOffset },
+          { lat: center.lat - latOffset * 0.8, lng: center.lng + frontLngOffset },
+          { lat: center.lat - latOffset * 0.8 + frontLatOffset * 2, lng: center.lng + frontLngOffset },
+          { lat: center.lat - latOffset * 0.8 + frontLatOffset * 2, lng: center.lng - frontLngOffset },
+        ];
+        
+        // Back yard: further from road (north of center) - 70% of area
+        const backYardArea = estimatedArea * 0.7;
+        const backSqMeters = backYardArea / 10.7639;
+        const backWidth = Math.sqrt(backSqMeters * 1.2);
+        const backDepth = backSqMeters / backWidth;
+        const backLatOffset = (backDepth / 2) / 111320;
+        const backLngOffset = (backWidth / 2) / (111320 * Math.cos(center.lat * Math.PI / 180));
+        
+        const backYardPath = [
+          { lat: center.lat + latOffset * 0.2, lng: center.lng - backLngOffset },
+          { lat: center.lat + latOffset * 0.2, lng: center.lng + backLngOffset },
+          { lat: center.lat + latOffset * 0.2 + backLatOffset * 2, lng: center.lng + backLngOffset },
+          { lat: center.lat + latOffset * 0.2 + backLatOffset * 2, lng: center.lng - backLngOffset },
+        ];
+        
+        // Create multi-polygon for residential (front + back yard)
+        // For commercial, use single larger polygon
+        let newPolygons;
+        if (propertyType === 'residential') {
+          newPolygons = [
+            { id: 'front-yard-' + Date.now(), path: frontYardPath, areaSqFt: 0 },
+            { id: 'back-yard-' + Date.now(), path: backYardPath, areaSqFt: 0 },
+          ];
+        } else {
+          // Single larger polygon for commercial
+          const commercialPath = [
+            { lat: center.lat - latOffset, lng: center.lng - lngOffset * 1.5 },
+            { lat: center.lat - latOffset, lng: center.lng + lngOffset * 1.5 },
+            { lat: center.lat + latOffset, lng: center.lng + lngOffset * 1.5 },
+            { lat: center.lat + latOffset, lng: center.lng - lngOffset * 1.5 },
+          ];
+          newPolygons = [
+            { id: 'commercial-' + Date.now(), path: commercialPath, areaSqFt: 0 },
+          ];
+        }
+        
+        // Calculate areas and set state
+        const polygonsWithArea = recalculateTotalArea(newPolygons);
+        setPolygons(polygonsWithArea);
+        
+        console.log('[Quote] Auto-estimated', polygonsWithArea.length, 'polygon(s)');
+      } catch (err) {
+        console.error('[Quote] Error auto-estimating:', err);
+      } finally {
+        setIsAutoEstimating(false);
+      }
+    }, 800); // Brief delay for "Detecting..." UX
+  }, [recalculateTotalArea]);
 
   // Calculate pricing whenever form or add-ons change
   useEffect(() => {
