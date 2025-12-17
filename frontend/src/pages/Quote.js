@@ -717,15 +717,28 @@ export default function Quote() {
   const handlePropertyTypeChange = (value) => {
     handleInputChange('propertyType', value);
     
-    // If we have coordinates, re-estimate with new property type
-    if (formData.latitude && formData.longitude) {
+    // If we have a stored place, re-estimate with new property type
+    if (selectedPlaceRef.current) {
       setPolygons([]);
       setTotalCalculatedArea(0);
       setTimeout(() => {
-        autoEstimateLawnArea(
-          { lat: formData.latitude, lng: formData.longitude },
-          value
-        );
+        autoEstimateLawnArea(selectedPlaceRef.current, value);
+      }, 300);
+    } else if (formData.latitude && formData.longitude) {
+      // Fallback: create a minimal place object from coordinates
+      setPolygons([]);
+      setTotalCalculatedArea(0);
+      const fallbackPlace = {
+        geometry: {
+          location: {
+            lat: () => formData.latitude,
+            lng: () => formData.longitude,
+          },
+        },
+        formatted_address: formData.address,
+      };
+      setTimeout(() => {
+        autoEstimateLawnArea(fallbackPlace, value);
       }, 300);
     }
   };
