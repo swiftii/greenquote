@@ -17,6 +17,22 @@
       "dest": "/api/widget/save-quote.js"
     },
     {
+      "src": "/api/invites/create",
+      "dest": "/api/invites/create.js"
+    },
+    {
+      "src": "/api/invites/accept",
+      "dest": "/api/invites/accept.js"
+    },
+    {
+      "src": "/api/invites/list",
+      "dest": "/api/invites/list.js"
+    },
+    {
+      "src": "/api/invites/revoke",
+      "dest": "/api/invites/revoke.js"
+    },
+    {
       "src": "/api/billing/(.*)",
       "dest": "/api/billing/$1.js"
     },
