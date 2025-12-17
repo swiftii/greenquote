@@ -87,7 +87,7 @@ def test_sql_migration_structure():
         log_test("sql_migration_structure", "account_invites table creation not found", False)
     
     # Test 1.3: Check RLS policies
-    rls_policies_pattern = r'CREATE POLICY.*account_members'
+    rls_policies_pattern = r'CREATE POLICY.*ON.*account_members'
     if re.search(rls_policies_pattern, migration_content, re.DOTALL):
         log_test("sql_migration_structure", "RLS policies for account_members found")
     else:
