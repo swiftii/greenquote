@@ -361,63 +361,62 @@ def test_api_invites_revoke():
     else:
         log_test("api_invites_revoke", "Already revoked/accepted handling not found", False)
 
-def test_multi_zone_support():
+def test_frontend_team_settings():
     """
-    TEST CASE 6: Multi-Zone Support
-    - Verify "+ Add Zone" button exists
-    - Verify addNewZone() function exists
-    - Verify addNewZone finishes current drawing if in progress (if path >= 3)
-    - Verify addNewZone starts new drawing session
-    - Verify total area = sum of all polygon areas
+    TEST CASE 6: Frontend: TeamSettings Page
+    - Verify shows members list with roles
+    - Verify shows pending invites for owner/admin
+    - Verify invite form exists for owner/admin
+    - Verify revoke button works
     """
-    print("\n🔍 Testing Multi-Zone Support...")
+    print("\n🔍 Testing Frontend: TeamSettings Page...")
     
-    quote_content = read_file_content('/app/frontend/src/pages/Quote.js')
-    if not quote_content:
-        log_test("multi_zone_support", "Could not read Quote.js file", False)
+    team_settings_content = read_file_content('/app/frontend/src/pages/TeamSettings.js')
+    if not team_settings_content:
+        log_test("frontend_team_settings", "Could not read TeamSettings.js file", False)
         return
     
-    # Test 6.1: Check "+ Add Zone" button
-    add_zone_button_pattern = r'Add Zone'
-    if re.search(add_zone_button_pattern, quote_content):
-        log_test("multi_zone_support", "+ Add Zone button found")
+    # Test 6.1: Check members list display
+    members_list_pattern = r'members\.map.*member.*role'
+    if re.search(members_list_pattern, team_settings_content):
+        log_test("frontend_team_settings", "Members list with roles display found")
     else:
-        log_test("multi_zone_support", "+ Add Zone button not found", False)
+        log_test("frontend_team_settings", "Members list display not found", False)
     
-    # Test 6.2: Check addNewZone function
-    add_new_zone_pattern = r'const addNewZone = \(\) => \{'
-    if re.search(add_new_zone_pattern, quote_content):
-        log_test("multi_zone_support", "addNewZone function found")
+    # Test 6.2: Check pending invites display for owner/admin
+    pending_invites_pattern = r'canManageTeam.*pendingInvites'
+    if re.search(pending_invites_pattern, team_settings_content):
+        log_test("frontend_team_settings", "Pending invites display for owner/admin found")
     else:
-        log_test("multi_zone_support", "addNewZone function not found", False)
+        log_test("frontend_team_settings", "Pending invites display not found", False)
     
-    # Test 6.3: Check finishing current drawing if in progress
-    finish_current_pattern = r'if \(isDrawing && currentDrawingPath\.length >= 3\).*finishDrawing\(\)'
-    if re.search(finish_current_pattern, quote_content, re.DOTALL):
-        log_test("multi_zone_support", "addNewZone finishes current drawing if path >= 3")
+    # Test 6.3: Check invite form for owner/admin
+    invite_form_pattern = r'handleSendInvite.*inviteEmail.*inviteRole'
+    if re.search(invite_form_pattern, team_settings_content):
+        log_test("frontend_team_settings", "Invite form for owner/admin found")
     else:
-        log_test("multi_zone_support", "Current drawing finish logic not found", False)
+        log_test("frontend_team_settings", "Invite form not found", False)
     
-    # Test 6.4: Check starting new drawing session
-    new_drawing_session_pattern = r'setIsDrawing\(true\).*setCurrentDrawingPath\(\[\]\)'
-    if re.search(new_drawing_session_pattern, quote_content, re.DOTALL):
-        log_test("multi_zone_support", "addNewZone starts new drawing session")
+    # Test 6.4: Check revoke button functionality
+    revoke_button_pattern = r'handleRevokeInvite.*Revoke'
+    if re.search(revoke_button_pattern, team_settings_content):
+        log_test("frontend_team_settings", "Revoke button functionality found")
     else:
-        log_test("multi_zone_support", "New drawing session logic not found", False)
+        log_test("frontend_team_settings", "Revoke button functionality not found", False)
     
-    # Test 6.5: Check total area calculation (sum of all polygons)
-    total_area_sum_pattern = r'total \+= areaSqFt'
-    if re.search(total_area_sum_pattern, quote_content):
-        log_test("multi_zone_support", "Total area calculated as sum of all polygon areas")
+    # Test 6.5: Check API integration
+    api_integration_pattern = r'/api/invites/create.*api/invites/list.*api/invites/revoke'
+    if re.search(api_integration_pattern, team_settings_content, re.DOTALL):
+        log_test("frontend_team_settings", "API integration with invite endpoints found")
     else:
-        log_test("multi_zone_support", "Total area sum calculation not found", False)
+        log_test("frontend_team_settings", "API integration not found", False)
     
-    # Test 6.6: Check polygons array state
-    polygons_array_pattern = r'const \[polygons, setPolygons\] = useState\(\[\]\)'
-    if re.search(polygons_array_pattern, quote_content):
-        log_test("multi_zone_support", "Polygons array state found")
+    # Test 6.6: Check role badge display
+    role_badge_pattern = r'getRoleBadgeClass.*owner.*admin.*member'
+    if re.search(role_badge_pattern, team_settings_content):
+        log_test("frontend_team_settings", "Role badge display logic found")
     else:
-        log_test("multi_zone_support", "Polygons array state not found", False)
+        log_test("frontend_team_settings", "Role badge display logic not found", False)
 
 def test_satellite_view_default():
     """
