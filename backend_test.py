@@ -418,39 +418,61 @@ def test_frontend_team_settings():
     else:
         log_test("frontend_team_settings", "Role badge display logic not found", False)
 
-def test_satellite_view_default():
+def test_frontend_accept_invite():
     """
-    TEST CASE 7: Satellite View Default
-    - Verify GoogleMap component has mapTypeId="satellite"
-    - Verify nothing overrides this back to roadmap
+    TEST CASE 7: Frontend: AcceptInvite Page
+    - Verify redirects to login if not authenticated
+    - Verify shows accepting status
+    - Verify redirects to dashboard on success
     """
-    print("\n🔍 Testing Satellite View Default...")
+    print("\n🔍 Testing Frontend: AcceptInvite Page...")
     
-    quote_content = read_file_content('/app/frontend/src/pages/Quote.js')
-    if not quote_content:
-        log_test("satellite_view_default", "Could not read Quote.js file", False)
+    accept_invite_content = read_file_content('/app/frontend/src/pages/AcceptInvite.js')
+    if not accept_invite_content:
+        log_test("frontend_accept_invite", "Could not read AcceptInvite.js file", False)
         return
     
-    # Test 7.1: Check mapTypeId="satellite"
-    satellite_pattern = r'mapTypeId="satellite"'
-    if re.search(satellite_pattern, quote_content):
-        log_test("satellite_view_default", "mapTypeId set to satellite")
+    # Test 7.1: Check redirect to login if not authenticated
+    login_redirect_pattern = r'navigate.*login.*redirect.*token'
+    if re.search(login_redirect_pattern, accept_invite_content):
+        log_test("frontend_accept_invite", "Redirect to login if not authenticated found")
     else:
-        log_test("satellite_view_default", "mapTypeId satellite not found", False)
+        log_test("frontend_accept_invite", "Redirect to login not found", False)
     
-    # Test 7.2: Check no roadmap override
-    roadmap_pattern = r'mapTypeId.*roadmap'
-    if re.search(roadmap_pattern, quote_content):
-        log_test("satellite_view_default", "Found roadmap override - should be satellite only", False)
+    # Test 7.2: Check accepting status display
+    accepting_status_pattern = r'status.*accepting.*Accepting Invitation'
+    if re.search(accepting_status_pattern, accept_invite_content):
+        log_test("frontend_accept_invite", "Accepting status display found")
     else:
-        log_test("satellite_view_default", "No roadmap override found - satellite remains default")
+        log_test("frontend_accept_invite", "Accepting status display not found", False)
     
-    # Test 7.3: Check GoogleMap component exists
-    google_map_pattern = r'<GoogleMap'
-    if re.search(google_map_pattern, quote_content):
-        log_test("satellite_view_default", "GoogleMap component found")
+    # Test 7.3: Check redirect to dashboard on success
+    dashboard_redirect_pattern = r'navigate.*dashboard'
+    if re.search(dashboard_redirect_pattern, accept_invite_content):
+        log_test("frontend_accept_invite", "Redirect to dashboard on success found")
     else:
-        log_test("satellite_view_default", "GoogleMap component not found", False)
+        log_test("frontend_accept_invite", "Redirect to dashboard not found", False)
+    
+    # Test 7.4: Check token parameter handling
+    token_param_pattern = r'searchParams\.get.*token'
+    if re.search(token_param_pattern, accept_invite_content):
+        log_test("frontend_accept_invite", "Token parameter handling found")
+    else:
+        log_test("frontend_accept_invite", "Token parameter handling not found", False)
+    
+    # Test 7.5: Check API integration
+    api_call_pattern = r'/api/invites/accept'
+    if re.search(api_call_pattern, accept_invite_content):
+        log_test("frontend_accept_invite", "API integration with accept endpoint found")
+    else:
+        log_test("frontend_accept_invite", "API integration not found", False)
+    
+    # Test 7.6: Check success/error state handling
+    state_handling_pattern = r'status.*success.*error'
+    if re.search(state_handling_pattern, accept_invite_content):
+        log_test("frontend_accept_invite", "Success/error state handling found")
+    else:
+        log_test("frontend_accept_invite", "Success/error state handling not found", False)
 
 def test_no_auto_draw_address_selection():
     """
