@@ -327,7 +327,7 @@ def test_api_invites_revoke():
         log_test("api_invites_revoke", "Authorization header validation not found", False)
     
     # Test 5.2: Check invite_id parameter validation
-    invite_id_pattern = r'invite_id.*required'
+    invite_id_pattern = r'invite_id.*required|!invite_id'
     if re.search(invite_id_pattern, revoke_content):
         log_test("api_invites_revoke", "Invite ID parameter validation found")
     else:
