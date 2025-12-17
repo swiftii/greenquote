@@ -639,10 +639,11 @@
         
         if (map && typeof google !== 'undefined') {
             recenterMapToPlace(place);
-        }
-        
-        if (!currentPolygon) {
-            estimateAreaFromAddress();
+            
+            // Auto-draw estimated service area after centering
+            setTimeout(() => {
+                autoDrawServiceArea(place);
+            }, 500);
         }
         
         const drawBtn = document.getElementById('draw-btn');
@@ -650,15 +651,60 @@
         if (drawBtn) drawBtn.disabled = false;
         if (clearBtn) clearBtn.disabled = false;
         
-        const instructions = document.querySelector('.map-instructions');
-        if (instructions) {
-            instructions.innerHTML = '<strong>✓ Property located!</strong> Area estimated at ' + 
-                state.lawnSizeSqFt.toLocaleString() + ' sq ft. Draw a boundary for precise measurement.';
-            instructions.style.background = '#d4edda';
-            instructions.style.borderLeft = '4px solid #28a745';
+        console.log('[Widget] Address selected:', state.address, 'ZIP:', state.zipCode);
+    }
+    
+    /**
+     * Auto-draw estimated service area polygons
+     */
+    function autoDrawServiceArea(place) {
+        if (!serviceAreaManager || !place) {
+            console.log('[Widget] Cannot auto-draw: missing manager or place');
+            estimateAreaFromAddress(); // Fallback to simple estimate
+            return;
         }
         
-        console.log('[Widget] Address selected:', state.address, 'ZIP:', state.zipCode);
+        try {
+            const defaultAreas = {
+                residential: config.defaultAreaEstimates?.residential || 8000,
+                commercial: config.defaultAreaEstimates?.commercial || 15000
+            };
+            
+            const result = serviceAreaManager.autoEstimate(place, state.propertyType, defaultAreas);
+            
+            if (result && result.totalSqFt > 0) {
+                state.lawnSizeSqFt = result.totalSqFt;
+                state.estimatedAreaSqft = result.totalSqFt;
+                state.areaSource = 'auto-estimated';
+                state.polygonCoords = serviceAreaManager.getCoordinatesSnapshot();
+                
+                updateLawnSizeDisplay(true);
+                
+                console.log('[Widget] Auto-drew', result.polygonCount, 'polygon(s),', 
+                    result.totalSqFt, 'sq ft total');
+            } else {
+                // Fallback if auto-estimation fails
+                console.warn('[Widget] Auto-estimation returned no results, using fallback');
+                estimateAreaFromAddress();
+                showAutoDrawFallback();
+            }
+        } catch (error) {
+            console.error('[Widget] Error auto-drawing service area:', error);
+            estimateAreaFromAddress();
+            showAutoDrawFallback();
+        }
+    }
+    
+    /**
+     * Show fallback message when auto-draw fails
+     */
+    function showAutoDrawFallback() {
+        const instructions = document.querySelector('.map-instructions');
+        if (instructions) {
+            instructions.innerHTML = '<strong>⚠️ Couldn\'t auto-detect lawn.</strong> Please click "Draw Boundary" to outline your service area.';
+            instructions.style.background = '#fff3cd';
+            instructions.style.borderLeft = '4px solid #ffc107';
+        }
     }
     
     // Extract ZIP code from place
