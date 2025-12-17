@@ -442,81 +442,94 @@ class GreenQuoteViewportEstimationTester:
             self.results['ui_feedback']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
-    def test_ui_controls(self):
-        """Test UI controls for polygon management"""
-        print("🔍 Testing UI Controls...")
+    def test_console_logging(self):
+        """Test console logging for debugging and verification"""
+        print("🔍 Testing Console Logging...")
         
         quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
         
         if not quote_file.exists():
-            self.results['ui_controls']['status'] = 'failed'
-            self.results['ui_controls']['details'].append('❌ Quote.js file not found')
+            self.results['console_logging']['status'] = 'failed'
+            self.results['console_logging']['details'].append('❌ Quote.js file not found')
             return False
             
         try:
             content = quote_file.read_text()
             
-            # Check for UI control buttons
-            button_checks = [
-                ('➕ Add Zone', 'Add Zone button text'),
-                ('onClick=\{startDrawing\}', 'Add Zone button calls startDrawing'),
-                ('🗑️ Clear All', 'Clear All button text'),
-                ('onClick=\{clearAllPolygons\}', 'Clear All button calls clearAllPolygons'),
-                ('↩️ Undo', 'Undo button for drawing'),
-                ('onClick=\{undoLastPoint\}', 'Undo button calls undoLastPoint'),
-                ('✓ Done', 'Done button for finishing drawing'),
-                ('onClick=\{finishDrawing\}', 'Done button calls finishDrawing'),
+            # Check for auto-estimation start/end logging
+            estimation_logging_checks = [
+                ('\[Quote\] ===== AUTO-ESTIMATION START =====', 'Auto-estimation start log'),
+                ('\[Quote\] ===== AUTO-ESTIMATION END =====', 'Auto-estimation end log'),
+                ('\[Quote\] Address:', 'Address logging'),
+                ('\[Quote\] Center:', 'Center coordinates logging'),
+                ('\[Quote\] Property type:', 'Property type logging'),
             ]
             
-            for pattern, description in button_checks:
+            for pattern, description in estimation_logging_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['ui_controls']['details'].append(f"✅ {description}")
+                    self.results['console_logging']['details'].append(f"✅ {description}")
                 else:
-                    self.results['ui_controls']['details'].append(f"❌ {description}")
-                    self.results['ui_controls']['status'] = 'failed'
+                    self.results['console_logging']['details'].append(f"❌ {description}")
+                    self.results['console_logging']['status'] = 'failed'
                     return False
             
-            # Check for individual polygon delete buttons
-            delete_checks = [
-                ('Service Zones \(\{polygons\.length\}\)', 'Zone list showing polygon count'),
-                ('Zone \{index \+ 1\}:', 'Individual zone numbering'),
-                ('\{polygon\.areaSqFt\?\.toLocaleString\(\)', 'Individual polygon area display'),
-                ('onClick=\{\(\) => deletePolygon\(index\)\}', 'Individual delete button per polygon'),
-                ('✕', 'Delete button icon'),
+            # Check for bounds area calculation logging
+            bounds_logging_checks = [
+                ('\[Quote\] Viewport\/Bounds detected:', 'Viewport/bounds detection log'),
+                ('\[Quote\]   - NE:', 'Northeast corner logging'),
+                ('\[Quote\]   - SW:', 'Southwest corner logging'),
+                ('\[Quote\]   - Dimensions:', 'Dimensions logging'),
+                ('\[Quote\]   - Bounds area:', 'Bounds area logging'),
+                ('\[Quote\] Bounds area.*sqft', 'Bounds area in sqft logging'),
             ]
             
-            for pattern, description in delete_checks:
+            for pattern, description in bounds_logging_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['ui_controls']['details'].append(f"✅ {description}")
+                    self.results['console_logging']['details'].append(f"✅ {description}")
                 else:
-                    self.results['ui_controls']['details'].append(f"❌ {description}")
-                    self.results['ui_controls']['status'] = 'failed'
+                    self.results['console_logging']['details'].append(f"❌ {description}")
+                    self.results['console_logging']['status'] = 'failed'
                     return False
             
-            # Check for status messages and loading states
-            status_checks = [
-                ('\{isAutoEstimating && \(', 'Auto-estimating loading state conditional'),
-                ('Detecting lawn area\.\.\.', 'Auto-estimation loading message'),
-                ('animate-spin', 'Loading spinner animation'),
-                ('We estimated your lawn area', 'Auto-estimation success message'),
-                ('drag corners to adjust', 'User instruction for editing'),
-                ('Click on the map to add boundary points', 'Drawing instruction message'),
+            # Check for estimation calculation logging
+            calculation_logging_checks = [
+                ('\[Quote\] Estimation ratio:', 'Estimation ratio logging'),
+                ('\[Quote\] Raw estimate:', 'Raw estimate logging'),
+                ('\[Quote\] Final estimated lawn area:', 'Final estimated lawn area logging'),
+                ('\[Quote\] Confidence level:', 'Confidence level logging'),
+                ('\[Quote\] Created.*polygon\(s\)', 'Created polygons count logging'),
+                ('\[Quote\] Total polygon area:', 'Total polygon area logging'),
             ]
             
-            for pattern, description in status_checks:
+            for pattern, description in calculation_logging_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['ui_controls']['details'].append(f"✅ {description}")
+                    self.results['console_logging']['details'].append(f"✅ {description}")
                 else:
-                    self.results['ui_controls']['details'].append(f"❌ {description}")
-                    self.results['ui_controls']['status'] = 'failed'
+                    self.results['console_logging']['details'].append(f"❌ {description}")
+                    self.results['console_logging']['status'] = 'failed'
                     return False
             
-            self.results['ui_controls']['status'] = 'passed'
+            # Check for special case logging
+            special_case_logging_checks = [
+                ('\[Quote\] Large viewport detected, reducing ratio', 'Large viewport detection log'),
+                ('\[Quote\] Small viewport detected, increasing ratio', 'Small viewport detection log'),
+                ('\[Quote\] No viewport\/bounds - using fallback estimation', 'Fallback estimation log'),
+            ]
+            
+            for pattern, description in special_case_logging_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['console_logging']['details'].append(f"✅ {description}")
+                else:
+                    self.results['console_logging']['details'].append(f"❌ {description}")
+                    self.results['console_logging']['status'] = 'failed'
+                    return False
+            
+            self.results['console_logging']['status'] = 'passed'
             return True
             
         except Exception as e:
-            self.results['ui_controls']['status'] = 'failed'
-            self.results['ui_controls']['details'].append(f"Error reading Quote.js: {str(e)}")
+            self.results['console_logging']['status'] = 'failed'
+            self.results['console_logging']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
     def test_data_model(self):
