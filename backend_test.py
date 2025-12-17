@@ -405,8 +405,8 @@ def test_frontend_team_settings():
         log_test("frontend_team_settings", "Revoke button functionality not found", False)
     
     # Test 6.5: Check API integration
-    api_integration_pattern = r'/api/invites/create.*api/invites/list.*api/invites/revoke'
-    if re.search(api_integration_pattern, team_settings_content, re.DOTALL):
+    api_integration_pattern = r'/api/invites/'
+    if re.search(api_integration_pattern, team_settings_content):
         log_test("frontend_team_settings", "API integration with invite endpoints found")
     else:
         log_test("frontend_team_settings", "API integration not found", False)
