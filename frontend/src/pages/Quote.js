@@ -1390,7 +1390,8 @@ export default function Quote() {
                       {formData.lawnSizeSqFt && (
                         <>
                           {Number(formData.lawnSizeSqFt).toLocaleString()} sq ft
-                          {formData.areaSource === 'measured' && ' (measured)'}
+                          {polygons.length > 1 && ` (${polygons.length} zones)`}
+                          {formData.areaSource === 'measured' && ' • measured'}
                         </>
                       )}
                       {formData.selectedAddonIds.length > 0 && (
