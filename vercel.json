@@ -29,6 +29,10 @@
       "dest": "/pro/$1"
     },
     {
+      "src": "/shared/(.*)",
+      "dest": "/shared/$1"
+    },
+    {
       "src": "/configs/(.*)",
       "dest": "/configs/$1"
     },
