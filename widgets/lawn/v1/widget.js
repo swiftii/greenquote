@@ -928,13 +928,16 @@
         const displayElement = document.getElementById('lawn-size-display');
         const valueElement = document.getElementById('lawn-size-value');
         
+        const polygonCount = serviceAreaManager ? serviceAreaManager.getPolygonCount() : 0;
+        const zoneLabel = polygonCount > 1 ? ` (${polygonCount} zones)` : '';
+        
         if (isEstimated) {
-            valueElement.textContent = state.lawnSizeSqFt.toLocaleString() + ' (estimated)';
+            valueElement.textContent = state.lawnSizeSqFt.toLocaleString() + zoneLabel + ' (estimated)';
             displayElement.style.background = '#fff3cd';
             displayElement.style.color = '#856404';
         } else {
-            valueElement.textContent = state.lawnSizeSqFt.toLocaleString() + ' (measured)';
-            displayElement.style.background = config.theme.primaryColor;
+            valueElement.textContent = state.lawnSizeSqFt.toLocaleString() + zoneLabel;
+            displayElement.style.background = config.theme?.primaryColor || '#16a34a';
             displayElement.style.color = 'white';
         }
         
