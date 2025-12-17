@@ -384,15 +384,18 @@ frontend:
 
   - task: "Auto-Draw Removal from Quote.js"
     implemented: true
-    working: "NA"
+    working: true
     file: "frontend/src/pages/Quote.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented removal of auto-draw feature. Removed autoEstimateLawnArea function, generatePolygonsFromEstimate function, ESTIMATION_CONFIG references, isAutoEstimating/estimateConfidence/selectedPlaceRef state variables. Updated UI to show manual drawing instructions. Kept satellite view as default."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Auto-draw functionality completely removed from Quote.js. autoEstimateLawnArea and generatePolygonsFromEstimate functions removed, ESTIMATION_CONFIG not referenced, onPlaceChanged/handlePropertyTypeChange do not call auto-estimation, UI prompts manual drawing with 'Add Zone' button, satellite view set as default (mapTypeId='satellite'), manual drawing preserved with custom click-based polygon creation."
 
   - task: "Auto-Draw Removal from Widget"
     implemented: true
