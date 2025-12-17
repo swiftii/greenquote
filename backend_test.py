@@ -566,8 +566,8 @@ def test_app_routes():
         log_test("app_routes", "Team route protection not found", False)
     
     # Test 9.4: Check AcceptInvite route protection (should be ProtectedRoute but NOT SubscriptionGuard)
-    accept_protection_pattern = r'ProtectedRoute.*AcceptInvite'
-    subscription_guard_pattern = r'SubscriptionGuard.*AcceptInvite'
+    accept_protection_pattern = r'<ProtectedRoute>.*<AcceptInvite'
+    subscription_guard_pattern = r'<SubscriptionGuard>.*<AcceptInvite'
     
     if re.search(accept_protection_pattern, app_content, re.DOTALL) and not re.search(subscription_guard_pattern, app_content, re.DOTALL):
         log_test("app_routes", "AcceptInvite route properly protected (ProtectedRoute but not SubscriptionGuard)")
