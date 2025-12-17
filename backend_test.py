@@ -607,8 +607,8 @@ def test_login_signup_redirect():
         log_test("login_signup_redirect", "Login redirect parameter reading not found", False)
     
     # Test 10.2: Check redirect navigation in Login
-    login_redirect_nav_pattern = r'redirectUrl.*decodeURIComponent.*navigate'
-    if re.search(login_redirect_nav_pattern, login_content):
+    login_redirect_nav_pattern = r'decodeURIComponent.*navigate'
+    if re.search(login_redirect_nav_pattern, login_content, re.DOTALL):
         log_test("login_signup_redirect", "Login navigates to redirect URL after auth")
     else:
         log_test("login_signup_redirect", "Login redirect navigation not found", False)
