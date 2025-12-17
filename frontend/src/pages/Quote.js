@@ -921,18 +921,33 @@ export default function Quote() {
                 {/* Google Map */}
                 {isLoaded && isMapsConfigured && (
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                    {/* Map Controls Header */}
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <Label>Service Area Boundary</Label>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={startDrawing}
-                          disabled={!formData.address || isDrawing}
-                        >
-                          ➕ Add Zone
-                        </Button>
+                      <div className="flex gap-2 flex-wrap">
+                        {/* Start Drawing button - shown when not drawing and no polygons yet */}
+                        {!isDrawing && !polygons.length && formData.address && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={startDrawing}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            ✏️ Start Drawing
+                          </Button>
+                        )}
+                        {/* Add Zone button - shown when we have polygons or finished drawing */}
+                        {!isDrawing && polygons.length > 0 && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={addNewZone}
+                          >
+                            ➕ Add Zone
+                          </Button>
+                        )}
+                        {/* Drawing controls - shown when actively drawing */}
                         {isDrawing && (
                           <>
                             <Button
@@ -951,10 +966,22 @@ export default function Quote() {
                               disabled={currentDrawingPath.length < 3}
                               className="bg-green-600 hover:bg-green-700"
                             >
-                              ✓ Done
+                              ✓ Done ({currentDrawingPath.length} pts)
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setIsDrawing(false);
+                                setCurrentDrawingPath([]);
+                              }}
+                            >
+                              Cancel
                             </Button>
                           </>
                         )}
+                        {/* Clear All button - shown when polygons exist and not drawing */}
                         {polygons.length > 0 && !isDrawing && (
                           <Button
                             type="button"
@@ -971,19 +998,37 @@ export default function Quote() {
                     {/* Status messages */}
                     {polygons.length > 0 && !isDrawing && (
                       <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
-                        ✓ Service area drawn — drag corners to adjust, or click &quot;Add Zone&quot; for separated areas.
+                        ✓ Service area drawn ({totalCalculatedArea.toLocaleString()} sq ft) — drag corners to adjust, or click &quot;+ Add Zone&quot; for separated areas.
                       </div>
                     )}
 
                     {!polygons.length && !isDrawing && formData.address && (
                       <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                        📍 Property located! Click &quot;Add Zone&quot; to draw your service area boundary.
+                        📍 Property located! Click &quot;Start Drawing&quot; or click directly on the map to draw your service area.
                       </p>
                     )}
 
-                    {isDrawing && (
+                    {!polygons.length && !isDrawing && !formData.address && (
+                      <p className="text-sm text-gray-500 bg-gray-50 p-2 rounded">
+                        Enter an address above to locate the property on the map.
+                      </p>
+                    )}
+
+                    {isDrawing && currentDrawingPath.length === 0 && (
                       <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
-                        Click on the map to add boundary points (min 3), then click &quot;Done&quot;.
+                        ✏️ <strong>Drawing mode active</strong> — Click on the map to place your first point.
+                      </p>
+                    )}
+
+                    {isDrawing && currentDrawingPath.length > 0 && currentDrawingPath.length < 3 && (
+                      <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
+                        ✏️ Keep clicking to add more points ({currentDrawingPath.length}/3 minimum). Click &quot;Done&quot; when finished.
+                      </p>
+                    )}
+
+                    {isDrawing && currentDrawingPath.length >= 3 && (
+                      <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
+                        ✏️ {currentDrawingPath.length} points placed. Click &quot;Done&quot; to close the shape, or keep adding points.
                       </p>
                     )}
 
