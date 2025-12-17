@@ -40,7 +40,7 @@ def log_test(category, message, passed=True):
     test_results[category]["details"].append(f"{'✅' if passed else '❌'} {message}")
     if not passed:
         test_results[category]["passed"] = False
-    elif test_results[category]["passed"] is not False:
+    elif test_results[category]["passed"] != False:  # Initialize to True if not already False
         test_results[category]["passed"] = True
 
 def read_file_content(file_path):
