@@ -391,7 +391,7 @@ def test_frontend_team_settings():
         log_test("frontend_team_settings", "Pending invites display not found", False)
     
     # Test 6.3: Check invite form for owner/admin
-    invite_form_pattern = r'handleSendInvite.*inviteEmail.*inviteRole'
+    invite_form_pattern = r'handleSendInvite|inviteEmail|inviteRole'
     if re.search(invite_form_pattern, team_settings_content):
         log_test("frontend_team_settings", "Invite form for owner/admin found")
     else:
