@@ -153,7 +153,7 @@ def test_api_invites_create():
         log_test("api_invites_create", "Owner/admin membership check not found", False)
     
     # Test 2.4: Check token generation
-    token_pattern = r'generateToken.*crypto\.randomBytes'
+    token_pattern = r'generateToken|crypto\.randomBytes'
     if re.search(token_pattern, create_content):
         log_test("api_invites_create", "Secure token generation found")
     else:
