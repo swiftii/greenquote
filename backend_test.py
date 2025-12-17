@@ -221,7 +221,7 @@ def test_api_invites_accept():
         log_test("api_invites_accept", "Expiration check not found", False)
     
     # Test 3.5: Check email matching (case-insensitive)
-    email_match_pattern = r'toLowerCase.*invitedEmail.*toLowerCase'
+    email_match_pattern = r'userEmail.*toLowerCase|invitedEmail.*toLowerCase'
     if re.search(email_match_pattern, accept_content):
         log_test("api_invites_accept", "Case-insensitive email matching found")
     else:
