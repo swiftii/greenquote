@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 """
-Backend Testing for GreenQuote Multi-Polygon Auto-Estimation Service Area Feature
+Backend Testing for GreenQuote Pro App Quote.js Property Drawing Feature
 
-This test suite verifies the Multi-Polygon Auto-Estimation Service Area Feature implementation:
-1. ServiceAreaManager class in shared/serviceAreaUtils.js
-2. Widget integration with multi-polygon support (widgets/lawn/v1/widget.js)
-3. Pro App integration with multi-polygon support (pro/pro.js)
-4. HTML file includes for serviceAreaUtils.js
-5. Vercel configuration for shared folder routing
-6. Map initialization with satellite view by default
-7. Auto-estimation logic and multi-polygon behavior
+This test suite verifies the improved property drawing feature in Quote.js page:
+1. Satellite View Default - Map initializes with satellite view
+2. Auto-Estimation After Address Selection - autoEstimateLawnArea() function
+3. Multi-Polygon Support - polygons array state and management
+4. Editable Polygons with Draggable Vertices - editablePolygonOptions
+5. UI Controls - Add Zone, Clear All, individual delete buttons
+6. Data Model - polygons array with individual areas and totalCalculatedArea
 
-Since this is a frontend JavaScript feature, we focus on:
-- Code syntax and logic verification
-- Class structure and method implementation
-- Integration points between components
-- Configuration and routing setup
+Since this is a frontend React feature, we focus on:
+- Code structure and logic verification
+- State management and event handlers
+- Google Maps integration and configuration
+- Multi-polygon data model implementation
 """
 
 import os
