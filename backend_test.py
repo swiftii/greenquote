@@ -88,7 +88,7 @@ def test_sql_migration_structure():
     
     # Test 1.3: Check RLS policies
     rls_policies_pattern = r'CREATE POLICY.*account_members'
-    if re.search(rls_policies_pattern, migration_content):
+    if re.search(rls_policies_pattern, migration_content, re.DOTALL):
         log_test("sql_migration_structure", "RLS policies for account_members found")
     else:
         log_test("sql_migration_structure", "RLS policies for account_members not found", False)
