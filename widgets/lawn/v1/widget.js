@@ -647,11 +647,6 @@
         
         if (map && typeof google !== 'undefined') {
             recenterMapToPlace(place);
-            
-            // Auto-draw estimated service area after centering
-            setTimeout(() => {
-                autoDrawServiceArea(place);
-            }, 500);
         }
         
         const drawBtn = document.getElementById('draw-btn');
@@ -659,61 +654,19 @@
         if (drawBtn) drawBtn.disabled = false;
         if (clearBtn) clearBtn.disabled = false;
         
+        // Update instructions to prompt manual drawing
+        const instructions = document.querySelector('.map-instructions');
+        if (instructions) {
+            instructions.innerHTML = '<strong>Property located!</strong> Click "Draw Boundary" to outline your lawn area.';
+            instructions.style.background = '#d4edda';
+            instructions.style.borderLeft = '4px solid #28a745';
+        }
+        
         console.log('[Widget] Address selected:', state.address, 'ZIP:', state.zipCode);
     }
     
-    /**
-     * Auto-draw estimated service area polygons
-     */
-    function autoDrawServiceArea(place) {
-        if (!serviceAreaManager || !place) {
-            console.log('[Widget] Cannot auto-draw: missing manager or place');
-            estimateAreaFromAddress(); // Fallback to simple estimate
-            return;
-        }
-        
-        try {
-            const defaultAreas = {
-                residential: config.defaultAreaEstimates?.residential || 8000,
-                commercial: config.defaultAreaEstimates?.commercial || 15000
-            };
-            
-            const result = serviceAreaManager.autoEstimate(place, state.propertyType, defaultAreas);
-            
-            if (result && result.totalSqFt > 0) {
-                state.lawnSizeSqFt = result.totalSqFt;
-                state.estimatedAreaSqft = result.totalSqFt;
-                state.areaSource = 'auto-estimated';
-                state.polygonCoords = serviceAreaManager.getCoordinatesSnapshot();
-                
-                updateLawnSizeDisplay(true);
-                
-                console.log('[Widget] Auto-drew', result.polygonCount, 'polygon(s),', 
-                    result.totalSqFt, 'sq ft total');
-            } else {
-                // Fallback if auto-estimation fails
-                console.warn('[Widget] Auto-estimation returned no results, using fallback');
-                estimateAreaFromAddress();
-                showAutoDrawFallback();
-            }
-        } catch (error) {
-            console.error('[Widget] Error auto-drawing service area:', error);
-            estimateAreaFromAddress();
-            showAutoDrawFallback();
-        }
-    }
-    
-    /**
-     * Show fallback message when auto-draw fails
-     */
-    function showAutoDrawFallback() {
-        const instructions = document.querySelector('.map-instructions');
-        if (instructions) {
-            instructions.innerHTML = '<strong>⚠️ Couldn\'t auto-detect lawn.</strong> Please click "Draw Boundary" to outline your service area.';
-            instructions.style.background = '#fff3cd';
-            instructions.style.borderLeft = '4px solid #ffc107';
-        }
-    }
+    // Auto-draw functionality has been removed per user request.
+    // Users should manually draw their service area boundaries.
     
     // Extract ZIP code from place
     function extractZipCode(place) {
@@ -847,17 +800,20 @@
         
         if (map) {
             recenterMapToPlace(place);
-            
-            // Auto-draw estimated service area after centering
-            setTimeout(() => {
-                autoDrawServiceArea(place);
-            }, 500);
         }
         
         const drawBtn = document.getElementById('draw-btn');
         const clearBtn = document.getElementById('clear-btn');
         if (drawBtn) drawBtn.disabled = false;
         if (clearBtn) clearBtn.disabled = false;
+        
+        // Update instructions to prompt manual drawing
+        const instructions = document.querySelector('.map-instructions');
+        if (instructions) {
+            instructions.innerHTML = '<strong>Property located!</strong> Click "Draw Boundary" to outline your lawn area.';
+            instructions.style.background = '#d4edda';
+            instructions.style.borderLeft = '4px solid #28a745';
+        }
     }
     
     // Enable drawing
@@ -896,23 +852,24 @@
         }
         
         state.measuredAreaSqft = 0;
+        state.lawnSizeSqFt = 0;
+        state.estimatedAreaSqft = 0;
+        state.areaSource = 'none';
         state.polygonCoords = [];
         
-        if (state.placeData || state.address) {
-            // Re-auto-estimate when clearing
-            autoDrawServiceArea(state.placeData);
-            document.getElementById('draw-btn').disabled = false;
-        } else {
-            state.lawnSizeSqFt = 0;
-            state.estimatedAreaSqft = 0;
-            state.areaSource = 'none';
-            document.getElementById('lawn-size-display').classList.add('hidden');
-            document.getElementById('draw-btn').disabled = false;
-        }
-        
+        document.getElementById('lawn-size-display').classList.add('hidden');
+        document.getElementById('draw-btn').disabled = false;
         document.getElementById('draw-btn').textContent = 'Draw Boundary';
         document.getElementById('draw-btn').style.background = '';
         document.getElementById('draw-btn').style.color = '';
+        
+        // Update instructions to prompt manual drawing
+        const instructions = document.querySelector('.map-instructions');
+        if (instructions && (state.placeData || state.address)) {
+            instructions.innerHTML = '<strong>Boundary cleared.</strong> Click "Draw Boundary" to outline your lawn area.';
+            instructions.style.background = '#fff3cd';
+            instructions.style.borderLeft = '4px solid #ffc107';
+        }
         
         validateStep2();
     }
