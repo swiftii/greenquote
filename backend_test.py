@@ -279,77 +279,93 @@ class GreenQuoteViewportEstimationTester:
             self.results['confidence_indicator']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
-    def test_multi_polygon_support(self):
-        """Test multi-polygon support implementation"""
-        print("🔍 Testing Multi-Polygon Support...")
+    def test_polygon_generation(self):
+        """Test polygon generation from estimates"""
+        print("🔍 Testing Polygon Generation...")
         
         quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
         
         if not quote_file.exists():
-            self.results['multi_polygon_support']['status'] = 'failed'
-            self.results['multi_polygon_support']['details'].append('❌ Quote.js file not found')
+            self.results['polygon_generation']['status'] = 'failed'
+            self.results['polygon_generation']['details'].append('❌ Quote.js file not found')
             return False
             
         try:
             content = quote_file.read_text()
             
-            # Check for multi-polygon state management
-            polygon_state_checks = [
-                ('const \[polygons, setPolygons\] = useState\(\[\]\)', 'Polygons array state (not single path)'),
-                ('\{id, path: \[\{lat, lng\}\], areaSqFt\}', 'Polygon data structure with id, path, and area'),
-                ('const recalculateTotalArea = useCallback\(\(currentPolygons\)', 'Recalculate total from all polygons'),
-                ('total \+= areaSqFt', 'Sums areas from all polygons'),
-                ('setTotalCalculatedArea\(total\)', 'Updates total calculated area state'),
+            # Check for generatePolygonsFromEstimate function
+            generation_checks = [
+                ('const generatePolygonsFromEstimate = useCallback\(\(center, estimatedSqFt, propertyType\)', 'generatePolygonsFromEstimate function signature'),
+                ('const totalSqMeters = estimatedSqFt \/ 10\.7639', 'Converts sqft to square meters'),
+                ('const metersToLatOffset = \(meters\) => meters \/ 111320', 'Helper to convert meters to lat offset'),
+                ('const metersToLngOffset = \(meters, lat\) => meters \/ \(111320 \* Math\.cos', 'Helper to convert meters to lng offset with cos correction'),
             ]
             
-            for pattern, description in polygon_state_checks:
+            for pattern, description in generation_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['multi_polygon_support']['details'].append(f"✅ {description}")
+                    self.results['polygon_generation']['details'].append(f"✅ {description}")
                 else:
-                    self.results['multi_polygon_support']['details'].append(f"❌ {description}")
-                    self.results['multi_polygon_support']['status'] = 'failed'
+                    self.results['polygon_generation']['details'].append(f"❌ {description}")
+                    self.results['polygon_generation']['status'] = 'failed'
                     return False
             
-            # Check for polygon rendering with map iterator
-            rendering_checks = [
-                ('\{polygons\.map\(\(polygon, index\)', 'Polygons rendered with .map() iterator'),
-                ('<Polygon.*key=\{polygon\.id\}', 'Each polygon has key={polygon.id}'),
-                ('paths=\{polygon\.path\}', 'Polygon paths from state'),
-                ('options=\{editablePolygonOptions\}', 'Uses editable polygon options'),
+            # Check for residential front/back yard splitting
+            residential_checks = [
+                ('if \(propertyType === \'residential\'\)', 'Residential property type handling'),
+                ('const frontYardSqMeters = totalSqMeters \* ESTIMATION_CONFIG\.frontYardRatio', 'Front yard area calculation (30%)'),
+                ('const backYardSqMeters = totalSqMeters \* ESTIMATION_CONFIG\.backYardRatio', 'Back yard area calculation (70%)'),
+                ('ESTIMATION_CONFIG\.frontYardAspect', 'Uses front yard aspect ratio'),
+                ('ESTIMATION_CONFIG\.backYardAspect', 'Uses back yard aspect ratio'),
+                ('id: \'front-yard-\' \+ Date\.now\(\)', 'Front yard polygon ID'),
+                ('id: \'back-yard-\' \+ Date\.now\(\)', 'Back yard polygon ID'),
             ]
             
-            for pattern, description in rendering_checks:
+            for pattern, description in residential_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['multi_polygon_support']['details'].append(f"✅ {description}")
+                    self.results['polygon_generation']['details'].append(f"✅ {description}")
                 else:
-                    self.results['multi_polygon_support']['details'].append(f"❌ {description}")
-                    self.results['multi_polygon_support']['status'] = 'failed'
+                    self.results['polygon_generation']['details'].append(f"❌ {description}")
+                    self.results['polygon_generation']['status'] = 'failed'
                     return False
             
-            # Check for polygon management functions
-            management_checks = [
-                ('const deletePolygon = \(index\)', 'Delete individual polygon function'),
-                ('const clearAllPolygons = \(\)', 'Clear all polygons function'),
-                ('const finishDrawing = \(\)', 'Finish drawing new polygon function'),
-                ('const startDrawing = \(\)', 'Start drawing new polygon function'),
-                ('updated = \[\.\.\.prev, newPolygon\]', 'Adds new polygon to array'),
-                ('updated = prev\.filter\(\(_, i\) => i !== index\)', 'Removes polygon by index'),
+            # Check for commercial single polygon
+            commercial_checks = [
+                ('else.*Commercial: single polygon', 'Commercial property handling comment'),
+                ('ESTIMATION_CONFIG\.commercialAspect', 'Uses commercial aspect ratio'),
+                ('id: \'commercial-\' \+ Date\.now\(\)', 'Commercial polygon ID'),
             ]
             
-            for pattern, description in management_checks:
+            for pattern, description in commercial_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['multi_polygon_support']['details'].append(f"✅ {description}")
+                    self.results['polygon_generation']['details'].append(f"✅ {description}")
                 else:
-                    self.results['multi_polygon_support']['details'].append(f"❌ {description}")
-                    self.results['multi_polygon_support']['status'] = 'failed'
+                    self.results['polygon_generation']['details'].append(f"❌ {description}")
+                    self.results['polygon_generation']['status'] = 'failed'
                     return False
             
-            self.results['multi_polygon_support']['status'] = 'passed'
+            # Check for rectangle creation helper
+            rectangle_checks = [
+                ('const createRectangle = \(centerPoint, areaSqMeters, aspectRatio, offsetLat = 0\)', 'createRectangle helper function'),
+                ('const width = Math\.sqrt\(areaSqMeters \* aspectRatio\)', 'Calculates width from area and aspect ratio'),
+                ('const depth = areaSqMeters \/ width', 'Calculates depth from area and width'),
+                ('const halfWidth = metersToLngOffset\(width \/ 2, centerPoint\.lat\)', 'Converts half width to lng offset'),
+                ('const halfDepth = metersToLatOffset\(depth \/ 2\)', 'Converts half depth to lat offset'),
+            ]
+            
+            for pattern, description in rectangle_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['polygon_generation']['details'].append(f"✅ {description}")
+                else:
+                    self.results['polygon_generation']['details'].append(f"❌ {description}")
+                    self.results['polygon_generation']['status'] = 'failed'
+                    return False
+            
+            self.results['polygon_generation']['status'] = 'passed'
             return True
             
         except Exception as e:
-            self.results['multi_polygon_support']['status'] = 'failed'
-            self.results['multi_polygon_support']['details'].append(f"Error reading Quote.js: {str(e)}")
+            self.results['polygon_generation']['status'] = 'failed'
+            self.results['polygon_generation']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
     def test_editable_polygons(self):
