@@ -305,69 +305,61 @@ def test_api_invites_list():
     else:
         log_test("api_invites_list", "Complete response structure not found", False)
 
-def test_real_time_area_updates():
+def test_api_invites_revoke():
     """
-    TEST CASE 5: Real-time Area Updates
-    - Verify polygon path event listeners (set_at, insert_at, remove_at) call handlePolygonPathChange
-    - Verify handlePolygonPathChange updates polygon path and calls recalculateTotalArea
-    - Verify recalculateTotalArea computes area using google.maps.geometry.spherical.computeArea
-    - Verify totalCalculatedArea state updates and formData.lawnSizeSqFt updates
+    TEST CASE 5: API: POST /api/invites/revoke
+    - Verify requires Authorization header
+    - Verify requires owner/admin role
+    - Verify updates invite status to revoked
     """
-    print("\n🔍 Testing Real-time Area Updates...")
+    print("\n🔍 Testing API: POST /api/invites/revoke...")
     
-    quote_content = read_file_content('/app/frontend/src/pages/Quote.js')
-    if not quote_content:
-        log_test("real_time_area_updates", "Could not read Quote.js file", False)
+    revoke_content = read_file_content('/app/api/invites/revoke.js')
+    if not revoke_content:
+        log_test("api_invites_revoke", "Could not read /api/invites/revoke.js file", False)
         return
     
-    # Test 5.1: Check set_at event listener
-    set_at_pattern = r'addListener\(path, \'set_at\''
-    if re.search(set_at_pattern, quote_content):
-        log_test("real_time_area_updates", "set_at event listener found")
+    # Test 5.1: Check Authorization header validation
+    auth_pattern = r'authHeader.*Bearer'
+    if re.search(auth_pattern, revoke_content):
+        log_test("api_invites_revoke", "Authorization header validation found")
     else:
-        log_test("real_time_area_updates", "set_at event listener not found", False)
+        log_test("api_invites_revoke", "Authorization header validation not found", False)
     
-    # Test 5.2: Check insert_at event listener
-    insert_at_pattern = r'addListener\(path, \'insert_at\''
-    if re.search(insert_at_pattern, quote_content):
-        log_test("real_time_area_updates", "insert_at event listener found")
+    # Test 5.2: Check invite_id parameter validation
+    invite_id_pattern = r'invite_id.*required'
+    if re.search(invite_id_pattern, revoke_content):
+        log_test("api_invites_revoke", "Invite ID parameter validation found")
     else:
-        log_test("real_time_area_updates", "insert_at event listener not found", False)
+        log_test("api_invites_revoke", "Invite ID parameter validation not found", False)
     
-    # Test 5.3: Check remove_at event listener
-    remove_at_pattern = r'addListener\(path, \'remove_at\''
-    if re.search(remove_at_pattern, quote_content):
-        log_test("real_time_area_updates", "remove_at event listener found")
+    # Test 5.3: Check owner/admin role requirement
+    role_check_pattern = r'owner.*admin.*revoke'
+    if re.search(role_check_pattern, revoke_content):
+        log_test("api_invites_revoke", "Owner/admin role requirement found")
     else:
-        log_test("real_time_area_updates", "remove_at event listener not found", False)
+        log_test("api_invites_revoke", "Owner/admin role requirement not found", False)
     
-    # Test 5.4: Check handlePolygonPathChange function
-    handle_path_change_pattern = r'const handlePolygonPathChange = useCallback'
-    if re.search(handle_path_change_pattern, quote_content):
-        log_test("real_time_area_updates", "handlePolygonPathChange function found")
+    # Test 5.4: Check invite ownership verification
+    ownership_pattern = r'invite\.account_id.*accountId'
+    if re.search(ownership_pattern, revoke_content):
+        log_test("api_invites_revoke", "Invite ownership verification found")
     else:
-        log_test("real_time_area_updates", "handlePolygonPathChange function not found", False)
+        log_test("api_invites_revoke", "Invite ownership verification not found", False)
     
-    # Test 5.5: Check Google Maps geometry computeArea usage
-    compute_area_pattern = r'google\.maps\.geometry\.spherical\.computeArea'
-    if re.search(compute_area_pattern, quote_content):
-        log_test("real_time_area_updates", "Google Maps geometry computeArea used")
+    # Test 5.5: Check status update to revoked
+    revoked_update_pattern = r"status.*revoked"
+    if re.search(revoked_update_pattern, revoke_content):
+        log_test("api_invites_revoke", "Status update to revoked found")
     else:
-        log_test("real_time_area_updates", "Google Maps geometry computeArea not found", False)
+        log_test("api_invites_revoke", "Status update to revoked not found", False)
     
-    # Test 5.6: Check totalCalculatedArea state update
-    total_area_update_pattern = r'setTotalCalculatedArea\(total\)'
-    if re.search(total_area_update_pattern, quote_content):
-        log_test("real_time_area_updates", "totalCalculatedArea state updated")
+    # Test 5.6: Check already revoked/accepted handling
+    already_handled_pattern = r'already been revoked.*already been accepted'
+    if re.search(already_handled_pattern, revoke_content):
+        log_test("api_invites_revoke", "Already revoked/accepted handling found")
     else:
-        log_test("real_time_area_updates", "totalCalculatedArea state update not found", False)
-    
-    # Test 5.7: Check formData.lawnSizeSqFt update
-    lawn_size_update_pattern = r'lawnSizeSqFt: total > 0 \? total\.toString\(\) : \'\''
-    if re.search(lawn_size_update_pattern, quote_content):
-        log_test("real_time_area_updates", "formData.lawnSizeSqFt updated with calculated area")
-    else:
-        log_test("real_time_area_updates", "formData.lawnSizeSqFt update not found", False)
+        log_test("api_invites_revoke", "Already revoked/accepted handling not found", False)
 
 def test_multi_zone_support():
     """
