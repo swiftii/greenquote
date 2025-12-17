@@ -156,6 +156,81 @@ backend:
         agent: "testing"
         comment: "✅ VERIFIED: Widget Save Quote API properly validates widget ownership, saves quotes with source='widget', includes pricing snapshots, and handles all required fields. CORS headers configured for cross-origin widget access."
 
+  - task: "Multi-User Accounts SQL Migration"
+    implemented: true
+    working: true
+    file: "SUPABASE_TEAM_MEMBERS_MIGRATION.sql"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created comprehensive SQL migration for multi-user accounts with account_members and account_invites tables, RLS policies, backfill queries, and triggers."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: SQL migration properly creates account_members and account_invites tables with correct schema, RLS policies for secure access, backfill query for existing owners, trigger for new accounts, and role constraints (owner/admin/member)."
+
+  - task: "API: POST /api/invites/create - Team Invite Creation"
+    implemented: true
+    working: true
+    file: "api/invites/create.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created invite creation API with authorization, email validation, owner/admin role checking, secure token generation, and Resend email integration."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Invite creation API properly validates authorization headers, normalizes email addresses, checks owner/admin membership via account_members table, generates secure tokens, sends emails via Resend, and returns success response."
+
+  - task: "API: POST /api/invites/accept - Team Invite Acceptance"
+    implemented: true
+    working: true
+    file: "api/invites/accept.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created invite acceptance API with token validation, expiration checking, email matching, account_members creation, and idempotent handling."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Invite acceptance API properly validates authorization and tokens, checks invite status and expiration, performs case-insensitive email matching, creates account_members entries, updates invite status to accepted, and handles existing memberships idempotently."
+
+  - task: "API: GET /api/invites/list - Team Members and Invites List"
+    implemented: true
+    working: true
+    file: "api/invites/list.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created team listing API that returns members with user details, pending invites for owner/admin, and can_manage_team flag."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Team list API properly validates authorization, queries account_members with user details, fetches user data via getUserById, returns pending invites for owner/admin users, includes can_manage_team flag, and provides complete response structure."
+
+  - task: "API: POST /api/invites/revoke - Team Invite Revocation"
+    implemented: true
+    working: true
+    file: "api/invites/revoke.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created invite revocation API with owner/admin role requirement, invite ownership verification, and status update to revoked."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Invite revocation API properly validates authorization and invite_id parameters, checks owner/admin role requirements, verifies invite ownership, updates status to revoked, and handles already revoked/accepted invites."
+
 frontend:
   - task: "ServiceAreaManager Class - Multi-Polygon Management"
     implemented: true
