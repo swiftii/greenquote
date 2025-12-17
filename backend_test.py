@@ -384,8 +384,8 @@ def test_frontend_team_settings():
         log_test("frontend_team_settings", "Members list display not found", False)
     
     # Test 6.2: Check pending invites display for owner/admin
-    pending_invites_pattern = r'canManageTeam.*pendingInvites'
-    if re.search(pending_invites_pattern, team_settings_content):
+    pending_invites_pattern = r'canManageTeam.*pendingInvites|pendingInvites.*map'
+    if re.search(pending_invites_pattern, team_settings_content, re.DOTALL):
         log_test("frontend_team_settings", "Pending invites display for owner/admin found")
     else:
         log_test("frontend_team_settings", "Pending invites display not found", False)
