@@ -33,6 +33,10 @@
       "dest": "/api/invites/revoke.js"
     },
     {
+      "src": "/api/invites/info",
+      "dest": "/api/invites/info.js"
+    },
+    {
       "src": "/api/billing/(.*)",
       "dest": "/api/billing/$1.js"
     },
