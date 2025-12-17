@@ -41,125 +41,76 @@ class GreenQuotePropertyDrawingTester:
             'integration_flow': {'status': 'pending', 'details': []}
         }
         
-    def test_service_area_manager(self):
-        """Test the ServiceAreaManager class implementation"""
-        print("🔍 Testing ServiceAreaManager Class...")
+    def test_code_structure(self):
+        """Test Quote.js code structure and imports"""
+        print("🔍 Testing Code Structure...")
         
-        utils_file = self.app_dir / 'shared' / 'serviceAreaUtils.js'
+        quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
         
-        if not utils_file.exists():
-            self.results['service_area_manager']['status'] = 'failed'
-            self.results['service_area_manager']['details'].append('❌ serviceAreaUtils.js file not found')
+        if not quote_file.exists():
+            self.results['code_structure']['status'] = 'failed'
+            self.results['code_structure']['details'].append('❌ Quote.js file not found')
             return False
             
         try:
-            content = utils_file.read_text()
+            content = quote_file.read_text()
             
-            # Check for class definition and constructor
-            class_checks = [
-                ('class ServiceAreaManager', 'ServiceAreaManager class definition'),
-                ('constructor\\(map, options', 'Constructor with map and options parameters'),
-                ('this\\.map = map', 'Map assignment in constructor'),
-                ('this\\.polygons = \\[\\]', 'Polygons array initialization'),
-                ('this\\.onAreaChange = options\\.onAreaChange', 'onAreaChange callback setup'),
-                ('this\\.onPolygonsCreated = options\\.onPolygonsCreated', 'onPolygonsCreated callback setup'),
+            # Check for required imports
+            import_checks = [
+                ('import.*GoogleMap.*useJsApiLoader.*Autocomplete.*Polygon.*@react-google-maps/api', 'Google Maps imports'),
+                ('useState.*useEffect.*useCallback.*useRef', 'React hooks imports'),
+                ('DEFAULT_AREA_ESTIMATES', 'Default area estimates constant'),
+                ('editablePolygonOptions', 'Editable polygon options constant'),
             ]
             
-            for pattern, description in class_checks:
+            for pattern, description in import_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['service_area_manager']['details'].append(f"✅ {description}")
+                    self.results['code_structure']['details'].append(f"✅ {description}")
                 else:
-                    self.results['service_area_manager']['details'].append(f"❌ {description}")
-                    self.results['service_area_manager']['status'] = 'failed'
+                    self.results['code_structure']['details'].append(f"❌ {description}")
+                    self.results['code_structure']['status'] = 'failed'
                     return False
             
-            # Check for core methods
-            method_checks = [
-                ('clearAll\\(\\)', 'clearAll method'),
-                ('addPolygon\\(polygon', 'addPolygon method'),
-                ('recalculateTotal\\(\\)', 'recalculateTotal method'),
-                ('autoEstimate\\(place, propertyType', 'autoEstimate method'),
-                ('createRectangle\\(center, sqFtTarget', 'createRectangle method'),
-                ('shouldUseMultiPolygon\\(place, propertyType, totalArea\\)', 'shouldUseMultiPolygon method'),
-                ('createFrontBackYards\\(center, totalArea, roadDirection\\)', 'createFrontBackYards method'),
-                ('detectRoadDirection\\(place\\)', 'detectRoadDirection method'),
+            # Check for state variables
+            state_checks = [
+                ('const \\[polygons, setPolygons\\] = useState\\(\\[\\]\\)', 'Polygons array state'),
+                ('const \\[totalCalculatedArea, setTotalCalculatedArea\\] = useState\\(0\\)', 'Total calculated area state'),
+                ('const \\[isAutoEstimating, setIsAutoEstimating\\] = useState\\(false\\)', 'Auto-estimating state'),
+                ('const \\[currentDrawingPath, setCurrentDrawingPath\\] = useState\\(\\[\\]\\)', 'Current drawing path state'),
+                ('const polygonRefs = useRef\\(\\[\\]\\)', 'Polygon refs for Google Maps instances'),
             ]
             
-            for pattern, description in method_checks:
+            for pattern, description in state_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['service_area_manager']['details'].append(f"✅ {description}")
+                    self.results['code_structure']['details'].append(f"✅ {description}")
                 else:
-                    self.results['service_area_manager']['details'].append(f"❌ {description}")
-                    self.results['service_area_manager']['status'] = 'failed'
+                    self.results['code_structure']['details'].append(f"❌ {description}")
+                    self.results['code_structure']['status'] = 'failed'
                     return False
             
-            # Check for auto-estimation logic
-            estimation_checks = [
-                ('propertyType === \'commercial\'', 'Commercial property type handling'),
-                ('propertyType === \'residential\'', 'Residential property type handling'),
-                ('totalArea > 5000', 'Multi-polygon threshold (5000 sq ft)'),
-                ('frontYardArea.*0\\.3', 'Front yard 30% allocation'),
-                ('backYardArea.*0\\.7', 'Back yard 70% allocation'),
-                ('aspectRatio.*2\\.5', 'Front yard wider aspect ratio'),
-                ('aspectRatio.*1\\.2', 'Back yard square aspect ratio'),
+            # Check for key functions
+            function_checks = [
+                ('const autoEstimateLawnArea = useCallback', 'autoEstimateLawnArea function'),
+                ('const recalculateTotalArea = useCallback', 'recalculateTotalArea function'),
+                ('const handlePolygonPathChange = useCallback', 'handlePolygonPathChange function'),
+                ('const calculateSinglePolygonArea = useCallback', 'calculateSinglePolygonArea function'),
+                ('const handlePropertyTypeChange', 'handlePropertyTypeChange function'),
             ]
             
-            for pattern, description in estimation_checks:
+            for pattern, description in function_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['service_area_manager']['details'].append(f"✅ {description}")
+                    self.results['code_structure']['details'].append(f"✅ {description}")
                 else:
-                    self.results['service_area_manager']['details'].append(f"❌ {description}")
-                    self.results['service_area_manager']['status'] = 'failed'
+                    self.results['code_structure']['details'].append(f"❌ {description}")
+                    self.results['code_structure']['status'] = 'failed'
                     return False
             
-            # Check for road direction detection
-            road_checks = [
-                ('roadName\\.includes\\(\'north\'\\)', 'North road direction detection'),
-                ('roadName\\.includes\\(\'south\'\\)', 'South road direction detection'),
-                ('roadName\\.includes\\(\'east\'\\)', 'East road direction detection'),
-                ('roadName\\.includes\\(\'west\'\\)', 'West road direction detection'),
-                ('roadDirection = 180', 'Default south-facing direction'),
-            ]
-            
-            for pattern, description in road_checks:
-                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['service_area_manager']['details'].append(f"✅ {description}")
-                else:
-                    self.results['service_area_manager']['details'].append(f"❌ {description}")
-                    self.results['service_area_manager']['status'] = 'failed'
-                    return False
-            
-            # Check for polygon management
-            polygon_checks = [
-                ('google\\.maps\\.geometry\\.spherical\\.computeArea', 'Area calculation using Google Maps'),
-                ('area \\* 10\\.7639', 'Square meters to square feet conversion'),
-                ('getCoordinatesSnapshot\\(\\)', 'Coordinates snapshot for persistence'),
-                ('getPolygonCount\\(\\)', 'Polygon count method'),
-                ('getTotalSqFt\\(\\)', 'Total square footage method'),
-            ]
-            
-            for pattern, description in polygon_checks:
-                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['service_area_manager']['details'].append(f"✅ {description}")
-                else:
-                    self.results['service_area_manager']['details'].append(f"❌ {description}")
-                    self.results['service_area_manager']['status'] = 'failed'
-                    return False
-            
-            # Check for window export
-            if re.search(r'window\.ServiceAreaManager = ServiceAreaManager', content):
-                self.results['service_area_manager']['details'].append("✅ ServiceAreaManager exported to window")
-            else:
-                self.results['service_area_manager']['details'].append("❌ ServiceAreaManager not exported to window")
-                self.results['service_area_manager']['status'] = 'failed'
-                return False
-            
-            self.results['service_area_manager']['status'] = 'passed'
+            self.results['code_structure']['status'] = 'passed'
             return True
             
         except Exception as e:
-            self.results['service_area_manager']['status'] = 'failed'
-            self.results['service_area_manager']['details'].append(f"Error reading serviceAreaUtils.js: {str(e)}")
+            self.results['code_structure']['status'] = 'failed'
+            self.results['code_structure']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
     def test_widget_integration(self):
