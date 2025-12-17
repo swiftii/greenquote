@@ -4,45 +4,65 @@ The user initially requested a static HTML/CSS/JS lawn care pricing widget. The 
 PRODUCT REQUIREMENTS:
 - The app is deployed on Vercel at the custom domain .
 - The frontend is a React Single Page Application (SPA).
-- User authentication (signup, login, logout, session management) is handled by Supabase Auth.
-- The application must be multi-tenant. Each user who signs up gets their own .
-- A  page should display the logged-in user's account information, KPIs, and quick actions.
-- A  page should allow the user to edit their account-specific configuration, including pricing rules and service add-ons.
-- A  page allows users to generate quotes for their customers using Google Maps for address lookup and area calculation.
-- The system should send a formal quote email to the customer using Resend, with a configurable  address.
-- A Supabase trigger should automatically create  and  rows for every new user.
-- **Billing & Paywall:** New accounts default to a 14-day Pro plan trial. Access to the app is gated by an active trial or a paid subscription via Stripe.
-- **Quote & Client Pipeline:** Quotes are tracked in Supabase with statuses (, , ). Won quotes are converted into , and dashboard metrics (e.g., revenue) are rolled up from the  table.
+- User authentication is handled by Supabase Auth.
+- The application must be multi-tenant.
+- A  page displays account information and KPIs.
+- A  page allows users to edit account-specific configuration.
+- A  page allows users to generate quotes using Google Maps for area calculation.
+- The system sends quote emails via Resend.
+- A paywall is implemented using Stripe with a 14-day trial.
+- A quote and client pipeline tracks the status of quotes.
+- A separate website widget, embeddable via iframe, must load account-specific pricing and save quotes to the correct account.
+- The map-based quoting tools (in both the main app and the widget) must default to Satellite view.
+- All auto-drawing or auto-estimation of service areas on the map must be removed, as the feature performed poorly. Users should manually draw service areas.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The project is a full-stack, multi-tenant SaaS application with a React frontend, Node.js serverless functions for the backend, and Supabase for the database and authentication, all deployed on Vercel.
+The project is a multi-tenant SaaS application with a React frontend, Node.js serverless functions, and Supabase for the database, all deployed on Vercel.
 
 Key features implemented:
-- **Authentication & Multi-Tenancy**: Complete Supabase auth flow with auto-provisioning of  for new users.
-- **Quote Generation**: A  page integrates Google Maps for address search and area calculation.
-- **Configurable Settings**: A  page allows users to manage pricing, service add-ons, and a custom  email address.
-- **Email Integration**: Vercel serverless function sends quotes via Resend.
-- **Stripe Billing Integration**: Full paywall implementation with a 14-day free trial. Users are redirected to Stripe Checkout when their trial ends. A Stripe Customer Portal is integrated for managing subscriptions. Webhooks keep Supabase in sync with Stripe.
-- **Trial & Billing UI**: The app displays a trial countdown banner and other billing status banners (e.g., ). A dedicated  page allows users to manage their subscription.
-- **Sales Pipeline**: Quotes are saved to a  table with a  (, , ). Won quotes create records in a  table. The dashboard has been updated with pages to view  and  quotes, a  page, and updated metrics for client count and monthly revenue.
+- **Authentication & Multi-Tenancy**: Supabase auth with auto-provisioning of .
+- **Tiered Pricing**: A newly added feature allows for volume-based pricing for lawn square footage, which is now the default.
+- **Configurable Settings**: A  page to manage pricing (both flat and tiered), service add-ons, and email settings.
+- **Stripe Billing**: A full paywall with a 14-day trial, checkout, and customer portal.
+- **Sales Pipeline**: Quotes are saved to a  table with a status, and won quotes become .
+- **Website Widget Integration**: A system allows accounts to have a unique public ID for an iframe widget. The widget fetches account-specific pricing via a secure API endpoint () and saves quotes back to the correct account.
+- **Map Drawing Tools**: There are three separate map interfaces for quoting:
+    1. The main React app's  page ().
+    2. An older standalone Pro app ().
+    3. The public embeddable widget ().
+- The auto-draw functionality was implemented across these interfaces and then partially removed from  at the user's request.
 
 **Last working item**:
-- **Last item agent was working**: The user requested a new tiered pricing feature to allow for volume-based discounts on lawn square footage. The agent acknowledged the request and began exploring the codebase () to understand the current pricing structure before implementation.
-- **Status**: NOT STARTED
+- **Last item agent was working**: The user reported that the auto-draw feature for service areas was performing poorly and requested its complete removal from all map interfaces. The user also required that all maps default to Satellite view. The agent began implementing this by modifying .
+- **Status**: IN PROGRESS
 - **Agent Testing Done**: N
-- **Which testing method agent to use?**: both
+- **Which testing method agent to use?**: Frontend testing agent. The agent should test the  page to confirm auto-draw is gone and satellite is the default. Then, it must apply and test the same changes for the other two interfaces ( and ).
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1**: Potentially recurring frontend error: . (P2)
+- **Issue 1**: Complete the removal of the auto-draw feature and enforce Satellite view as default across all map interfaces. (P0)
+- **Issue 2**: Potentially recurring frontend error: . (P2)
 
 **Issues Detail**:
 - **Issue 1**: 
-    - **Description**: A recurring error related to reading a  response body more than once, typically during data loading from Supabase. It was last seen before major refactoring but could resurface.
-    - **Attempted fixes**: The agent in a previous job refactored  to simplify error handling.
-    - **Next debug checklist**: If data-loading errors appear, check the browser's developer console. Verify all Supabase queries handle  returns defensively and that no code attempts to parse a  object that might have already been read.
+    - **Description**: The agent only removed the auto-draw feature from . The user's request explicitly included the widget () and the Pro App (), which still contain the unwanted functionality.
+    - **Attempted fixes**: The agent successfully edited  to remove auto-estimation functions and set .
+    - **Next debug checklist**:
+        1.  Modify  to remove calls to  for auto-estimation and set  during map initialization.
+        2.  Modify  similarly, removing auto-draw logic and setting the satellite default.
+        3.  Ensure manual drawing functionality remains intact in all three interfaces.
+        4.  Update the UI helper text to prompt users to Draw your service area instead of adjust the estimate.
+    - **Why fix this issue and what will be achieved with the fix?**: This will fulfill the user's explicit request to remove a poorly performing feature that is hurting user trust and to improve the user experience by defaulting to the more useful satellite map view.
+    - **Status**: IN PROGRESS
+    - **Is recurring issue?**: N
+    - **Should Test frontend/backend/both after fix?**: Frontend
+    - **Blocked on other issue**: None
+- **Issue 2**: 
+    - **Description**: A recurring error related to reading a  response body more than once, typically during data loading from Supabase.
+    - **Attempted fixes**: Previous refactoring of  was done to mitigate this.
+    - **Next debug checklist**: If data-loading errors appear in the console, verify all Supabase queries handle  returns defensively.
     - **Why fix this issue and what will be achieved with the fix?**: This is a critical error that can block pages from loading.
     - **Status**: USER VERIFICATION PENDING
     - **Is recurring issue?**: Y
@@ -54,26 +74,26 @@ None.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks**:
-    - **Implement Tiered Square-Footage Pricing (P0)**:
-        - Add  (boolean) and  (jsonb) columns to the  table.
-        - Update the Settings page with a UI to toggle tiered pricing and manage the pricing tiers.
-        - Modify the quote generation logic to calculate a blended rate based on the tiers if the feature is enabled, otherwise use the existing flat-rate logic.
-        - Update the  table to store a snapshot of the pricing mode ( or ) and the tiers used for the calculation.
+  - **Apply map fixes to Widget (P1)**: Remove auto-draw and set satellite default in .
+  - **Apply map fixes to Pro App (P1)**: Remove auto-draw and set satellite default in .
 - **Future Tasks**:
-    - **Refactor  (P2)**: The  component is very large and should be broken down into smaller components (, , ).
-    - **Cleanup Deprecated Static Files (P3)**: The original static files in  and  are no longer used and could be removed to reduce project clutter.
+  - **Refactor  (P2)**: The  component is extremely large and complex. It should be broken down into smaller components (, , ).
+  - **Refactor Legacy JS (P2)**: The  and  files are large, procedural vanilla JavaScript files with duplicated logic. They should be refactored for better maintainability.
+  - **Cleanup Deprecated Static Files (P3)**: The original static files in  and  are still being modified but contain old, potentially unused code that could be cleaned up. This requires careful analysis.
 
 **Completed work in this session**
-- **Configurable  Email**: Implemented a feature allowing users to set a custom  address for quote emails.
-- **Dashboard Layout Rework**: Reordered dashboard sections to prioritize KPIs and actions over the pricing settings card.
-- **Quote Tracking & Metrics**: Implemented saving quotes to a Supabase table and updated the Quotes This Month dashboard metric to reflect the live count.
-- **Stripe Trial & Paywall**: Integrated Stripe to create a 14-day trial and a subscription paywall, blocking access to the app after the trial ends without an active subscription. This included API endpoints for checkout and webhooks.
-- **Stripe Customer Portal**: Added a trial countdown banner, billing status banners, and a  page that redirects users to the Stripe Customer Portal to manage their subscription.
-- **Billing API Bug Fixes**: Diagnosed and fixed 500 errors on the billing page by adding robust error handling and diagnostics to serverless functions, correctly handling cases where a Stripe Customer ID did not yet exist.
-- **Quote & Client Pipeline**: Built a sales pipeline by adding  to quotes, creating a  table for won quotes, and adding pages for , , and . The dashboard revenue metric now rolls up from the  table.
+- **Tiered Square-Footage Pricing**: Implemented a full-featured tiered pricing system, including DB schema changes ( table), a UI on the Settings page to manage tiers, and updated quote calculation logic.
+- **Emergent Watermark Removal**: Searched for and removed a Made with Emergent watermark from .
+- **Website Widget Integration**: Built a system to connect the standalone widget to the main app's accounts.
+  - Created  table and SQL migration.
+  - Created API endpoints (, ) for the widget to securely fetch settings and save quotes.
+  - Added a Website Widget section to the Settings page to display the iframe embed code.
+  - Rewrote  to use the new API-driven configuration.
+- **(Attempted & Reverted) Map Auto-Drawing**: Implemented multiple versions of an auto-draw service area feature, first using a shared utility () and later directly in  with viewport-based estimation. This feature was ultimately rejected by the user for poor performance.
+- **Partial Removal of Auto-Draw**: Began removing the auto-draw feature from  and setting the map to default to satellite view.
 
 **Earlier issues found/mentioned but not fixed**
-- **Issue 1**: Significant code duplication exists in the original static widget files ( and ). This was deprioritized when the project pivoted to a React SPA and has not been addressed.
+- **Issue 1**: The legacy JavaScript files (, ) have significant technical debt and code duplication. While a  was created, the core files remain complex and hard to maintain. The user's continued requests for changes to these files indicate they are critical and need refactoring, not deprecation.
 
 **Known issue recurrence from previous fork**
 - **Issue recurrence in previous fork**:  or .
@@ -90,59 +110,69 @@ None.
 - **Deployment**: Vercel
 - **Payments**: Stripe (Subscriptions, Checkout, Customer Portal, Webhooks)
 - **Email**: Resend API
-- **Maps**: Google Maps API (Places, Geometry)
+- **Maps**: Google Maps API (Places, Drawing, Geometry)
 
 **key DB schema**
 - ****: 
 - ****: 
 - ****: 
 - ****: 
-- ****: 
 
 **changes in tech stack**
-- Added **Stripe** for billing and subscriptions, using the  Node.js library.
+- None.
 
 **All files of reference**
-- **New SQL Migrations**: , , , 
-- **New API Routes**: 
-- **New Frontend Services**: , , 
-- **New Frontend Pages**: , , , , , 
-- **New Frontend Components**: , 
-- **Modified Core Pages**: , , , 
+- **Modified**:
+  - : Added UI for tiered pricing and widget embed code.
+  - : Major refactoring for tiered pricing, then for multi-polygon auto-draw, and finally to remove auto-draw and set satellite default.
+  - : Updated to save new pricing/source fields.
+  - : Removed watermark, updated title.
+  - : Rewritten to use config API, then updated for auto-draw.
+  - : Added script reference.
+  - : Updated for auto-draw.
+  - : Added script reference.
+  - : Added new routes for widget API and shared folder.
+- **Created**:
+  - : DB schema for tiered pricing.
+  - : Helper for tiered price calculation.
+  - : DB schema for widget integration.
+  - : Serverless function to serve widget configuration.
+  - : Serverless function to save quotes from the widget.
+  - : Frontend service to interact with widget settings.
+  - : Documentation for widget setup.
+  - : Shared logic for map polygon manipulation (part of the now-removed auto-draw feature).
 
 **Areas that need refactoring**:
-- ****: This component is over 1000 lines and should be broken down into smaller, manageable components.
-- **Deprecated static files**: The  and  directories contain code that is no longer part of the main application and could be removed.
+- ****: Remains a very large monolith component.
+- ** & **: These are large, procedural vanilla JS files that are difficult to maintain. The user's active interest in them proves they are not deprecated and are prime candidates for refactoring.
 
 **key api endpoints**
-- : Sends a quote email via Resend.
-- : Creates a Stripe Checkout session for starting a subscription.
-- : Creates a Stripe Customer Portal session for managing a subscription.
-- : Fetches the current subscription status for an account.
-- : Receives and processes webhook events from Stripe to keep the database in sync.
+- : Fetches account-specific pricing and settings for the widget.
+- : Saves a new quote generated from the widget.
+- 
+- 
+- 
 
 **Critical Info for New Agent**
-- **Start with Tiered Pricing**: The immediate and highest-priority task is to implement the tiered square-footage pricing feature as requested by the user.
-- **API Keys are User-Managed**: The app requires several user-provided environment variables in Vercel for core functionality: , , , , , , and . The agent added robust server-side error logging to help diagnose issues related to missing keys.
-- **Vercel Deployment**: Remind the user that changes are not live until they are pushed to the GitHub repository connected to Vercel (using the Save to GitHub feature).
+- **Priority 1**: The user is frustrated with the auto-draw feature and wants it **completely removed** from all three map interfaces:  (React App),  (Public Widget), and  (Pro App). The agent has only addressed . You must complete this task for the other two files.
+- **Priority 2**: As part of the same request, the user wants all maps to **default to Satellite view**. This must also be applied to all three files.
+- The files in  and  are legacy but **not deprecated**. They are actively used and are part of the core product. Treat them as such.
 
 **documents created in this job**
 - 
 - 
 - 
-- 
-- 
 
 **Last 10 User Messages and any pending user messages**
-1. **Request**: Implement a Stripe billing paywall with a 14-day trial. **Status: Completed**.
-2. **Request**: Add a trial countdown banner and Stripe Customer Portal integration. **Status: Completed**.
-3. **Request**: Re-stated requirement for Stripe Customer Portal. **Status: Completed** (Agent fixed a bug in the initial implementation).
-4. **Report**: Billing page shows a 500 error and Manage Billing button doesn't work. **Status: Completed** (Agent added diagnostics and error handling to fix).
-5. **Request**: Implement a full sales pipeline for quotes (pending/won/lost) and clients. **Status: Completed**.
-6. **Request**: Implement tiered (banded) square-foot pricing. **Status: NOT STARTED (This is the current task)**.
+1. **User Request**: Implement auto-drawing of service areas on maps (satellite default, editable multi-polygons). **Status: Implemented**.
+2. **User Feedback**: The auto-draw implementation didn't work on Vercel. **Status: Addressed** (Agent fixed script paths).
+3. **User Request**: Reworked request for auto-draw feature in the React app (). **Status: Implemented**.
+4. **User Request**: Replace the mocked () estimate with a real, viewport-based estimate. **Status: Implemented**.
+5. **User Request (LATEST & PENDING)**: The auto-estimation performs poorly and must be **removed entirely** from all interfaces ( and  app included). The map must **always default to Satellite view**. **Status: Partially Implemented** (Only  was modified;  and  still need to be fixed).
 
 **Project Health Check:**
-- **Functional with Dependencies**: The application is functional but now has an extensive list of dependencies on user-provided third-party API keys (Supabase, Google Maps, Resend, Stripe). The agent has improved error handling to make configuration issues more transparent.
+- **Broken**: The auto-draw feature, which the user wants removed, is still active in the  and  files.
+- **Mocked**: No active mocked components. The previously mocked area estimation has been requested for removal.
 
 **3rd Party Integrations**
 - **Supabase**: Used for Authentication and PostgreSQL database. Requires User-provided API Keys.
@@ -151,14 +181,13 @@ None.
 - **Stripe**: Used for subscription billing, paywalls, and customer portal. Requires User-provided API Keys.
 
 **Testing status**
-- **Testing agent used after significant changes**: YES
+- **Testing agent used after significant changes**: YES (for tiered pricing and widget integration).
 - **Troubleshoot agent used after agent stuck in loop**: NO
 - **Test files created**: []
-- **Known regressions**: None.
+- **Known regressions**: The auto-draw feature is an unwanted regression.
 
 **Credentials to test flow:**
 N/A. The user must configure their own Supabase, Google, Resend, and Stripe accounts and provide the keys as environment variables in their Vercel project.
 
 **What agent forgot to execute**
-- The low-priority task to refactor duplicated code in the old static files (, ) remains pending.
-- The high-priority task to refactor the large  component has not been addressed, as feature development took precedence.</analysis>
+The agent failed to complete the user's last and most critical request across all specified files. The user asked for the auto-draw feature to be removed and for satellite view to be the default for the public widget () and the Pro App () in addition to the main React app. The agent only modified the React app's  file and ignored the other two.</analysis>
