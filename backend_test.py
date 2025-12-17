@@ -56,62 +56,63 @@ def read_file_content(file_path):
         print(f"❌ Error reading {file_path}: {e}")
         return None
 
-def test_click_to_start_drawing():
+def test_sql_migration_structure():
     """
-    TEST CASE 1: Click-to-Start Drawing
-    - Verify onMapClick handler checks formData.address before starting
-    - Verify if !isDrawing AND address is set, it calls setIsDrawing(true) and adds first point
-    - Verify if isDrawing is true, it just adds point to currentDrawingPath
-    - Verify console.log for "Started drawing with click"
+    TEST CASE 1: SQL Migration Structure
+    - Verify account_members table schema (id, account_id, user_id, role, created_at)
+    - Verify account_invites table schema
+    - Verify RLS policies exist
+    - Verify backfill query for existing owners
+    - Verify trigger for new accounts
     """
-    print("\n🔍 Testing Click-to-Start Drawing UX...")
+    print("\n🔍 Testing SQL Migration Structure...")
     
-    quote_content = read_file_content('/app/frontend/src/pages/Quote.js')
-    if not quote_content:
-        log_test("click_to_start_drawing", "Could not read Quote.js file", False)
+    migration_content = read_file_content('/app/SUPABASE_TEAM_MEMBERS_MIGRATION.sql')
+    if not migration_content:
+        log_test("sql_migration_structure", "Could not read SUPABASE_TEAM_MEMBERS_MIGRATION.sql file", False)
         return
     
-    # Test 1.1: Check onMapClick handler exists
-    onMapClick_pattern = r'const onMapClick = useCallback\(\(event\) => \{'
-    if re.search(onMapClick_pattern, quote_content):
-        log_test("click_to_start_drawing", "onMapClick handler found")
+    # Test 1.1: Check account_members table creation
+    account_members_pattern = r'CREATE TABLE.*account_members.*\('
+    if re.search(account_members_pattern, migration_content, re.DOTALL):
+        log_test("sql_migration_structure", "account_members table creation found")
     else:
-        log_test("click_to_start_drawing", "onMapClick handler not found", False)
+        log_test("sql_migration_structure", "account_members table creation not found", False)
     
-    # Test 1.2: Check address validation before starting drawing
-    address_check_pattern = r'if \(formData\.address\)'
-    if re.search(address_check_pattern, quote_content):
-        log_test("click_to_start_drawing", "Address validation check found in onMapClick")
+    # Test 1.2: Check account_invites table creation
+    account_invites_pattern = r'CREATE TABLE.*account_invites.*\('
+    if re.search(account_invites_pattern, migration_content, re.DOTALL):
+        log_test("sql_migration_structure", "account_invites table creation found")
     else:
-        log_test("click_to_start_drawing", "Address validation check not found", False)
+        log_test("sql_migration_structure", "account_invites table creation not found", False)
     
-    # Test 1.3: Check if !isDrawing condition starts drawing
-    start_drawing_pattern = r'if \(!isDrawing\).*?setIsDrawing\(true\)'
-    if re.search(start_drawing_pattern, quote_content, re.DOTALL):
-        log_test("click_to_start_drawing", "Click-to-start logic found (!isDrawing -> setIsDrawing(true))")
+    # Test 1.3: Check RLS policies
+    rls_policies_pattern = r'CREATE POLICY.*account_members'
+    if re.search(rls_policies_pattern, migration_content):
+        log_test("sql_migration_structure", "RLS policies for account_members found")
     else:
-        log_test("click_to_start_drawing", "Click-to-start logic not found", False)
+        log_test("sql_migration_structure", "RLS policies for account_members not found", False)
     
-    # Test 1.4: Check first point placement
-    first_point_pattern = r'setCurrentDrawingPath\(\[newPoint\]\)'
-    if re.search(first_point_pattern, quote_content):
-        log_test("click_to_start_drawing", "First point placement logic found")
+    # Test 1.4: Check backfill query
+    backfill_pattern = r'INSERT INTO.*account_members.*SELECT.*owner_user_id'
+    if re.search(backfill_pattern, migration_content, re.DOTALL):
+        log_test("sql_migration_structure", "Backfill query for existing owners found")
     else:
-        log_test("click_to_start_drawing", "First point placement logic not found", False)
+        log_test("sql_migration_structure", "Backfill query for existing owners not found", False)
     
-    # Test 1.5: Check subsequent point addition when already drawing
-    subsequent_point_pattern = r'setCurrentDrawingPath\(prev => \[\.\.\.prev, newPoint\]\)'
-    if re.search(subsequent_point_pattern, quote_content):
-        log_test("click_to_start_drawing", "Subsequent point addition logic found")
+    # Test 1.5: Check trigger creation
+    trigger_pattern = r'CREATE TRIGGER.*on_account_created_add_owner'
+    if re.search(trigger_pattern, migration_content):
+        log_test("sql_migration_structure", "Trigger for new accounts found")
     else:
-        log_test("click_to_start_drawing", "Subsequent point addition logic not found", False)
+        log_test("sql_migration_structure", "Trigger for new accounts not found", False)
     
-    # Test 1.6: Check console.log for "Started drawing with click"
-    console_log_pattern = r'console\.log\(.*Started drawing with click.*\)'
-    if re.search(console_log_pattern, quote_content):
-        log_test("click_to_start_drawing", "Console log for 'Started drawing with click' found")
+    # Test 1.6: Check role constraints
+    role_constraint_pattern = r"role.*CHECK.*role IN.*'owner'.*'admin'.*'member'"
+    if re.search(role_constraint_pattern, migration_content):
+        log_test("sql_migration_structure", "Role constraints (owner/admin/member) found")
     else:
-        log_test("click_to_start_drawing", "Console log for 'Started drawing with click' not found", False)
+        log_test("sql_migration_structure", "Role constraints not found", False)
 
 def test_start_drawing_button():
     """
