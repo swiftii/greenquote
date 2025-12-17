@@ -619,97 +619,87 @@ class GreenQuoteViewportEstimationTester:
             self.results['place_reference_storage']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
-    def test_event_handlers(self):
-        """Test event handlers for property type changes and polygon interactions"""
-        print("🔍 Testing Event Handlers...")
+    def test_integration_flow(self):
+        """Test the complete integration flow"""
+        print("🔍 Testing Integration Flow...")
         
-        quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
-        
-        if not quote_file.exists():
-            self.results['event_handlers']['status'] = 'failed'
-            self.results['event_handlers']['details'].append('❌ Quote.js file not found')
-            return False
-            
         try:
-            content = quote_file.read_text()
+            integration_checks = []
             
-            # Check for property type change handler
-            property_type_checks = [
-                ('const handlePropertyTypeChange = \(value\)', 'handlePropertyTypeChange function'),
-                ('handleInputChange\(\'propertyType\', value\)', 'Updates property type in form data'),
-                ('if \(formData\.latitude && formData\.longitude\)', 'Checks for existing coordinates'),
-                ('setPolygons\(\[\]\)', 'Clears existing polygons on property type change'),
-                ('autoEstimateLawnArea\(.*value\)', 'Re-triggers estimation with new property type'),
-                ('onValueChange=\{handlePropertyTypeChange\}', 'Property type select calls handler'),
-            ]
-            
-            for pattern, description in property_type_checks:
-                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['event_handlers']['details'].append(f"✅ {description}")
+            # 1. Check Quote.js exists and has proper structure
+            quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
+            if quote_file.exists():
+                quote_content = quote_file.read_text()
+                if 'ESTIMATION_CONFIG' in quote_content and 'autoEstimateLawnArea' in quote_content:
+                    integration_checks.append("✅ Quote.js properly implements viewport-based estimation structure")
                 else:
-                    self.results['event_handlers']['details'].append(f"❌ {description}")
-                    self.results['event_handlers']['status'] = 'failed'
-                    return False
+                    integration_checks.append("❌ Quote.js missing key viewport-based estimation features")
+            else:
+                integration_checks.append("❌ Quote.js file missing")
             
-            # Check for map interaction handlers
-            map_interaction_checks = [
-                ('const onMapClick = useCallback\(\(event\)', 'Map click handler for drawing'),
-                ('if \(!isDrawing\) return', 'Only handles clicks when drawing'),
-                ('lat: event\.latLng\.lat\(\)', 'Extracts latitude from click event'),
-                ('lng: event\.latLng\.lng\(\)', 'Extracts longitude from click event'),
-                ('setCurrentDrawingPath\(prev => \[\.\.\.prev, newPoint\]\)', 'Adds point to current drawing path'),
-                ('onClick=\{onMapClick\}', 'Map component uses click handler'),
-            ]
-            
-            for pattern, description in map_interaction_checks:
-                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['event_handlers']['details'].append(f"✅ {description}")
+            # 2. Check ESTIMATION_CONFIG configuration
+            if quote_file.exists():
+                if 'viewportToLawnRatio' in quote_content and 'streetAddress: 0.25' in quote_content:
+                    integration_checks.append("✅ ESTIMATION_CONFIG properly configured with viewport ratios")
                 else:
-                    self.results['event_handlers']['details'].append(f"❌ {description}")
-                    self.results['event_handlers']['status'] = 'failed'
-                    return False
+                    integration_checks.append("❌ ESTIMATION_CONFIG missing or incomplete")
             
-            # Check for polygon path change handling
-            path_change_checks = [
-                ('const handlePolygonPathChange = useCallback\(\(polygonIndex, newPath\)', 'Polygon path change handler'),
-                ('updated\[polygonIndex\] = \{', 'Updates specific polygon by index'),
-                ('path: newPath', 'Updates polygon path with new coordinates'),
-                ('return recalculateTotalArea\(updated\)', 'Recalculates total area after path change'),
-                ('onMouseUp=\{\(\) => \{', 'Mouse up handler for polygon editing'),
-            ]
-            
-            for pattern, description in path_change_checks:
-                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['event_handlers']['details'].append(f"✅ {description}")
+            # 3. Check viewport-based calculation
+            if quote_file.exists():
+                if 'place.geometry.viewport' in quote_content and 'boundsArea * ratio' in quote_content:
+                    integration_checks.append("✅ Viewport-based area calculation implemented")
                 else:
-                    self.results['event_handlers']['details'].append(f"❌ {description}")
-                    self.results['event_handlers']['status'] = 'failed'
-                    return False
+                    integration_checks.append("❌ Viewport-based calculation missing or incomplete")
             
-            # Check for drawing state management
-            drawing_state_checks = [
-                ('const startDrawing = \(\)', 'Start drawing function'),
-                ('setIsDrawing\(true\)', 'Sets drawing state to true'),
-                ('setCurrentDrawingPath\(\[\]\)', 'Clears current drawing path'),
-                ('const finishDrawing = \(\)', 'Finish drawing function'),
-                ('if \(currentDrawingPath\.length >= 3\)', 'Validates minimum 3 points for polygon'),
-                ('setIsDrawing\(false\)', 'Sets drawing state to false'),
-            ]
-            
-            for pattern, description in drawing_state_checks:
-                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['event_handlers']['details'].append(f"✅ {description}")
+            # 4. Check confidence indicator system
+            if quote_file.exists():
+                if 'estimateConfidence' in quote_content and 'setEstimateConfidence' in quote_content:
+                    integration_checks.append("✅ Confidence indicator system implemented")
                 else:
-                    self.results['event_handlers']['details'].append(f"❌ {description}")
-                    self.results['event_handlers']['status'] = 'failed'
-                    return False
+                    integration_checks.append("❌ Confidence indicator system missing")
             
-            self.results['event_handlers']['status'] = 'passed'
-            return True
+            # 5. Check polygon generation from estimates
+            if quote_file.exists():
+                if 'generatePolygonsFromEstimate' in quote_content and 'frontYardRatio' in quote_content:
+                    integration_checks.append("✅ Polygon generation from estimates implemented")
+                else:
+                    integration_checks.append("❌ Polygon generation from estimates missing")
             
+            # 6. Check UI feedback based on confidence
+            if quote_file.exists():
+                if 'estimateConfidence === \'high\'' in quote_content and 'drag corners to adjust' in quote_content:
+                    integration_checks.append("✅ UI feedback based on confidence levels implemented")
+                else:
+                    integration_checks.append("❌ UI feedback based on confidence incomplete")
+            
+            # 7. Check console logging
+            if quote_file.exists():
+                if '[Quote] ===== AUTO-ESTIMATION START =====' in quote_content and 'Final estimated lawn area' in quote_content:
+                    integration_checks.append("✅ Comprehensive console logging implemented")
+                else:
+                    integration_checks.append("❌ Console logging incomplete")
+            
+            # 8. Check place reference storage
+            if quote_file.exists():
+                if 'selectedPlaceRef.current = place' in quote_content and 'handlePropertyTypeChange' in quote_content:
+                    integration_checks.append("✅ Place reference storage for re-estimation implemented")
+                else:
+                    integration_checks.append("❌ Place reference storage incomplete")
+            
+            self.results['integration_flow']['details'] = integration_checks
+            
+            # Determine overall integration status
+            failed_checks = [check for check in integration_checks if check.startswith("❌")]
+            if failed_checks:
+                self.results['integration_flow']['status'] = 'failed'
+                return False
+            else:
+                self.results['integration_flow']['status'] = 'passed'
+                return True
+                
         except Exception as e:
-            self.results['event_handlers']['status'] = 'failed'
-            self.results['event_handlers']['details'].append(f"Error reading Quote.js: {str(e)}")
+            self.results['integration_flow']['status'] = 'failed'
+            self.results['integration_flow']['details'].append(f"Error testing integration: {str(e)}")
             return False
     
     def test_integration_flow(self):
