@@ -396,15 +396,18 @@ frontend:
 
   - task: "Auto-Draw Removal from Widget"
     implemented: true
-    working: "NA"
+    working: true
     file: "widgets/lawn/v1/widget.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented removal of auto-draw feature. Removed autoDrawServiceArea function call from onPlaceChanged and processSelectedPlace. Removed showAutoDrawFallback function. Updated clearPolygon to not re-auto-estimate. Updated UI instructions to prompt manual drawing. Satellite view already set as default."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Auto-draw functionality completely removed from widget.js. autoDrawServiceArea function removed, onPlaceChanged/processSelectedPlace/clearPolygon do not call auto-draw, UI prompts manual drawing with 'Draw Boundary' button, satellite view set as default (mapTypeId: 'satellite'), manual drawing preserved with DrawingManager."
 
   - task: "Auto-Draw Removal from Pro App"
     implemented: true
