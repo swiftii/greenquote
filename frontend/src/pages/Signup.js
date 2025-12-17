@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function Signup() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
@@ -16,6 +17,9 @@ export default function Signup() {
     email: '',
     password: '',
   });
+
+  // Get redirect URL from query params (e.g., for invite acceptance)
+  const redirectUrl = searchParams.get('redirect');
 
   const handleChange = (e) => {
     setFormData({
@@ -58,8 +62,9 @@ export default function Signup() {
         return;
       }
 
-      // Successful signup with auto-login
-      navigate('/dashboard');
+      // Successful signup with auto-login - redirect to intended page or dashboard
+      const targetUrl = redirectUrl ? decodeURIComponent(redirectUrl) : '/dashboard';
+      navigate(targetUrl);
     } catch (err) {
       setError(err.message || 'An error occurred during signup');
       setLoading(false);
