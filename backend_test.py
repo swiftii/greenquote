@@ -569,7 +569,7 @@ def test_app_routes():
     accept_protection_pattern = r'ProtectedRoute.*AcceptInvite'
     subscription_guard_pattern = r'SubscriptionGuard.*AcceptInvite'
     
-    if re.search(accept_protection_pattern, app_content) and not re.search(subscription_guard_pattern, app_content):
+    if re.search(accept_protection_pattern, app_content, re.DOTALL) and not re.search(subscription_guard_pattern, app_content, re.DOTALL):
         log_test("app_routes", "AcceptInvite route properly protected (ProtectedRoute but not SubscriptionGuard)")
     else:
         log_test("app_routes", "AcceptInvite route protection incorrect", False)
