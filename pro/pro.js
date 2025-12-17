@@ -534,20 +534,20 @@
         calculatePricing();
     }
     
-    // Calculate polygon area
+    // Calculate polygon area (called when polygons are updated)
     function calculatePolygonArea() {
-        if (!currentPolygon || typeof google === 'undefined') return;
+        if (!serviceAreaManager) return;
         
-        try {
-            const area = google.maps.geometry.spherical.computeArea(currentPolygon.getPath());
-            const sqFt = Math.round(area * 10.7639);
-            
-            state.measuredAreaSqft = sqFt;
-            state.lawnSizeSqFt = sqFt;
-            state.estimatedAreaSqft = 0;
-            state.areaSource = 'measured';
-            
-            updateAreaDisplay(false);
+        const result = serviceAreaManager.recalculateTotal();
+        state.lawnSizeSqFt = result.totalSqFt;
+        state.measuredAreaSqft = result.totalSqFt;
+        state.areaSource = 'measured';
+        state.polygonCoords = serviceAreaManager.getCoordinatesSnapshot();
+        
+        updateAreaDisplay(false);
+        calculatePricing();
+        console.log('[Pro] Area recalculated:', result.totalSqFt, 'sq ft');
+    }
             calculatePricing();
             
             console.log('[Pro] Area measured:', sqFt, 'sq ft');
