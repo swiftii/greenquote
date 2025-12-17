@@ -119,17 +119,14 @@ export default function Quote() {
   const [mapCenter, setMapCenter] = useState(defaultCenter);
   const [mapZoom, setMapZoom] = useState(4);
   
-  // Multi-polygon support: array of polygon paths
+  // Multi-polygon support: array of polygon paths (user-drawn only)
   const [polygons, setPolygons] = useState([]); // [{id, path: [{lat, lng}], areaSqFt}]
   const [activePolygonIndex, setActivePolygonIndex] = useState(-1); // Which polygon is being edited
   const [isDrawing, setIsDrawing] = useState(false);
-  const [isAutoEstimating, setIsAutoEstimating] = useState(false);
-  const [estimateConfidence, setEstimateConfidence] = useState('high'); // 'high', 'medium', 'low'
   const [currentDrawingPath, setCurrentDrawingPath] = useState([]);
   const [totalCalculatedArea, setTotalCalculatedArea] = useState(0);
   const autocompleteRef = useRef(null);
   const polygonRefs = useRef([]); // Refs to Google Maps Polygon instances
-  const selectedPlaceRef = useRef(null); // Store the full place object for estimation
 
   // Check if Google Maps API key is available
   const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
