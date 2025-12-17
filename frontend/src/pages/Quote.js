@@ -627,6 +627,9 @@ export default function Quote() {
         const lat = place.geometry.location.lat();
         const lng = place.geometry.location.lng();
         
+        // Store full place object for estimation
+        selectedPlaceRef.current = place;
+        
         setFormData(prev => ({
           ...prev,
           address: place.formatted_address || place.name || '',
@@ -641,15 +644,16 @@ export default function Quote() {
         setPolygons([]);
         setCurrentDrawingPath([]);
         setTotalCalculatedArea(0);
+        setEstimateConfidence('high');
         setFormData(prev => ({
           ...prev,
           lawnSizeSqFt: '',
           areaSource: 'manual',
         }));
         
-        // Auto-estimate lawn area after a brief delay to let map center
+        // Auto-estimate lawn area using full place object (with viewport/bounds)
         setTimeout(() => {
-          autoEstimateLawnArea({ lat, lng }, formData.propertyType);
+          autoEstimateLawnArea(place, formData.propertyType);
         }, 500);
       }
     }
