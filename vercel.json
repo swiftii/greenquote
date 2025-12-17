@@ -77,7 +77,7 @@
       "dest": "/$1"
     },
     {
-      "src": "/(login|signup|dashboard|settings|quote|quotes|clients|accept-invite|billing).*",
+      "src": "/(login|signup|dashboard|settings|quote|quotes|clients|accept-invite|invite-signup|billing).*",
       "dest": "/index.html"
     },
     {
