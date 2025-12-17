@@ -576,7 +576,7 @@ class GreenQuoteServiceAreaTester:
             # Check for road direction logic
             road_checks = [
                 ('roadDirection = 180', 'Default south-facing direction'),
-                ('roadName\\.toLowerCase\\(\\)', 'Case-insensitive road name processing'),
+                ('long_name\\.toLowerCase\\(\\)', 'Case-insensitive road name processing'),
                 ('includes\\(\'north\'\\).*roadDirection = 0', 'North direction detection'),
                 ('includes\\(\'south\'\\).*roadDirection = 180', 'South direction detection'),
                 ('includes\\(\'east\'\\).*roadDirection = 90', 'East direction detection'),
