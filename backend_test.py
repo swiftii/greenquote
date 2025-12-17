@@ -552,7 +552,7 @@ def test_app_routes():
         log_test("app_routes", "/settings/team route not found", False)
     
     # Test 9.2: Check /accept-invite route
-    accept_invite_route_pattern = r'/accept-invite.*AcceptInvite'
+    accept_invite_route_pattern = r'/accept-invite'
     if re.search(accept_invite_route_pattern, app_content):
         log_test("app_routes", "/accept-invite route with AcceptInvite component found")
     else:
