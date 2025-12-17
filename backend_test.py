@@ -39,7 +39,8 @@ class GreenQuoteViewportEstimationTester:
             'polygon_generation': {'status': 'pending', 'details': []},
             'ui_feedback': {'status': 'pending', 'details': []},
             'console_logging': {'status': 'pending', 'details': []},
-            'place_reference_storage': {'status': 'pending', 'details': []}
+            'place_reference_storage': {'status': 'pending', 'details': []},
+            'integration_flow': {'status': 'pending', 'details': []}
         }
         
     def test_code_structure(self):
