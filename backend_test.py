@@ -480,7 +480,7 @@ class GreenQuoteViewportEstimationTester:
                 ('\[Quote\]   - SW:', 'Southwest corner logging'),
                 ('\[Quote\]   - Dimensions:', 'Dimensions logging'),
                 ('\[Quote\]   - Bounds area:', 'Bounds area logging'),
-                ('\[Quote\] Bounds area.*sqft', 'Bounds area in sqft logging'),
+                ('boundsArea\.toFixed\(0\).*sqft', 'Bounds area in sqft logging'),
             ]
             
             for pattern, description in bounds_logging_checks:
