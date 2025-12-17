@@ -831,7 +831,7 @@ class GreenQuoteViewportEstimationTester:
 
 def main():
     """Main test execution"""
-    tester = GreenQuotePropertyDrawingTester()
+    tester = GreenQuoteViewportEstimationTester()
     passed, total, results = tester.run_all_tests()
     
     print("\n" + "=" * 60)
@@ -842,7 +842,7 @@ def main():
     
     # Determine overall result
     if passed == total:
-        print("\n🎉 ALL TESTS PASSED! Quote.js property drawing feature is properly implemented.")
+        print("\n🎉 ALL TESTS PASSED! Viewport-based lawn area estimation feature is properly implemented.")
         return True
     else:
         print(f"\n⚠️  {total - passed} test(s) failed. Review the implementation.")
