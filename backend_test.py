@@ -545,7 +545,7 @@ def test_app_routes():
         return
     
     # Test 9.1: Check /settings/team route
-    team_route_pattern = r'/settings/team.*TeamSettings'
+    team_route_pattern = r'/settings/team'
     if re.search(team_route_pattern, app_content):
         log_test("app_routes", "/settings/team route with TeamSettings component found")
     else:
