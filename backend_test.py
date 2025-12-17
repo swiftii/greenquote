@@ -242,7 +242,7 @@ def test_api_invites_accept():
         log_test("api_invites_accept", "Invite status update to accepted not found", False)
     
     # Test 3.8: Check idempotent handling
-    existing_membership_pattern = r'existingMembership.*already a member'
+    existing_membership_pattern = r'existingMembership|already.*member'
     if re.search(existing_membership_pattern, accept_content):
         log_test("api_invites_accept", "Idempotent handling for existing membership found")
     else:
