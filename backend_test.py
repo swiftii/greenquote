@@ -173,62 +173,80 @@ def test_api_invites_create():
     else:
         log_test("api_invites_create", "Success response format not found", False)
 
-def test_visual_feedback():
+def test_api_invites_accept():
     """
-    TEST CASE 3: Visual Feedback
-    - Verify Circle component is imported from @react-google-maps/api
-    - Verify Circle markers are rendered for each point in currentDrawingPath while drawing
-    - Verify map cursor changes (draggableCursor option or mapContainerStyle)
-    - Verify status messages show point count
+    TEST CASE 3: API: POST /api/invites/accept
+    - Verify requires Authorization header
+    - Verify validates token parameter
+    - Verify checks invite status is pending
+    - Verify checks expiration
+    - Verify email matches (case-insensitive)
+    - Verify creates account_members entry
+    - Verify updates invite status to accepted
+    - Verify idempotent (handles existing membership)
     """
-    print("\n🔍 Testing Visual Feedback...")
+    print("\n🔍 Testing API: POST /api/invites/accept...")
     
-    quote_content = read_file_content('/app/frontend/src/pages/Quote.js')
-    if not quote_content:
-        log_test("visual_feedback", "Could not read Quote.js file", False)
+    accept_content = read_file_content('/app/api/invites/accept.js')
+    if not accept_content:
+        log_test("api_invites_accept", "Could not read /api/invites/accept.js file", False)
         return
     
-    # Test 3.1: Check Circle component import
-    circle_import_pattern = r'import.*Circle.*from.*@react-google-maps/api'
-    if re.search(circle_import_pattern, quote_content):
-        log_test("visual_feedback", "Circle component imported from @react-google-maps/api")
+    # Test 3.1: Check Authorization header validation
+    auth_pattern = r'authHeader.*Bearer'
+    if re.search(auth_pattern, accept_content):
+        log_test("api_invites_accept", "Authorization header validation found")
     else:
-        log_test("visual_feedback", "Circle component not imported", False)
+        log_test("api_invites_accept", "Authorization header validation not found", False)
     
-    # Test 3.2: Check Circle markers for drawing points
-    circle_markers_pattern = r'currentDrawingPath\.map\(\(point, index\) => \(\s*<Circle'
-    if re.search(circle_markers_pattern, quote_content):
-        log_test("visual_feedback", "Circle markers rendered for currentDrawingPath points")
+    # Test 3.2: Check token parameter validation
+    token_validation_pattern = r'token.*typeof.*string'
+    if re.search(token_validation_pattern, accept_content):
+        log_test("api_invites_accept", "Token parameter validation found")
     else:
-        log_test("visual_feedback", "Circle markers not found for drawing points", False)
+        log_test("api_invites_accept", "Token parameter validation not found", False)
     
-    # Test 3.3: Check first point different color (green)
-    first_point_color_pattern = r'fillColor: index === 0 \? \'#22c55e\' : \'#3b82f6\''
-    if re.search(first_point_color_pattern, quote_content):
-        log_test("visual_feedback", "First point has different color (green)")
+    # Test 3.3: Check invite status validation
+    status_check_pattern = r"invite\.status.*pending"
+    if re.search(status_check_pattern, accept_content):
+        log_test("api_invites_accept", "Invite status pending check found")
     else:
-        log_test("visual_feedback", "First point color differentiation not found", False)
+        log_test("api_invites_accept", "Invite status pending check not found", False)
     
-    # Test 3.4: Check map cursor changes
-    cursor_pattern = r'cursor:.*isDrawing.*crosshair.*pointer'
-    if re.search(cursor_pattern, quote_content):
-        log_test("visual_feedback", "Map cursor changes based on drawing state")
+    # Test 3.4: Check expiration validation
+    expiration_pattern = r'expires_at.*new Date'
+    if re.search(expiration_pattern, accept_content):
+        log_test("api_invites_accept", "Expiration check found")
     else:
-        log_test("visual_feedback", "Map cursor changes not found", False)
+        log_test("api_invites_accept", "Expiration check not found", False)
     
-    # Test 3.5: Check draggableCursor option
-    draggable_cursor_pattern = r'draggableCursor:.*isDrawing.*crosshair.*pointer'
-    if re.search(draggable_cursor_pattern, quote_content):
-        log_test("visual_feedback", "draggableCursor option configured")
+    # Test 3.5: Check email matching (case-insensitive)
+    email_match_pattern = r'toLowerCase.*invitedEmail.*toLowerCase'
+    if re.search(email_match_pattern, accept_content):
+        log_test("api_invites_accept", "Case-insensitive email matching found")
     else:
-        log_test("visual_feedback", "draggableCursor option not found", False)
+        log_test("api_invites_accept", "Case-insensitive email matching not found", False)
     
-    # Test 3.6: Check status messages with point count
-    point_count_pattern = r'\{currentDrawingPath\.length\}'
-    if re.search(point_count_pattern, quote_content):
-        log_test("visual_feedback", "Status messages show point count")
+    # Test 3.6: Check account_members insertion
+    members_insert_pattern = r'account_members.*insert'
+    if re.search(members_insert_pattern, accept_content):
+        log_test("api_invites_accept", "Account members insertion found")
     else:
-        log_test("visual_feedback", "Point count in status messages not found", False)
+        log_test("api_invites_accept", "Account members insertion not found", False)
+    
+    # Test 3.7: Check invite status update to accepted
+    status_update_pattern = r"status.*accepted"
+    if re.search(status_update_pattern, accept_content):
+        log_test("api_invites_accept", "Invite status update to accepted found")
+    else:
+        log_test("api_invites_accept", "Invite status update to accepted not found", False)
+    
+    # Test 3.8: Check idempotent handling
+    existing_membership_pattern = r'existingMembership.*already a member'
+    if re.search(existing_membership_pattern, accept_content):
+        log_test("api_invites_accept", "Idempotent handling for existing membership found")
+    else:
+        log_test("api_invites_accept", "Idempotent handling not found", False)
 
 def test_done_button_polygon_closing():
     """
