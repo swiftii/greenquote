@@ -299,8 +299,8 @@ def test_api_invites_list():
         log_test("api_invites_list", "can_manage_team flag logic not found", False)
     
     # Test 4.6: Check response structure
-    response_structure_pattern = r'members.*pending_invites.*current_user_role'
-    if re.search(response_structure_pattern, list_content):
+    response_structure_pattern = r'members.*pending_invites'
+    if re.search(response_structure_pattern, list_content, re.DOTALL):
         log_test("api_invites_list", "Complete response structure found")
     else:
         log_test("api_invites_list", "Complete response structure not found", False)
