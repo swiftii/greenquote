@@ -27,14 +27,16 @@ from pathlib import Path
 
 # Test Results Storage
 test_results = {
-    "click_to_start_drawing": {"passed": None, "details": []},
-    "start_drawing_button": {"passed": None, "details": []},
-    "visual_feedback": {"passed": None, "details": []},
-    "done_button_polygon_closing": {"passed": None, "details": []},
-    "real_time_area_updates": {"passed": None, "details": []},
-    "multi_zone_support": {"passed": None, "details": []},
-    "satellite_view_default": {"passed": None, "details": []},
-    "no_auto_draw_address_selection": {"passed": None, "details": []},
+    "sql_migration_structure": {"passed": None, "details": []},
+    "api_invites_create": {"passed": None, "details": []},
+    "api_invites_accept": {"passed": None, "details": []},
+    "api_invites_list": {"passed": None, "details": []},
+    "api_invites_revoke": {"passed": None, "details": []},
+    "frontend_team_settings": {"passed": None, "details": []},
+    "frontend_accept_invite": {"passed": None, "details": []},
+    "account_service_membership": {"passed": None, "details": []},
+    "app_routes": {"passed": None, "details": []},
+    "login_signup_redirect": {"passed": None, "details": []},
 }
 
 def log_test(category, message, passed=True):
