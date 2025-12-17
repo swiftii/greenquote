@@ -509,21 +509,35 @@ export default function Quote() {
 
   const startDrawing = () => {
     setIsDrawing(true);
-    setPolygonPath([]);
-    setCalculatedArea(0);
+    setCurrentDrawingPath([]);
+    setActivePolygonIndex(-1);
   };
 
   const finishDrawing = () => {
-    setIsDrawing(false);
-    if (polygonPath.length >= 3) {
-      calculatePolygonArea(polygonPath);
+    if (currentDrawingPath.length >= 3) {
+      // Add new polygon to the list
+      const newPolygon = {
+        id: 'manual-' + Date.now(),
+        path: currentDrawingPath,
+        areaSqFt: 0,
+      };
+      
+      setPolygons(prev => {
+        const updated = [...prev, newPolygon];
+        return recalculateTotalArea(updated);
+      });
     }
+    
+    setIsDrawing(false);
+    setCurrentDrawingPath([]);
   };
 
-  const clearPolygon = () => {
-    setPolygonPath([]);
-    setCalculatedArea(0);
+  const clearAllPolygons = () => {
+    setPolygons([]);
+    setCurrentDrawingPath([]);
+    setTotalCalculatedArea(0);
     setIsDrawing(false);
+    setActivePolygonIndex(-1);
     setFormData(prev => ({
       ...prev,
       lawnSizeSqFt: '',
@@ -531,16 +545,33 @@ export default function Quote() {
     }));
   };
 
-  const undoLastPoint = () => {
-    setPolygonPath(prev => {
-      const newPath = prev.slice(0, -1);
-      if (newPath.length >= 3) {
-        calculatePolygonArea(newPath);
-      } else {
-        setCalculatedArea(0);
-      }
-      return newPath;
+  const deletePolygon = (index) => {
+    setPolygons(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      return recalculateTotalArea(updated);
     });
+    setActivePolygonIndex(-1);
+  };
+
+  const undoLastPoint = () => {
+    setCurrentDrawingPath(prev => prev.slice(0, -1));
+  };
+
+  // Re-estimate when property type changes
+  const handlePropertyTypeChange = (value) => {
+    handleInputChange('propertyType', value);
+    
+    // If we have coordinates, re-estimate with new property type
+    if (formData.latitude && formData.longitude) {
+      setPolygons([]);
+      setTotalCalculatedArea(0);
+      setTimeout(() => {
+        autoEstimateLawnArea(
+          { lat: formData.latitude, lng: formData.longitude },
+          value
+        );
+      }, 300);
+    }
   };
 
   const handleInputChange = (field, value) => {
