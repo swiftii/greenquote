@@ -930,7 +930,7 @@ export default function Quote() {
               <CardHeader>
                 <CardTitle>Property Information</CardTitle>
                 <CardDescription>
-                  Search for the address, then draw the lawn boundary on the map
+                  Search for the address — we&apos;ll auto-detect the lawn area (you can adjust if needed)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
