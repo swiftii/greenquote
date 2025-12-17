@@ -442,6 +442,54 @@ frontend:
         agent: "testing"
         comment: "✅ VERIFIED: Satellite view is set as default in all three map interfaces. Quote.js: mapTypeId='satellite' in GoogleMap component, Widget.js: mapTypeId: 'satellite' in map initialization, Pro.js: mapTypeId: 'satellite' in map initialization. All maps also include mapTypeControl for user switching."
 
+  - task: "Click-to-Start Drawing UX"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Quote.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented click-to-start drawing: Users can click anywhere on the map to immediately start drawing a polygon (first click places first vertex). onMapClick handler now starts drawing mode automatically if address is set and not already drawing."
+
+  - task: "Start Drawing Button"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Quote.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added 'Start Drawing' button above the map. Shown when address is set but no polygons exist yet. Clicking enters drawing mode and shows helper text. First map click places first vertex."
+
+  - task: "Real-time Area Calculation"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Quote.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Real-time sqft calculation: When polygon is closed (via Done button), area is computed using Google Maps geometry and quote updates immediately. Vertex dragging triggers set_at/insert_at/remove_at events which recalculate area and update pricing in real-time."
+
+  - task: "Multi-Zone Drawing with + Add Zone"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Quote.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Multi-zone support: '+ Add Zone' button shown after first polygon is drawn. Creates addNewZone function that finalizes current drawing and starts new session. Total service area = sum of all polygon areas. Quote always uses total."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
@@ -450,10 +498,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Auto-Draw Removal from Widget"
-    - "Auto-Draw Removal from Pro App"
-    - "Auto-Draw Removal from Quote.js"
-    - "Satellite View Default in All Maps"
+    - "Click-to-Start Drawing UX"
+    - "Start Drawing Button"
+    - "Real-time Area Calculation"
+    - "Multi-Zone Drawing with + Add Zone"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -1143,3 +1191,51 @@ agent_communication:
       - ✅ Map type controls allow switching between satellite/roadmap
       
       📋 SUMMARY: Auto-draw/auto-estimation feature has been successfully removed from all three map interfaces while preserving manual drawing capabilities and setting satellite view as default. Users now must manually draw service area boundaries for accurate pricing. All test cases from the review request have been verified and passed.
+  - agent: "main"
+    message: |
+      IMPROVED DRAWING UX IMPLEMENTATION (Quote.js only):
+      
+      Changes made to frontend/src/pages/Quote.js:
+      
+      1. Click-to-Start Drawing:
+         - Modified onMapClick handler to start drawing immediately on first click
+         - If address is set and not already drawing, first click starts drawing mode AND places first vertex
+         - Subsequent clicks add points to current drawing path
+         
+      2. Start Drawing Button:
+         - Added "✏️ Start Drawing" button above the map
+         - Shown when address is set but no polygons exist yet
+         - Clicking enters drawing mode (user's next map click places first point)
+         
+      3. Visual Feedback:
+         - Imported Circle component from @react-google-maps/api
+         - Added Circle markers to show placed points while drawing
+         - First point shown in green, others in blue
+         - Map cursor changes to crosshair when in drawing mode, pointer otherwise
+         - Status messages update based on number of points placed
+         
+      4. Improved Controls:
+         - "Done" button now shows point count: "✓ Done (X pts)"
+         - Added "Cancel" button to exit drawing mode without saving
+         - "+ Add Zone" button (renamed from original) shown after first polygon
+         - addNewZone() function properly finalizes current drawing before starting new one
+         
+      5. Real-time Updates (already working):
+         - Polygon path changes trigger handlePolygonPathChange via set_at/insert_at/remove_at events
+         - recalculateTotalArea() updates totalCalculatedArea state
+         - formData.lawnSizeSqFt updates automatically
+         - calculatePricing() runs on formData change, updating quote instantly
+         
+      6. UI Messages Updated:
+         - "Property located! Click 'Start Drawing' or click directly on the map..."
+         - "Drawing mode active — Click on the map to place your first point."
+         - "Keep clicking to add more points (X/3 minimum)..."
+         - "X points placed. Click 'Done' to close the shape..."
+         
+      TESTING NEEDED:
+      1. Verify clicking on map starts drawing immediately (places first point)
+      2. Verify "Start Drawing" button enters drawing mode
+      3. Verify closing polygon computes sqft and updates quote
+      4. Verify dragging vertices updates sqft + quote in real-time
+      5. Verify "+ Add Zone" adds new polygon and totals update
+      6. Verify satellite view remains default
