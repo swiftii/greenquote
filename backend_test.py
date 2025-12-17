@@ -480,12 +480,31 @@ def test_no_auto_draw_address_selection():
     else:
         log_test("no_auto_draw_address_selection", "Polygon clearing not found", False)
     
-    # Test 8.4: Check drawing mode is NOT started automatically
-    auto_start_drawing_pattern = r'onPlaceChanged.*setIsDrawing\(true\)'
-    if re.search(auto_start_drawing_pattern, quote_content, re.DOTALL):
-        log_test("no_auto_draw_address_selection", "Auto-start drawing found - should not happen", False)
+    # Test 8.4: Check drawing mode is NOT started automatically in onPlaceChanged
+    # Extract onPlaceChanged function content
+    onplace_start = quote_content.find('const onPlaceChanged = useCallback(() => {')
+    if onplace_start != -1:
+        # Find the end of the function (matching braces)
+        brace_count = 0
+        func_start = onplace_start
+        func_end = func_start
+        for i, char in enumerate(quote_content[func_start:]):
+            if char == '{':
+                brace_count += 1
+            elif char == '}':
+                brace_count -= 1
+                if brace_count == 0:
+                    func_end = func_start + i
+                    break
+        
+        onplace_content = quote_content[func_start:func_end]
+        
+        if 'setIsDrawing(true)' in onplace_content:
+            log_test("no_auto_draw_address_selection", "Auto-start drawing found in onPlaceChanged - should not happen", False)
+        else:
+            log_test("no_auto_draw_address_selection", "No auto-start drawing mode in onPlaceChanged")
     else:
-        log_test("no_auto_draw_address_selection", "No auto-start drawing mode on address selection")
+        log_test("no_auto_draw_address_selection", "onPlaceChanged function not found for auto-start check", False)
     
     # Test 8.5: Check manual drawing prompt
     manual_prompt_pattern = r'Draw your service area|Start Drawing|click.*map'
