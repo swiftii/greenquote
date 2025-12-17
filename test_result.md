@@ -368,16 +368,67 @@ frontend:
         comment: "✅ VERIFIED: Quote.js property drawing feature fully implemented with satellite view default, auto-estimation after address selection, multi-polygon support, editable polygons with draggable vertices, UI controls (Add Zone, Clear All, individual delete), and proper data model with polygons array and totalCalculatedArea. All 9 test categories passed: Code Structure, Satellite View Config, Auto-Estimation Logic, Multi-Polygon Support, Editable Polygons, UI Controls, Data Model, Event Handlers, and Integration Flow."
 
   - task: "Quote.js Viewport-Based Lawn Area Estimation Feature"
-    implemented: true
-    working: true
+    implemented: false
+    working: "NA"
     file: "frontend/src/pages/Quote.js"
     stuck_count: 0
-    priority: "high"
+    priority: "low"
     needs_retesting: false
     status_history:
       - working: true
         agent: "testing"
         comment: "✅ VERIFIED: Viewport-based lawn area estimation feature fully implemented with ESTIMATION_CONFIG (replacing DEFAULT_AREA_ESTIMATES), viewport/bounds calculation using place.geometry.viewport, quality guardrails for large/small viewports, confidence indicator system (high/medium/low), polygon generation from estimates with front/back yard splitting, UI feedback with different colored messages based on confidence, comprehensive console logging for debugging, and place reference storage for re-estimation on property type changes. All 8 test categories passed: Code Structure, Estimation Logic, Confidence Indicator, Polygon Generation, UI Feedback, Console Logging, Place Reference Storage, and Integration Flow."
+      - working: "NA"
+        agent: "main"
+        comment: "REMOVED: Auto-draw/auto-estimation feature removed from Quote.js per user request. Users now manually draw service areas."
+
+  - task: "Auto-Draw Removal from Quote.js"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Quote.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented removal of auto-draw feature. Removed autoEstimateLawnArea function, generatePolygonsFromEstimate function, ESTIMATION_CONFIG references, isAutoEstimating/estimateConfidence/selectedPlaceRef state variables. Updated UI to show manual drawing instructions. Kept satellite view as default."
+
+  - task: "Auto-Draw Removal from Widget"
+    implemented: true
+    working: "NA"
+    file: "widgets/lawn/v1/widget.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented removal of auto-draw feature. Removed autoDrawServiceArea function call from onPlaceChanged and processSelectedPlace. Removed showAutoDrawFallback function. Updated clearPolygon to not re-auto-estimate. Updated UI instructions to prompt manual drawing. Satellite view already set as default."
+
+  - task: "Auto-Draw Removal from Pro App"
+    implemented: true
+    working: "NA"
+    file: "pro/pro.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented removal of auto-draw feature. Removed autoDrawServiceArea function call from locateProperty and onPlaceChanged. Removed auto-estimation logic from property type change handler. Updated clearPolygon to not re-auto-estimate. Updated UI instructions to prompt manual drawing. Satellite view already set as default."
+
+  - task: "Satellite View Default in All Maps"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Quote.js, widgets/lawn/v1/widget.js, pro/pro.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Verified satellite view is default in all three map interfaces. Quote.js uses mapTypeId='satellite' in GoogleMap component. Widget.js uses mapTypeId: 'satellite' in map init. Pro.js uses mapTypeId: 'satellite' in map init."
 
 metadata:
   created_by: "main_agent"
@@ -386,12 +437,62 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Auto-Draw Removal from Widget"
+    - "Auto-Draw Removal from Pro App"
+    - "Auto-Draw Removal from Quote.js"
+    - "Satellite View Default in All Maps"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
+  - agent: "main"
+    message: |
+      REMOVAL OF AUTO-DRAW FEATURE FROM ALL MAP INTERFACES:
+      
+      User requested complete removal of auto-draw/auto-estimation feature as it performed poorly.
+      
+      Changes made to Quote.js (React app):
+      1. Removed autoEstimateLawnArea function entirely
+      2. Removed generatePolygonsFromEstimate function entirely
+      3. Removed ESTIMATION_CONFIG references
+      4. Removed state variables: isAutoEstimating, estimateConfidence, selectedPlaceRef
+      5. Updated onPlaceChanged to NOT call auto-estimation
+      6. Updated handlePropertyTypeChange to NOT trigger re-estimation
+      7. Updated UI messages to prompt "Draw your service area" instead of showing estimation status
+      8. Kept satellite view as default (mapTypeId="satellite")
+      9. Kept manual polygon drawing functionality intact
+      
+      Changes made to widget.js:
+      1. Removed autoDrawServiceArea function
+      2. Removed showAutoDrawFallback function
+      3. Updated onPlaceChanged to NOT call auto-draw
+      4. Updated processSelectedPlace to NOT call auto-draw
+      5. Updated clearPolygon to NOT re-auto-estimate
+      6. Updated UI instructions to prompt manual drawing
+      7. Satellite view already set as default
+      8. Manual drawing still works via Draw Boundary button
+      
+      Changes made to pro.js:
+      1. Removed autoDrawServiceArea function
+      2. Updated locateProperty to NOT call auto-draw
+      3. Updated onPlaceChanged to NOT call auto-draw (removed estimateAreaFromAddress call)
+      4. Updated property type change handler to NOT trigger re-estimation
+      5. Updated clearPolygon to NOT re-auto-estimate
+      6. Updated UI status messages to prompt manual drawing
+      7. Satellite view already set as default
+      8. Manual drawing still works via Draw Area button
+      
+      TESTING NEEDED:
+      1. Verify all three map interfaces load with satellite view by default
+      2. Verify NO auto-drawn polygons appear when selecting an address
+      3. Verify manual drawing functionality works in all interfaces
+      4. Verify UI shows appropriate instructions for manual drawing
+      5. Verify area calculation still works when user draws manually
+      
+      NOTE: Local testing is limited due to missing Supabase credentials in dev environment.
+      The app builds successfully and deploys to Vercel where env vars are configured.
   - agent: "main"
     message: |
       Implemented Tiered Square-Footage Pricing Feature:
