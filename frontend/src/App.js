@@ -7,6 +7,8 @@ import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import BillingSettings from "@/pages/BillingSettings";
+import TeamSettings from "@/pages/TeamSettings";
+import AcceptInvite from "@/pages/AcceptInvite";
 import Quote from "@/pages/Quote";
 import PendingQuotes from "@/pages/PendingQuotes";
 import LostQuotes from "@/pages/LostQuotes";
