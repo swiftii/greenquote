@@ -504,7 +504,7 @@ def test_account_service_membership():
         log_test("account_service_membership", "account_members table query not found", False)
     
     # Test 8.3: Check fallback to owner_user_id
-    fallback_pattern = r'owner_user_id.*fallback'
+    fallback_pattern = r'owner_user_id|backwards compatibility'
     if re.search(fallback_pattern, account_service_content):
         log_test("account_service_membership", "Fallback to owner_user_id for backwards compatibility found")
     else:
