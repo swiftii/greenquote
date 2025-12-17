@@ -294,27 +294,63 @@
             return;
         }
         
-        console.log('[Pro] Initializing map...');
+        console.log('[Pro] Initializing map with satellite view...');
         
         try {
+            // Initialize map with SATELLITE view by default
             map = new google.maps.Map(document.getElementById('map'), {
                 center: { lat: 39.8283, lng: -98.5795 },
                 zoom: 4,
-                mapTypeId: 'satellite',
+                mapTypeId: 'satellite', // Satellite view by default
                 disableDefaultUI: true,
                 zoomControl: true,
                 streetViewControl: false,
+                mapTypeControl: true, // Allow users to switch map type
+                mapTypeControlOptions: {
+                    style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+                    position: google.maps.ControlPosition.TOP_RIGHT
+                },
                 tilt: 0
             });
             
+            // Initialize Service Area Manager for multi-polygon support
+            serviceAreaManager = new ServiceAreaManager(map, {
+                debugMode: true,
+                styles: {
+                    fillColor: config.theme?.primaryColor || '#16a34a',
+                    fillOpacity: 0.35,
+                    strokeWeight: 3,
+                    strokeColor: adjustColor(config.theme?.primaryColor || '#16a34a', -20),
+                    editable: true,
+                    draggable: false
+                },
+                onAreaChange: (totalSqFt, breakdown) => {
+                    state.lawnSizeSqFt = totalSqFt;
+                    state.measuredAreaSqft = totalSqFt;
+                    state.areaSource = 'measured';
+                    state.polygonCoords = serviceAreaManager.getCoordinatesSnapshot();
+                    updateAreaDisplay(false);
+                    calculatePricing();
+                    console.log('[Pro] Area updated:', totalSqFt, 'sq ft from', breakdown.length, 'polygons');
+                },
+                onPolygonsCreated: (count) => {
+                    console.log('[Pro] Auto-created', count, 'polygon(s)');
+                    const msg = count > 1 
+                        ? `✓ Estimated lawn area (${count} zones) — drag corners to adjust`
+                        : '✓ Estimated lawn area — drag corners to adjust';
+                    updateMapStatus(msg, 'success');
+                }
+            });
+            
+            // Drawing manager for manual drawing fallback
             drawingManager = new google.maps.drawing.DrawingManager({
                 drawingMode: null,
                 drawingControl: false,
                 polygonOptions: {
-                    fillColor: config.theme.primaryColor,
+                    fillColor: config.theme?.primaryColor || '#16a34a',
                     fillOpacity: 0.35,
                     strokeWeight: 3,
-                    strokeColor: adjustColor(config.theme.primaryColor, -20),
+                    strokeColor: adjustColor(config.theme?.primaryColor || '#16a34a', -20),
                     editable: true,
                     draggable: false
                 }
@@ -322,18 +358,14 @@
             
             drawingManager.setMap(map);
             
+            // Handle manually drawn polygons
             google.maps.event.addListener(drawingManager, 'polygoncomplete', function(polygon) {
-                if (currentPolygon) {
-                    currentPolygon.setMap(null);
-                }
-                currentPolygon = polygon;
+                // Clear auto-estimated polygons and use manual drawing
+                serviceAreaManager.clearAll();
+                serviceAreaManager.addPolygon(polygon);
                 drawingManager.setDrawingMode(null);
                 
-                google.maps.event.addListener(polygon.getPath(), 'set_at', calculatePolygonArea);
-                google.maps.event.addListener(polygon.getPath(), 'insert_at', calculatePolygonArea);
-                google.maps.event.addListener(polygon.getPath(), 'remove_at', calculatePolygonArea);
-                
-                calculatePolygonArea();
+                document.getElementById('drawBtn').textContent = '✏️ Draw Area';
                 document.getElementById('drawBtn').disabled = false;
                 document.getElementById('clearBtn').disabled = false;
                 
@@ -343,9 +375,9 @@
             initAutocomplete();
             google.maps.event.trigger(map, 'resize');
             
-            console.log('[Pro] ✓ Map initialized successfully');
+            console.log('[Pro] ✓ Map initialized successfully with satellite view');
+            console.log('[Pro] ✓ Service Area Manager ready');
             console.log('[Pro] ✓ Drawing manager ready');
-            console.log('[Pro] ✓ Map is ready for use');
             
             // Update map status to ready
             updateMapStatus('Enter address to locate property', '');
