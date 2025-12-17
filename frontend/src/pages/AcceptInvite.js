@@ -14,11 +14,41 @@ export default function AcceptInvite() {
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   
-  const [status, setStatus] = useState('loading'); // loading, ready, accepting, success, error
+  const [status, setStatus] = useState('loading'); // loading, checking, ready, accepting, success, error, redirect-signup
   const [error, setError] = useState(null);
   const [accountName, setAccountName] = useState(null);
+  const [inviteInfo, setInviteInfo] = useState(null);
   
   const token = searchParams.get('token');
+
+  // Check invite validity (even without auth)
+  const checkInvite = useCallback(async () => {
+    if (!token) {
+      setError('No invitation token provided');
+      setStatus('error');
+      return false;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/invites/info?token=${token}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Invalid invitation');
+        setStatus('error');
+        return false;
+      }
+
+      setInviteInfo(data.invite);
+      setAccountName(data.invite.account_name);
+      return true;
+    } catch (err) {
+      console.error('[AcceptInvite] Error checking invite:', err);
+      setError('Failed to verify invitation');
+      setStatus('error');
+      return false;
+    }
+  }, [token]);
 
   // Accept the invite
   const acceptInvite = useCallback(async () => {
@@ -65,40 +95,87 @@ export default function AcceptInvite() {
     }
   }, [token, user, navigate]);
 
+  // Main effect to handle the flow
   useEffect(() => {
     if (authLoading) return;
     
+    // No token provided
     if (!token) {
       setError('No invitation token provided');
       setStatus('error');
       return;
     }
-    
-    if (!user) {
-      // User not logged in - redirect to login with return URL
-      const returnUrl = encodeURIComponent(`/accept-invite?token=${token}`);
-      navigate(`/login?redirect=${returnUrl}`);
-      return;
-    }
-    
-    // User is logged in - set status to ready
-    setStatus('ready');
-  }, [authLoading, user, token, navigate]);
 
-  // Auto-accept when ready (or show button)
+    const handleFlow = async () => {
+      setStatus('checking');
+      
+      // First, check if invite is valid
+      const isValid = await checkInvite();
+      if (!isValid) return;
+
+      // If user is not logged in, redirect to invite signup
+      if (!user) {
+        setStatus('redirect-signup');
+        // Small delay to show the redirect message
+        setTimeout(() => {
+          navigate(`/invite-signup?token=${token}`);
+        }, 1500);
+        return;
+      }
+
+      // User is logged in - proceed to accept
+      setStatus('ready');
+    };
+
+    handleFlow();
+  }, [authLoading, user, token, checkInvite, navigate]);
+
+  // Auto-accept when ready
   useEffect(() => {
-    if (status === 'ready') {
+    if (status === 'ready' && user) {
       acceptInvite();
     }
-  }, [status, acceptInvite]);
+  }, [status, user, acceptInvite]);
 
-  if (authLoading || status === 'loading') {
+  // Loading states
+  if (authLoading || status === 'loading' || status === 'checking') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">
+            {status === 'checking' ? 'Verifying invitation...' : 'Loading...'}
+          </p>
         </div>
+      </div>
+    );
+  }
+
+  // Redirect to signup state
+  if (status === 'redirect-signup') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <span className="text-3xl">🌱</span>
+            </div>
+            <CardTitle className="text-xl">Welcome!</CardTitle>
+            <CardDescription>
+              {inviteInfo && (
+                <>
+                  You&apos;ve been invited to join <strong>{inviteInfo.account_name}</strong> as a <strong className="capitalize">{inviteInfo.role}</strong>.
+                </>
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-gray-600 mb-4">
+              Redirecting you to create your account...
+            </p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -109,9 +186,9 @@ export default function AcceptInvite() {
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
             {status === 'success' ? (
-              <span className="text-3xl">✓</span>
+              <span className="text-3xl text-green-600">✓</span>
             ) : status === 'error' ? (
-              <span className="text-3xl">✗</span>
+              <span className="text-3xl text-red-500">✗</span>
             ) : (
               <span className="text-3xl">🌱</span>
             )}
@@ -119,7 +196,7 @@ export default function AcceptInvite() {
           <CardTitle className="text-xl">
             {status === 'success' && 'Welcome to the Team!'}
             {status === 'error' && 'Unable to Accept Invite'}
-            {status === 'accepting' && 'Accepting Invitation...'}
+            {status === 'accepting' && 'Joining Team...'}
             {status === 'ready' && 'Team Invitation'}
           </CardTitle>
           <CardDescription>
@@ -129,8 +206,8 @@ export default function AcceptInvite() {
                 <br />Redirecting to dashboard...
               </>
             )}
-            {status === 'accepting' && 'Please wait while we process your invitation.'}
-            {status === 'ready' && 'Click below to accept your invitation.'}
+            {status === 'accepting' && 'Please wait while we add you to the team.'}
+            {status === 'ready' && 'Processing your invitation...'}
           </CardDescription>
         </CardHeader>
         <CardContent>
