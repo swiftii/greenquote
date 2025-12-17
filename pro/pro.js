@@ -823,12 +823,13 @@
     function enableDrawing() {
         if (typeof google === 'undefined') return;
         
-        if (currentPolygon) {
-            currentPolygon.setMap(null);
-            currentPolygon = null;
+        // Clear existing polygons
+        if (serviceAreaManager) {
+            serviceAreaManager.clearAll();
         }
         
         state.measuredAreaSqft = 0;
+        state.polygonCoords = [];
         
         drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
         
@@ -836,16 +837,19 @@
         updateMapStatus('Draw around the lawn area. Double-click to finish.', '');
     }
     
-    // Clear polygon
+    // Clear polygon(s)
     function clearPolygon() {
-        if (currentPolygon) {
-            currentPolygon.setMap(null);
-            currentPolygon = null;
+        if (serviceAreaManager) {
+            serviceAreaManager.clearAll();
         }
         
         state.measuredAreaSqft = 0;
+        state.polygonCoords = [];
         
-        if (state.address) {
+        if (state.address && selectedPlace) {
+            // Re-auto-estimate when clearing
+            autoDrawServiceArea(selectedPlace);
+        } else if (state.address) {
             estimateAreaFromAddress();
             updateMapStatus('Boundary cleared. Using estimated area.', '');
         } else {
