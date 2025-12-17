@@ -418,10 +418,25 @@ export default function Quote() {
     autocompleteRef.current = autocomplete;
   }, []);
 
+  // Start drawing mode (via button click)
   const startDrawing = () => {
     setIsDrawing(true);
     setCurrentDrawingPath([]);
     setActivePolygonIndex(-1);
+    console.log('[Quote] Drawing mode started via button');
+  };
+
+  // Add new zone (keeps existing polygons, starts new drawing)
+  const addNewZone = () => {
+    // If currently drawing, finish current polygon first
+    if (isDrawing && currentDrawingPath.length >= 3) {
+      finishDrawing();
+    }
+    // Start new drawing session
+    setIsDrawing(true);
+    setCurrentDrawingPath([]);
+    setActivePolygonIndex(-1);
+    console.log('[Quote] Adding new zone');
   };
 
   const finishDrawing = () => {
