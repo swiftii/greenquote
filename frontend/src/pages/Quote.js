@@ -1113,11 +1113,30 @@ export default function Quote() {
                           options={{
                             ...editablePolygonOptions,
                             editable: false,
-                            strokeStyle: 'dashed',
-                            fillOpacity: 0.2,
+                            strokeWeight: 3,
+                            strokeColor: '#3b82f6',
+                            fillColor: '#3b82f6',
+                            fillOpacity: 0.15,
                           }} 
                         />
                       )}
+                      
+                      {/* Show point markers while drawing */}
+                      {isDrawing && currentDrawingPath.map((point, index) => (
+                        <Circle
+                          key={`point-${index}`}
+                          center={point}
+                          radius={2}
+                          options={{
+                            fillColor: index === 0 ? '#22c55e' : '#3b82f6',
+                            fillOpacity: 1,
+                            strokeColor: '#ffffff',
+                            strokeWeight: 2,
+                            clickable: false,
+                            zIndex: 100,
+                          }}
+                        />
+                      ))}
                     </GoogleMap>
 
                     {/* Polygon list with delete buttons */}
