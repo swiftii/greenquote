@@ -1033,7 +1033,10 @@ export default function Quote() {
                     )}
 
                     <GoogleMap
-                      mapContainerStyle={mapContainerStyle}
+                      mapContainerStyle={{
+                        ...mapContainerStyle,
+                        cursor: formData.address ? (isDrawing ? 'crosshair' : 'pointer') : 'default',
+                      }}
                       center={mapCenter}
                       zoom={mapZoom}
                       onLoad={onMapLoad}
@@ -1048,6 +1051,7 @@ export default function Quote() {
                           position: window.google?.maps?.ControlPosition?.TOP_RIGHT,
                         },
                         fullscreenControl: true,
+                        draggableCursor: formData.address ? (isDrawing ? 'crosshair' : 'pointer') : 'default',
                       }}
                     >
                       {/* Render all existing polygons (editable) */}
