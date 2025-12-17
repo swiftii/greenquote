@@ -820,7 +820,7 @@ export default function Quote() {
               <CardHeader>
                 <CardTitle>Property Information</CardTitle>
                 <CardDescription>
-                  Search for the address — we&apos;ll auto-detect the lawn area (you can adjust if needed)
+                  Search for the address, then draw your service area on the map
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
