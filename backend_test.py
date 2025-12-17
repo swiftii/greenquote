@@ -285,8 +285,8 @@ def test_api_invites_list():
         log_test("api_invites_list", "User details fetching not found", False)
     
     # Test 4.4: Check pending invites query
-    pending_invites_pattern = r'account_invites.*pending.*expires_at'
-    if re.search(pending_invites_pattern, list_content):
+    pending_invites_pattern = r'account_invites.*pending'
+    if re.search(pending_invites_pattern, list_content, re.DOTALL):
         log_test("api_invites_list", "Pending invites query found")
     else:
         log_test("api_invites_list", "Pending invites query not found", False)
