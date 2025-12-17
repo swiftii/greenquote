@@ -1032,6 +1032,30 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        {/* Team Members Card */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Team Members</CardTitle>
+            <CardDescription>
+              Manage your team and invite colleagues to share your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                Add team members, manage roles, and view pending invitations.
+              </p>
+              <Button
+                type="button"
+                onClick={() => navigate('/settings/team')}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                Manage Team
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Billing Settings Card */}
         <Card className="mb-6">
           <CardHeader>
