@@ -492,18 +492,57 @@
         }
         
         try {
+            // Initialize map with SATELLITE view by default
             map = new google.maps.Map(document.getElementById('map'), {
                 center: { lat: 39.8283, lng: -98.5795 },
                 zoom: 4,
-                mapTypeId: 'satellite',
+                mapTypeId: 'satellite', // Satellite view by default
                 disableDefaultUI: true,
                 zoomControl: true,
                 streetViewControl: false,
-                mapTypeControl: false,
+                mapTypeControl: true, // Allow users to switch map type
+                mapTypeControlOptions: {
+                    style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+                    position: google.maps.ControlPosition.TOP_RIGHT
+                },
                 fullscreenControl: false,
                 tilt: 0
             });
             
+            // Initialize Service Area Manager for multi-polygon support
+            serviceAreaManager = new ServiceAreaManager(map, {
+                debugMode: true,
+                styles: {
+                    fillColor: '#16a34a',
+                    fillOpacity: 0.35,
+                    strokeWeight: 3,
+                    strokeColor: '#166534',
+                    editable: true,
+                    draggable: false
+                },
+                onAreaChange: (totalSqFt, breakdown) => {
+                    state.lawnSizeSqFt = totalSqFt;
+                    state.measuredAreaSqft = totalSqFt;
+                    state.areaSource = 'measured';
+                    state.polygonCoords = serviceAreaManager.getCoordinatesSnapshot();
+                    updateLawnSizeDisplay(false);
+                    console.log('[Widget] Area updated:', totalSqFt, 'sq ft from', breakdown.length, 'polygons');
+                },
+                onPolygonsCreated: (count) => {
+                    console.log('[Widget] Auto-created', count, 'polygon(s)');
+                    const instructions = document.querySelector('.map-instructions');
+                    if (instructions) {
+                        const msg = count > 1 
+                            ? `✓ We estimated your lawn area (${count} zones) — drag corners to adjust.`
+                            : '✓ We estimated your lawn area — drag corners to adjust.';
+                        instructions.innerHTML = `<strong>${msg}</strong>`;
+                        instructions.style.background = '#d4edda';
+                        instructions.style.borderLeft = '4px solid #28a745';
+                    }
+                }
+            });
+            
+            // Drawing manager for manual drawing fallback
             drawingManager = new google.maps.drawing.DrawingManager({
                 drawingMode: null,
                 drawingControl: false,
@@ -519,31 +558,31 @@
             
             drawingManager.setMap(map);
             
+            // Handle manually drawn polygons
             google.maps.event.addListener(drawingManager, 'polygoncomplete', function(polygon) {
-                if (currentPolygon) {
-                    currentPolygon.setMap(null);
-                }
-                currentPolygon = polygon;
+                // Clear auto-estimated polygons and use manual drawing
+                serviceAreaManager.clearAll();
+                serviceAreaManager.addPolygon(polygon);
                 drawingManager.setDrawingMode(null);
                 
-                google.maps.event.addListener(polygon.getPath(), 'set_at', calculatePolygonArea);
-                google.maps.event.addListener(polygon.getPath(), 'insert_at', calculatePolygonArea);
-                google.maps.event.addListener(polygon.getPath(), 'remove_at', calculatePolygonArea);
-                
-                calculatePolygonArea();
                 document.getElementById('draw-btn').disabled = false;
                 document.getElementById('clear-btn').disabled = false;
+                document.getElementById('draw-btn').textContent = 'Adjust Boundary';
+                document.getElementById('draw-btn').style.background = '';
+                document.getElementById('draw-btn').style.color = '';
                 
                 const instructions = document.querySelector('.map-instructions');
                 if (instructions) {
-                    instructions.textContent = '✓ Measured area! Drag corners to adjust. This measured area will be used for your quote.';
+                    instructions.innerHTML = '<strong>✓ Area measured!</strong> Drag corners to adjust.';
+                    instructions.style.background = '#d4edda';
+                    instructions.style.borderLeft = '4px solid #28a745';
                 }
             });
             
             initAutocomplete();
             google.maps.event.trigger(map, 'resize');
             
-            console.log('[Widget] Google Maps initialized successfully');
+            console.log('[Widget] Google Maps initialized successfully with satellite view');
         } catch (error) {
             console.error('[Widget] Error initializing Google Maps:', error);
         }
