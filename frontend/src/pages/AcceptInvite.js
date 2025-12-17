@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+// Use relative URLs for same-origin API calls on Vercel
+const BACKEND_URL = '';
 
 export default function AcceptInvite() {
   const navigate = useNavigate();
