@@ -13,13 +13,12 @@
         Copy this iframe code to embed on your website (GoHighLevel, WordPress, etc.):
         
         <iframe
-          src="https://app.getgreenquote.com/widgets/lawn/v1/index.html?client=example-lawn"
+          src="https://app.getgreenquote.com/widgets/lawn/v1/?wid=YOUR_WIDGET_ID"
           style="width:100%; max-width:480px; height:850px; border:0; overflow:hidden;"
           loading="lazy"
         ></iframe>
         
-        Replace:
-        - client=example-lawn: Your client config file name (without .json)
+        Get your widget ID from GreenQuote Pro → Settings → Website Widget
     -->
     
     <div id="widget-root">
@@ -29,6 +28,8 @@
         </div>
     </div>
     
+    <!-- Service Area Utilities (multi-polygon support) -->
+    <script src="../../../shared/serviceAreaUtils.js"></script>
     <script src="widget.js"></script>
 </body>
 </html>
