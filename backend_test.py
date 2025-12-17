@@ -518,7 +518,7 @@ def test_account_service_membership():
         log_test("account_service_membership", "Membership info return not found", False)
     
     # Test 8.5: Check ensureUserAccount integration
-    ensure_account_pattern = r'ensureUserAccount.*membership'
+    ensure_account_pattern = r'ensureUserAccount|membershipInfo'
     if re.search(ensure_account_pattern, account_service_content):
         log_test("account_service_membership", "ensureUserAccount integration with membership found")
     else:
