@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """
-Backend Testing for GreenQuote App - Click-to-Start Drawing UX Code Review
-Testing Agent: Comprehensive code review testing for improved drawing UX implementation
+Backend Testing for GreenQuote App - Multi-User Accounts Feature
+Testing Agent: Comprehensive testing for Multi-User Accounts implementation
 
-This test focuses on CODE REVIEW verification since this is a Vercel-deployed app 
-using Supabase and local environment lacks Supabase credentials.
+This test focuses on verifying the Multi-User Accounts feature implementation
+including team invites, account membership-based resolution, and API endpoints.
 
 Test Categories:
-1. Click-to-Start Drawing UX
-2. Start Drawing Button  
-3. Visual Feedback
-4. Done Button and Polygon Closing
-5. Real-time Area Updates
-6. Multi-Zone Support
-7. Satellite View Default
-8. No Auto-Draw on Address Selection
+1. SQL Migration Structure
+2. API: POST /api/invites/create
+3. API: POST /api/invites/accept
+4. API: GET /api/invites/list
+5. API: POST /api/invites/revoke
+6. Frontend: TeamSettings Page
+7. Frontend: AcceptInvite Page
+8. AccountService: Membership Resolution
+9. App.js Routes
+10. Login/Signup Redirect Support
 """
 
 import os
