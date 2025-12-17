@@ -531,10 +531,113 @@ def test_account_service_membership():
     else:
         log_test("account_service_membership", "Multi-user support documentation not found", False)
 
+def test_app_routes():
+    """
+    TEST CASE 9: App.js Routes
+    - Verify /settings/team route exists
+    - Verify /accept-invite route exists
+    """
+    print("\n🔍 Testing App.js Routes...")
+    
+    app_content = read_file_content('/app/frontend/src/App.js')
+    if not app_content:
+        log_test("app_routes", "Could not read App.js file", False)
+        return
+    
+    # Test 9.1: Check /settings/team route
+    team_route_pattern = r'/settings/team.*TeamSettings'
+    if re.search(team_route_pattern, app_content):
+        log_test("app_routes", "/settings/team route with TeamSettings component found")
+    else:
+        log_test("app_routes", "/settings/team route not found", False)
+    
+    # Test 9.2: Check /accept-invite route
+    accept_invite_route_pattern = r'/accept-invite.*AcceptInvite'
+    if re.search(accept_invite_route_pattern, app_content):
+        log_test("app_routes", "/accept-invite route with AcceptInvite component found")
+    else:
+        log_test("app_routes", "/accept-invite route not found", False)
+    
+    # Test 9.3: Check route protection
+    protected_route_pattern = r'ProtectedRoute.*SubscriptionGuard.*TeamSettings'
+    if re.search(protected_route_pattern, app_content, re.DOTALL):
+        log_test("app_routes", "Team route properly protected with ProtectedRoute and SubscriptionGuard")
+    else:
+        log_test("app_routes", "Team route protection not found", False)
+    
+    # Test 9.4: Check AcceptInvite route protection (should be ProtectedRoute but NOT SubscriptionGuard)
+    accept_protection_pattern = r'ProtectedRoute.*AcceptInvite'
+    subscription_guard_pattern = r'SubscriptionGuard.*AcceptInvite'
+    
+    if re.search(accept_protection_pattern, app_content) and not re.search(subscription_guard_pattern, app_content):
+        log_test("app_routes", "AcceptInvite route properly protected (ProtectedRoute but not SubscriptionGuard)")
+    else:
+        log_test("app_routes", "AcceptInvite route protection incorrect", False)
+    
+    # Test 9.5: Check component imports
+    imports_pattern = r'import.*TeamSettings.*AcceptInvite'
+    if re.search(imports_pattern, app_content, re.DOTALL):
+        log_test("app_routes", "TeamSettings and AcceptInvite components properly imported")
+    else:
+        log_test("app_routes", "Component imports not found", False)
+
+def test_login_signup_redirect():
+    """
+    TEST CASE 10: Login/Signup Redirect Support
+    - Verify reads redirect query param
+    - Verify navigates to redirect URL after auth
+    """
+    print("\n🔍 Testing Login/Signup Redirect Support...")
+    
+    login_content = read_file_content('/app/frontend/src/pages/Login.js')
+    signup_content = read_file_content('/app/frontend/src/pages/Signup.js')
+    
+    if not login_content:
+        log_test("login_signup_redirect", "Could not read Login.js file", False)
+        return
+    if not signup_content:
+        log_test("login_signup_redirect", "Could not read Signup.js file", False)
+        return
+    
+    # Test 10.1: Check redirect query param reading in Login
+    login_redirect_param_pattern = r'searchParams\.get.*redirect'
+    if re.search(login_redirect_param_pattern, login_content):
+        log_test("login_signup_redirect", "Login reads redirect query parameter")
+    else:
+        log_test("login_signup_redirect", "Login redirect parameter reading not found", False)
+    
+    # Test 10.2: Check redirect navigation in Login
+    login_redirect_nav_pattern = r'redirectUrl.*decodeURIComponent.*navigate'
+    if re.search(login_redirect_nav_pattern, login_content):
+        log_test("login_signup_redirect", "Login navigates to redirect URL after auth")
+    else:
+        log_test("login_signup_redirect", "Login redirect navigation not found", False)
+    
+    # Test 10.3: Check redirect query param reading in Signup
+    signup_redirect_param_pattern = r'searchParams\.get.*redirect'
+    if re.search(signup_redirect_param_pattern, signup_content):
+        log_test("login_signup_redirect", "Signup reads redirect query parameter")
+    else:
+        log_test("login_signup_redirect", "Signup redirect parameter reading not found", False)
+    
+    # Test 10.4: Check redirect navigation in Signup
+    signup_redirect_nav_pattern = r'redirectUrl.*decodeURIComponent.*navigate'
+    if re.search(signup_redirect_nav_pattern, signup_content):
+        log_test("login_signup_redirect", "Signup navigates to redirect URL after auth")
+    else:
+        log_test("login_signup_redirect", "Signup redirect navigation not found", False)
+    
+    # Test 10.5: Check default fallback to dashboard
+    dashboard_fallback_pattern = r'dashboard'
+    if re.search(dashboard_fallback_pattern, login_content) and re.search(dashboard_fallback_pattern, signup_content):
+        log_test("login_signup_redirect", "Default fallback to dashboard found in both Login and Signup")
+    else:
+        log_test("login_signup_redirect", "Default dashboard fallback not found", False)
+
 def print_test_summary():
     """Print comprehensive test summary"""
     print("\n" + "="*80)
-    print("🧪 CLICK-TO-START DRAWING UX CODE REVIEW TEST RESULTS")
+    print("🧪 MULTI-USER ACCOUNTS FEATURE TEST RESULTS")
     print("="*80)
     
     total_categories = len(test_results)
@@ -551,7 +654,7 @@ def print_test_summary():
     print(f"\n📊 OVERALL RESULTS: {passed_categories}/{total_categories} categories passed")
     
     if passed_categories == total_categories:
-        print("🎉 ALL TESTS PASSED - Click-to-Start Drawing UX implementation is complete!")
+        print("🎉 ALL TESTS PASSED - Multi-User Accounts feature implementation is complete!")
     else:
         print("⚠️  Some tests failed - Review implementation against requirements")
     
