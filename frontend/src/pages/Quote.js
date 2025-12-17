@@ -362,16 +362,26 @@ export default function Quote() {
   }, []);
 
   // Handle map click for drawing polygon
+  // Click-to-start: If not drawing and no active polygon, start drawing immediately
   const onMapClick = useCallback((event) => {
-    if (!isDrawing) return;
-
     const newPoint = {
       lat: event.latLng.lat(),
       lng: event.latLng.lng(),
     };
 
-    setCurrentDrawingPath(prev => [...prev, newPoint]);
-  }, [isDrawing]);
+    if (!isDrawing) {
+      // Start drawing immediately on first click (if address is set)
+      if (formData.address) {
+        setIsDrawing(true);
+        setCurrentDrawingPath([newPoint]);
+        setActivePolygonIndex(-1);
+        console.log('[Quote] Started drawing with click at:', newPoint);
+      }
+    } else {
+      // Already drawing - add point to current path
+      setCurrentDrawingPath(prev => [...prev, newPoint]);
+    }
+  }, [isDrawing, formData.address]);
 
   // Handle autocomplete place selection
   const onPlaceChanged = useCallback(() => {
