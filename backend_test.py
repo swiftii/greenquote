@@ -368,79 +368,78 @@ class GreenQuoteViewportEstimationTester:
             self.results['polygon_generation']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
-    def test_editable_polygons(self):
-        """Test editable polygons with draggable vertices"""
-        print("🔍 Testing Editable Polygons...")
+    def test_ui_feedback(self):
+        """Test UI feedback based on confidence levels"""
+        print("🔍 Testing UI Feedback...")
         
         quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
         
         if not quote_file.exists():
-            self.results['editable_polygons']['status'] = 'failed'
-            self.results['editable_polygons']['details'].append('❌ Quote.js file not found')
+            self.results['ui_feedback']['status'] = 'failed'
+            self.results['ui_feedback']['details'].append('❌ Quote.js file not found')
             return False
             
         try:
             content = quote_file.read_text()
             
-            # Check for editable polygon options
-            editable_options_checks = [
-                ('const editablePolygonOptions = \{', 'editablePolygonOptions constant defined'),
-                ('editable: true', 'Polygons are editable (vertex dragging enabled)'),
-                ('fillColor.*fillOpacity', 'Fill styling properties'),
-                ('strokeColor.*strokeWeight', 'Stroke styling properties'),
-                ('clickable: true', 'Polygons are clickable'),
-                ('draggable: false', 'Polygon dragging disabled (vertices only)'),
+            # Check for conditional rendering based on confidence
+            conditional_checks = [
+                ('estimateConfidence === \'high\'', 'Conditional rendering for high confidence'),
+                ('estimateConfidence === \'medium\'', 'Conditional rendering for medium confidence'),
+                ('estimateConfidence === \'low\'', 'Conditional rendering for low confidence'),
+                ('text-green-600 bg-green-50', 'Green styling for high confidence'),
+                ('text-yellow-700 bg-yellow-50', 'Yellow styling for medium confidence'),
+                ('text-orange-600 bg-orange-50', 'Orange styling for low confidence'),
             ]
             
-            for pattern, description in editable_options_checks:
+            for pattern, description in conditional_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['editable_polygons']['details'].append(f"✅ {description}")
+                    self.results['ui_feedback']['details'].append(f"✅ {description}")
                 else:
-                    self.results['editable_polygons']['details'].append(f"❌ {description}")
-                    self.results['editable_polygons']['status'] = 'failed'
+                    self.results['ui_feedback']['details'].append(f"❌ {description}")
+                    self.results['ui_feedback']['status'] = 'failed'
                     return False
             
-            # Check for path change event listeners
-            event_listener_checks = [
-                ('const handlePolygonPathChange = useCallback\(\(polygonIndex, newPath\)', 'handlePolygonPathChange function'),
-                ('window\.google\.maps\.event\.addListener\(path, \'set_at\'', 'set_at event listener for vertex drag'),
-                ('window\.google\.maps\.event\.addListener\(path, \'insert_at\'', 'insert_at event listener for vertex insertion'),
-                ('window\.google\.maps\.event\.addListener\(path, \'remove_at\'', 'remove_at event listener for vertex removal'),
-                ('handlePolygonPathChange\(index, newPath\)', 'Calls path change handler on vertex changes'),
+            # Check for specific confidence messages
+            message_checks = [
+                ('Estimated lawn area — drag corners to adjust', 'High confidence message'),
+                ('please verify and adjust as needed', 'Medium confidence message'),
+                ('Rough estimate — please adjust', 'Low confidence message'),
+                ('✓.*Estimated lawn area', 'High confidence checkmark icon'),
+                ('⚡.*Estimated lawn area', 'Medium confidence lightning icon'),
+                ('⚠️.*Rough estimate', 'Low confidence warning icon'),
             ]
             
-            for pattern, description in event_listener_checks:
+            for pattern, description in message_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['editable_polygons']['details'].append(f"✅ {description}")
+                    self.results['ui_feedback']['details'].append(f"✅ {description}")
                 else:
-                    self.results['editable_polygons']['details'].append(f"❌ {description}")
-                    self.results['editable_polygons']['status'] = 'failed'
+                    self.results['ui_feedback']['details'].append(f"❌ {description}")
+                    self.results['ui_feedback']['status'] = 'failed'
                     return False
             
-            # Check for polygon refs management
-            refs_checks = [
-                ('const polygonRefs = useRef\(\[\]\)', 'Polygon refs array for Google Maps instances'),
-                ('onLoad=\{\(polygonInstance\)', 'Polygon onLoad handler'),
-                ('polygonRefs\.current\[index\] = polygonInstance', 'Stores polygon instance in refs'),
-                ('const path = polygonInstance\.getPath\(\)', 'Gets polygon path from instance'),
-                ('path\.getLength\(\)', 'Gets path length for iteration'),
-                ('path\.getAt\(i\)', 'Gets point at index from path'),
+            # Check for auto-estimating loading state
+            loading_checks = [
+                ('isAutoEstimating &&', 'Auto-estimating loading state conditional'),
+                ('Detecting lawn area\.\.\.', 'Auto-estimation loading message'),
+                ('animate-spin', 'Loading spinner animation'),
+                ('text-blue-600 bg-blue-50', 'Blue styling for loading state'),
             ]
             
-            for pattern, description in refs_checks:
+            for pattern, description in loading_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['editable_polygons']['details'].append(f"✅ {description}")
+                    self.results['ui_feedback']['details'].append(f"✅ {description}")
                 else:
-                    self.results['editable_polygons']['details'].append(f"❌ {description}")
-                    self.results['editable_polygons']['status'] = 'failed'
+                    self.results['ui_feedback']['details'].append(f"❌ {description}")
+                    self.results['ui_feedback']['status'] = 'failed'
                     return False
             
-            self.results['editable_polygons']['status'] = 'passed'
+            self.results['ui_feedback']['status'] = 'passed'
             return True
             
         except Exception as e:
-            self.results['editable_polygons']['status'] = 'failed'
-            self.results['editable_polygons']['details'].append(f"Error reading Quote.js: {str(e)}")
+            self.results['ui_feedback']['status'] = 'failed'
+            self.results['ui_feedback']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
     def test_ui_controls(self):
