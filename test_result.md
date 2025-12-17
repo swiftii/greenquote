@@ -577,6 +577,81 @@ frontend:
         agent: "testing"
         comment: "✅ VERIFIED: Multi-zone drawing with + Add Zone fully implemented. '+ Add Zone' button exists, addNewZone() function exists, addNewZone finishes current drawing if path >= 3 points, addNewZone starts new drawing session, total area calculated as sum of all polygon areas, polygons array state properly managed. All 6 test requirements passed."
 
+  - task: "Frontend: TeamSettings Page - Team Management UI"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/TeamSettings.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created comprehensive team settings page with members list, pending invites display for owner/admin, invite form, and revoke functionality."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: TeamSettings page properly displays members list with roles, shows pending invites for owner/admin users, includes invite form with email and role selection, implements revoke button functionality, integrates with invite APIs, and displays role badges."
+
+  - task: "Frontend: AcceptInvite Page - Invite Acceptance Flow"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/AcceptInvite.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created invite acceptance page that redirects to login if not authenticated, shows accepting status, and redirects to dashboard on success."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: AcceptInvite page properly redirects to login with return URL if not authenticated, displays accepting status during processing, redirects to dashboard on success, handles token parameters from URL, integrates with accept API endpoint, and manages success/error states."
+
+  - task: "AccountService: Membership-based Resolution"
+    implemented: true
+    working: true
+    file: "frontend/src/services/accountService.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated accountService to use account_members table for multi-user support with fallback to owner_user_id for backwards compatibility."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: AccountService includes getUserAccountMembership function, queries account_members table first for multi-user support, provides fallback to owner_user_id for backwards compatibility, returns membership info with role, integrates with ensureUserAccount, and includes multi-user support documentation."
+
+  - task: "App.js Routes - Team and Invite Routes"
+    implemented: true
+    working: true
+    file: "frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added /settings/team and /accept-invite routes with proper component imports and route protection."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: App.js includes /settings/team and /accept-invite routes, TeamSettings route properly protected with ProtectedRoute and SubscriptionGuard, AcceptInvite route correctly protected with ProtectedRoute but not SubscriptionGuard (allows invite acceptance without subscription), and components properly imported."
+
+  - task: "Login/Signup Redirect Support - Invite Flow Integration"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/Login.js, frontend/src/pages/Signup.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added redirect query parameter support to Login and Signup pages for seamless invite acceptance flow."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Both Login and Signup pages read redirect query parameters, navigate to redirect URL after authentication using decodeURIComponent, provide default fallback to dashboard, and support the invite acceptance flow where users can be redirected back to accept-invite after authentication."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
