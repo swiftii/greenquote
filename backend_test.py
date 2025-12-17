@@ -229,7 +229,7 @@ def test_api_invites_accept():
     
     # Test 3.6: Check account_members insertion
     members_insert_pattern = r'account_members.*insert'
-    if re.search(members_insert_pattern, accept_content):
+    if re.search(members_insert_pattern, accept_content, re.DOTALL):
         log_test("api_invites_accept", "Account members insertion found")
     else:
         log_test("api_invites_accept", "Account members insertion not found", False)
