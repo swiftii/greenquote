@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,12 +8,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
+
+  // Get redirect URL from query params (e.g., for invite acceptance)
+  const redirectUrl = searchParams.get('redirect');
 
   const handleChange = (e) => {
     setFormData({
@@ -35,8 +39,9 @@ export default function Login() {
 
       if (signInError) throw signInError;
 
-      // Successful login
-      navigate('/dashboard');
+      // Successful login - redirect to intended page or dashboard
+      const targetUrl = redirectUrl ? decodeURIComponent(redirectUrl) : '/dashboard';
+      navigate(targetUrl);
     } catch (err) {
       if (err.message?.includes('Invalid login credentials')) {
         setError('Invalid email or password. Please try again.');
