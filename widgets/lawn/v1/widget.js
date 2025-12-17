@@ -510,14 +510,16 @@
             });
             
             // Initialize Service Area Manager for multi-polygon support
-            serviceAreaManager = new ServiceAreaManager(map, {
-                debugMode: true,
-                styles: {
-                    fillColor: '#16a34a',
-                    fillOpacity: 0.35,
-                    strokeWeight: 3,
-                    strokeColor: '#166534',
-                    editable: true,
+            // Check if ServiceAreaManager is available (loaded from serviceAreaUtils.js)
+            if (typeof ServiceAreaManager !== 'undefined') {
+                serviceAreaManager = new ServiceAreaManager(map, {
+                    debugMode: true,
+                    styles: {
+                        fillColor: '#16a34a',
+                        fillOpacity: 0.35,
+                        strokeWeight: 3,
+                        strokeColor: '#166534',
+                        editable: true,
                     draggable: false
                 },
                 onAreaChange: (totalSqFt, breakdown) => {
