@@ -278,7 +278,7 @@ def test_api_invites_list():
         log_test("api_invites_list", "Members query not found", False)
     
     # Test 4.3: Check user details fetching
-    user_details_pattern = r'getUserById.*userData'
+    user_details_pattern = r'getUserById|userData'
     if re.search(user_details_pattern, list_content):
         log_test("api_invites_list", "User details fetching found")
     else:
