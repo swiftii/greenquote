@@ -542,7 +542,11 @@
                         instructions.style.borderLeft = '4px solid #28a745';
                     }
                 }
-            });
+                });
+                console.log('[Widget] ServiceAreaManager initialized');
+            } else {
+                console.warn('[Widget] ServiceAreaManager not available - using basic polygon mode');
+            }
             
             // Drawing manager for manual drawing fallback
             drawingManager = new google.maps.drawing.DrawingManager({
@@ -563,8 +567,10 @@
             // Handle manually drawn polygons
             google.maps.event.addListener(drawingManager, 'polygoncomplete', function(polygon) {
                 // Clear auto-estimated polygons and use manual drawing
-                serviceAreaManager.clearAll();
-                serviceAreaManager.addPolygon(polygon);
+                if (serviceAreaManager) {
+                    serviceAreaManager.clearAll();
+                    serviceAreaManager.addPolygon(polygon);
+                }
                 drawingManager.setDrawingMode(null);
                 
                 document.getElementById('draw-btn').disabled = false;
