@@ -645,7 +645,10 @@
         document.querySelectorAll('input[name=\"propertyType\"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 state.propertyType = e.target.value;
-                if (state.address && !currentPolygon) {
+                // Re-auto-estimate with new property type if we have a place
+                if (selectedPlace && serviceAreaManager) {
+                    autoDrawServiceArea(selectedPlace);
+                } else if (state.address) {
                     estimateAreaFromAddress();
                 }
             });
