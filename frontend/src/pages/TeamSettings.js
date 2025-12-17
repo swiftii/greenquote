@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+// Use relative URLs for same-origin API calls on Vercel
+const BACKEND_URL = '';
 
 export default function TeamSettings() {
   const navigate = useNavigate();
