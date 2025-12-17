@@ -492,8 +492,6 @@ export default function Quote() {
     
     return newPolygons;
   }, []);
-    }, 800); // Brief delay for "Detecting..." UX
-  }, [recalculateTotalArea]);
 
   // Calculate pricing whenever form or add-ons change
   useEffect(() => {
