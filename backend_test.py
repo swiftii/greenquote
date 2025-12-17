@@ -787,17 +787,16 @@ class GreenQuoteViewportEstimationTester:
     
     def run_all_tests(self):
         """Run all tests and return results"""
-        print("🚀 Starting GreenQuote Pro App Quote.js Property Drawing Feature Tests\n")
+        print("🚀 Starting GreenQuote Pro App Viewport-Based Lawn Area Estimation Feature Tests\n")
         
         tests = [
             ('Code Structure', self.test_code_structure),
-            ('Satellite View Configuration', self.test_satellite_view_config),
-            ('Auto-Estimation Logic', self.test_auto_estimation_logic),
-            ('Multi-Polygon Support', self.test_multi_polygon_support),
-            ('Editable Polygons', self.test_editable_polygons),
-            ('UI Controls', self.test_ui_controls),
-            ('Data Model', self.test_data_model),
-            ('Event Handlers', self.test_event_handlers),
+            ('Estimation Logic', self.test_estimation_logic),
+            ('Confidence Indicator', self.test_confidence_indicator),
+            ('Polygon Generation', self.test_polygon_generation),
+            ('UI Feedback', self.test_ui_feedback),
+            ('Console Logging', self.test_console_logging),
+            ('Place Reference Storage', self.test_place_reference_storage),
             ('Integration Flow', self.test_integration_flow)
         ]
         
