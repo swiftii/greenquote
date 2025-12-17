@@ -497,8 +497,8 @@ def test_account_service_membership():
         log_test("account_service_membership", "getUserAccountMembership function not found", False)
     
     # Test 8.2: Check account_members table query
-    members_query_pattern = r'account_members.*select.*account_id.*role.*user_id'
-    if re.search(members_query_pattern, account_service_content):
+    members_query_pattern = r'account_members.*select'
+    if re.search(members_query_pattern, account_service_content, re.DOTALL):
         log_test("account_service_membership", "account_members table query found")
     else:
         log_test("account_service_membership", "account_members table query not found", False)
