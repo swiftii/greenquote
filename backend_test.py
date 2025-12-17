@@ -43,7 +43,7 @@ class GreenQuoteViewportEstimationTester:
         }
         
     def test_code_structure(self):
-        """Test Quote.js code structure and imports"""
+        """Test Quote.js code structure for viewport-based estimation"""
         print("🔍 Testing Code Structure...")
         
         quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
@@ -56,15 +56,19 @@ class GreenQuoteViewportEstimationTester:
         try:
             content = quote_file.read_text()
             
-            # Check for required imports
-            import_checks = [
-                ('import.*GoogleMap.*useJsApiLoader.*Autocomplete.*Polygon.*@react-google-maps/api', 'Google Maps imports'),
-                ('useState.*useEffect.*useCallback.*useRef', 'React hooks imports'),
-                ('DEFAULT_AREA_ESTIMATES', 'Default area estimates constant'),
-                ('editablePolygonOptions', 'Editable polygon options constant'),
+            # Check for ESTIMATION_CONFIG (replaced DEFAULT_AREA_ESTIMATES)
+            config_checks = [
+                ('const ESTIMATION_CONFIG = \{', 'ESTIMATION_CONFIG object exists'),
+                ('viewportToLawnRatio.*streetAddress.*0\.25', 'viewportToLawnRatio.streetAddress ~0.25'),
+                ('viewportToLawnRatio.*areaLevel.*0\.10', 'viewportToLawnRatio.areaLevel ~0.10'),
+                ('minLawnSqFt.*1500', 'minLawnSqFt: 1500'),
+                ('maxLawnSqFt.*60000', 'maxLawnSqFt: 60000'),
+                ('fallbackRadiusMeters.*40', 'fallbackRadiusMeters: 40'),
+                ('frontYardRatio.*0\.30', 'frontYardRatio: 0.30'),
+                ('backYardRatio.*0\.70', 'backYardRatio: 0.70'),
             ]
             
-            for pattern, description in import_checks:
+            for pattern, description in config_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
                     self.results['code_structure']['details'].append(f"✅ {description}")
                 else:
@@ -72,13 +76,24 @@ class GreenQuoteViewportEstimationTester:
                     self.results['code_structure']['status'] = 'failed'
                     return False
             
-            # Check for state variables
+            # Check for autoEstimateLawnArea function signature (accepts place, propertyType)
+            function_checks = [
+                ('const autoEstimateLawnArea = useCallback\(\(place, propertyType\)', 'autoEstimateLawnArea function signature accepts (place, propertyType)'),
+                ('const generatePolygonsFromEstimate = useCallback', 'generatePolygonsFromEstimate function exists'),
+            ]
+            
+            for pattern, description in function_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['code_structure']['details'].append(f"✅ {description}")
+                else:
+                    self.results['code_structure']['details'].append(f"❌ {description}")
+                    self.results['code_structure']['status'] = 'failed'
+                    return False
+            
+            # Check for confidence state variable
             state_checks = [
-                ('const \[polygons, setPolygons\] = useState\(\[\]\)', 'Polygons array state'),
-                ('const \[totalCalculatedArea, setTotalCalculatedArea\] = useState\(0\)', 'Total calculated area state'),
-                ('const \[isAutoEstimating, setIsAutoEstimating\] = useState\(false\)', 'Auto-estimating state'),
-                ('const \[currentDrawingPath, setCurrentDrawingPath\] = useState\(\[\]\)', 'Current drawing path state'),
-                ('const polygonRefs = useRef\(\[\]\)', 'Polygon refs for Google Maps instances'),
+                ('const \[estimateConfidence, setEstimateConfidence\] = useState\(\'high\'\)', 'estimateConfidence state variable exists'),
+                ('const selectedPlaceRef = useRef\(null\)', 'selectedPlaceRef ref exists'),
             ]
             
             for pattern, description in state_checks:
@@ -89,22 +104,13 @@ class GreenQuoteViewportEstimationTester:
                     self.results['code_structure']['status'] = 'failed'
                     return False
             
-            # Check for key functions
-            function_checks = [
-                ('const autoEstimateLawnArea = useCallback', 'autoEstimateLawnArea function'),
-                ('const recalculateTotalArea = useCallback', 'recalculateTotalArea function'),
-                ('const handlePolygonPathChange = useCallback', 'handlePolygonPathChange function'),
-                ('const calculateSinglePolygonArea = useCallback', 'calculateSinglePolygonArea function'),
-                ('const handlePropertyTypeChange', 'handlePropertyTypeChange function'),
-            ]
-            
-            for pattern, description in function_checks:
-                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['code_structure']['details'].append(f"✅ {description}")
-                else:
-                    self.results['code_structure']['details'].append(f"❌ {description}")
-                    self.results['code_structure']['status'] = 'failed'
-                    return False
+            # Verify DEFAULT_AREA_ESTIMATES is removed (should not exist)
+            if 'DEFAULT_AREA_ESTIMATES' in content:
+                self.results['code_structure']['details'].append('❌ DEFAULT_AREA_ESTIMATES still exists (should be removed)')
+                self.results['code_structure']['status'] = 'failed'
+                return False
+            else:
+                self.results['code_structure']['details'].append('✅ DEFAULT_AREA_ESTIMATES removed (replaced with ESTIMATION_CONFIG)')
             
             self.results['code_structure']['status'] = 'passed'
             return True
