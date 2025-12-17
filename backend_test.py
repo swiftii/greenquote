@@ -120,61 +120,91 @@ class GreenQuoteViewportEstimationTester:
             self.results['code_structure']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
-    def test_satellite_view_config(self):
-        """Test satellite view default configuration"""
-        print("🔍 Testing Satellite View Configuration...")
+    def test_estimation_logic(self):
+        """Test viewport-based estimation algorithm"""
+        print("🔍 Testing Estimation Logic...")
         
         quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
         
         if not quote_file.exists():
-            self.results['satellite_view_config']['status'] = 'failed'
-            self.results['satellite_view_config']['details'].append('❌ Quote.js file not found')
+            self.results['estimation_logic']['status'] = 'failed'
+            self.results['estimation_logic']['details'].append('❌ Quote.js file not found')
             return False
             
         try:
             content = quote_file.read_text()
             
-            # Check for satellite view configuration
-            satellite_checks = [
-                ('mapTypeId="satellite"', 'Map initializes with satellite view'),
-                ('mapTypeControl.*true', 'Map type control enabled'),
-                ('mapTypeControlOptions', 'Map type control options configured'),
-                ('MapTypeControlStyle.*DROPDOWN_MENU', 'Dropdown menu style for map type control'),
-                ('ControlPosition.*TOP_RIGHT', 'Top right position for map type control'),
+            # Check for viewport/bounds detection
+            viewport_checks = [
+                ('const viewport = place\.geometry\.viewport', 'Accesses place.geometry.viewport'),
+                ('const bounds = place\.geometry\.bounds', 'Accesses place.geometry.bounds'),
+                ('const box = viewport \|\| bounds', 'Uses viewport or bounds as fallback'),
+                ('const ne = box\.getNorthEast\(\)', 'Gets northeast corner'),
+                ('const sw = box\.getSouthWest\(\)', 'Gets southwest corner'),
             ]
             
-            for pattern, description in satellite_checks:
+            for pattern, description in viewport_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['satellite_view_config']['details'].append(f"✅ {description}")
+                    self.results['estimation_logic']['details'].append(f"✅ {description}")
                 else:
-                    self.results['satellite_view_config']['details'].append(f"❌ {description}")
-                    self.results['satellite_view_config']['status'] = 'failed'
+                    self.results['estimation_logic']['details'].append(f"❌ {description}")
+                    self.results['estimation_logic']['status'] = 'failed'
                     return False
             
-            # Check GoogleMap component configuration
-            map_config_checks = [
-                ('<GoogleMap', 'GoogleMap component present'),
-                ('mapContainerStyle=\{mapContainerStyle\}', 'Map container style configured'),
-                ('center=\{mapCenter\}', 'Map center state binding'),
-                ('zoom=\{mapZoom\}', 'Map zoom state binding'),
-                ('onLoad=\{onMapLoad\}', 'Map load handler'),
-                ('onClick=\{onMapClick\}', 'Map click handler for drawing'),
+            # Check for area calculation
+            area_calc_checks = [
+                ('const latMeters = latDiff \* 111320', 'Converts lat difference to meters'),
+                ('const lngMeters = lngDiff \* 111320 \* Math\.cos', 'Converts lng difference to meters with cos correction'),
+                ('const boundsAreaMeters = latMeters \* lngMeters', 'Calculates bounds area in meters'),
+                ('boundsArea = boundsAreaMeters \* 10\.7639', 'Converts to square feet'),
             ]
             
-            for pattern, description in map_config_checks:
+            for pattern, description in area_calc_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['satellite_view_config']['details'].append(f"✅ {description}")
+                    self.results['estimation_logic']['details'].append(f"✅ {description}")
                 else:
-                    self.results['satellite_view_config']['details'].append(f"❌ {description}")
-                    self.results['satellite_view_config']['status'] = 'failed'
+                    self.results['estimation_logic']['details'].append(f"❌ {description}")
+                    self.results['estimation_logic']['status'] = 'failed'
                     return False
             
-            self.results['satellite_view_config']['status'] = 'passed'
+            # Check for quality guardrails
+            guardrail_checks = [
+                ('if \(boundsArea > 1500000\)', 'Large viewport detection (>1.5M sqft)'),
+                ('ratio = 0\.05', 'Reduces ratio to 0.05 for large viewports'),
+                ('confidence = \'low\'', 'Sets confidence to low for large viewports'),
+                ('if \(boundsArea < 10000\)', 'Small viewport detection (<10K sqft)'),
+                ('ratio = Math\.min\(0\.5, ratio \* 1\.5\)', 'Increases ratio by 1.5x for small viewports'),
+            ]
+            
+            for pattern, description in guardrail_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['estimation_logic']['details'].append(f"✅ {description}")
+                else:
+                    self.results['estimation_logic']['details'].append(f"❌ {description}")
+                    self.results['estimation_logic']['status'] = 'failed'
+                    return False
+            
+            # Check for min/max bounds
+            bounds_checks = [
+                ('Math\.max\(.*ESTIMATION_CONFIG\.minLawnSqFt', 'Applies minimum lawn size bound'),
+                ('Math\.min\(.*ESTIMATION_CONFIG\.maxLawnSqFt', 'Applies maximum lawn size bound'),
+                ('Math\.round\(estimatedLawnSqFt \/ 100\) \* 100', 'Rounds to nearest 100 sqft'),
+            ]
+            
+            for pattern, description in bounds_checks:
+                if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+                    self.results['estimation_logic']['details'].append(f"✅ {description}")
+                else:
+                    self.results['estimation_logic']['details'].append(f"❌ {description}")
+                    self.results['estimation_logic']['status'] = 'failed'
+                    return False
+            
+            self.results['estimation_logic']['status'] = 'passed'
             return True
             
         except Exception as e:
-            self.results['satellite_view_config']['status'] = 'failed'
-            self.results['satellite_view_config']['details'].append(f"Error reading Quote.js: {str(e)}")
+            self.results['estimation_logic']['status'] = 'failed'
+            self.results['estimation_logic']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
     def test_auto_estimation_logic(self):
