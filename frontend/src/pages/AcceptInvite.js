@@ -124,7 +124,7 @@ export default function AcceptInvite() {
           <CardDescription>
             {status === 'success' && (
               <>
-                You've successfully joined <strong>{accountName || 'the team'}</strong>.
+                You&apos;ve successfully joined <strong>{accountName || 'the team'}</strong>.
                 <br />Redirecting to dashboard...
               </>
             )}
