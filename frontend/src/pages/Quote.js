@@ -772,8 +772,9 @@ export default function Quote() {
           frequency: '',
           sendQuoteToCustomer: true,
         });
-        setPolygonPath([]);
-        setCalculatedArea(0);
+        setPolygons([]);
+        setTotalCalculatedArea(0);
+        setCurrentDrawingPath([]);
         setMapCenter(defaultCenter);
         setMapZoom(4);
         setSuccess(null);
