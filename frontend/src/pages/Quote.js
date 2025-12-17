@@ -1232,8 +1232,22 @@ export default function Quote() {
                     )}
                     
                     {!isAutoEstimating && polygons.length > 0 && !isDrawing && (
-                      <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
-                        ✓ We estimated your lawn area — drag corners to adjust, or click &quot;Add Zone&quot; for separated areas.
+                      <div className={`text-sm p-2 rounded ${
+                        estimateConfidence === 'high' 
+                          ? 'text-green-600 bg-green-50' 
+                          : estimateConfidence === 'medium'
+                            ? 'text-yellow-700 bg-yellow-50'
+                            : 'text-orange-600 bg-orange-50'
+                      }`}>
+                        {estimateConfidence === 'high' && (
+                          <>✓ Estimated lawn area — drag corners to adjust, or click &quot;Add Zone&quot; for separated areas.</>
+                        )}
+                        {estimateConfidence === 'medium' && (
+                          <>⚡ Estimated lawn area — please verify and adjust as needed.</>
+                        )}
+                        {estimateConfidence === 'low' && (
+                          <>⚠️ Rough estimate — please adjust the boundary to match your lawn.</>
+                        )}
                       </div>
                     )}
 
