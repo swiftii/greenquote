@@ -686,6 +686,9 @@ class GreenQuoteViewportEstimationTester:
                 else:
                     integration_checks.append("❌ Place reference storage incomplete")
             
+            if 'integration_flow' not in self.results:
+                self.results['integration_flow'] = {'status': 'pending', 'details': []}
+            
             self.results['integration_flow']['details'] = integration_checks
             
             # Determine overall integration status
@@ -698,6 +701,8 @@ class GreenQuoteViewportEstimationTester:
                 return True
                 
         except Exception as e:
+            if 'integration_flow' not in self.results:
+                self.results['integration_flow'] = {'status': 'failed', 'details': []}
             self.results['integration_flow']['status'] = 'failed'
             self.results['integration_flow']['details'].append(f"Error testing integration: {str(e)}")
             return False
