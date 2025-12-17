@@ -637,7 +637,8 @@ export default function Quote() {
           longitude: formData.longitude,
           lawnSizeSqFt: formData.lawnSizeSqFt,
           areaSource: formData.areaSource,
-          polygonPath: polygonPath,
+          polygons: polygons, // Multi-polygon data
+          totalAreaSqFt: totalCalculatedArea,
         },
         service: {
           primary: formData.primaryService,
