@@ -207,78 +207,76 @@ class GreenQuoteViewportEstimationTester:
             self.results['estimation_logic']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
-    def test_auto_estimation_logic(self):
-        """Test auto-estimation after address selection"""
-        print("🔍 Testing Auto-Estimation Logic...")
+    def test_confidence_indicator(self):
+        """Test confidence indicator logic"""
+        print("🔍 Testing Confidence Indicator...")
         
         quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
         
         if not quote_file.exists():
-            self.results['auto_estimation_logic']['status'] = 'failed'
-            self.results['auto_estimation_logic']['details'].append('❌ Quote.js file not found')
+            self.results['confidence_indicator']['status'] = 'failed'
+            self.results['confidence_indicator']['details'].append('❌ Quote.js file not found')
             return False
             
         try:
             content = quote_file.read_text()
             
-            # Check for auto-estimation function
-            estimation_checks = [
-                ('const autoEstimateLawnArea = useCallback\(\(center, propertyType\)', 'autoEstimateLawnArea function signature'),
-                ('setIsAutoEstimating\(true\)', 'Sets auto-estimating loading state'),
-                ('DEFAULT_AREA_ESTIMATES\[propertyType\]', 'Uses default area estimates by property type'),
-                ('setTimeout\(\(\) => \{', 'Simulates detection delay for UX'),
-                ('setIsAutoEstimating\(false\)', 'Clears auto-estimating state'),
+            # Check for address precision detection
+            precision_checks = [
+                ('const hasStreetNumber = place\.address_components\?\.some', 'Detects street number in address components'),
+                ('c\.types\.includes\(\'street_number\'\)', 'Checks for street_number type'),
+                ('const hasRoute = place\.address_components\?\.some', 'Detects route in address components'),
+                ('c\.types\.includes\(\'route\'\)', 'Checks for route type'),
+                ('const isStreetAddress = hasStreetNumber && hasRoute', 'Combines street number and route for precision'),
             ]
             
-            for pattern, description in estimation_checks:
+            for pattern, description in precision_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['auto_estimation_logic']['details'].append(f"✅ {description}")
+                    self.results['confidence_indicator']['details'].append(f"✅ {description}")
                 else:
-                    self.results['auto_estimation_logic']['details'].append(f"❌ {description}")
-                    self.results['auto_estimation_logic']['status'] = 'failed'
+                    self.results['confidence_indicator']['details'].append(f"❌ {description}")
+                    self.results['confidence_indicator']['status'] = 'failed'
                     return False
             
-            # Check for residential vs commercial logic
-            property_type_checks = [
-                ('if \(propertyType === \'residential\'\)', 'Residential property type handling'),
-                ('frontYardArea = estimatedArea \* 0\.3', 'Front yard 30% allocation'),
-                ('backYardArea = estimatedArea \* 0\.7', 'Back yard 70% allocation'),
-                ('newPolygons = \[', 'Creates array of polygons'),
-                ('id: \'front-yard-\' \+ Date\.now\(\)', 'Front yard polygon with unique ID'),
-                ('id: \'back-yard-\' \+ Date\.now\(\)', 'Back yard polygon with unique ID'),
-                ('id: \'commercial-\' \+ Date\.now\(\)', 'Commercial polygon with unique ID'),
+            # Check for confidence level assignment
+            confidence_checks = [
+                ('if \(isStreetAddress\).*confidence = \'high\'', 'High confidence for street addresses'),
+                ('ratio = ESTIMATION_CONFIG\.viewportToLawnRatio\.streetAddress', 'Uses streetAddress ratio for high confidence'),
+                ('else.*confidence = \'medium\'', 'Medium confidence for area-level addresses'),
+                ('ratio = ESTIMATION_CONFIG\.viewportToLawnRatio\.areaLevel', 'Uses areaLevel ratio for medium confidence'),
+                ('setEstimateConfidence\(confidence\)', 'Sets confidence state'),
             ]
             
-            for pattern, description in property_type_checks:
+            for pattern, description in confidence_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['auto_estimation_logic']['details'].append(f"✅ {description}")
+                    self.results['confidence_indicator']['details'].append(f"✅ {description}")
                 else:
-                    self.results['auto_estimation_logic']['details'].append(f"❌ {description}")
-                    self.results['auto_estimation_logic']['status'] = 'failed'
+                    self.results['confidence_indicator']['details'].append(f"❌ {description}")
+                    self.results['confidence_indicator']['status'] = 'failed'
                     return False
             
-            # Check for onPlaceChanged integration
-            place_changed_checks = [
-                ('const onPlaceChanged = useCallback', 'onPlaceChanged callback function'),
-                ('autoEstimateLawnArea\(\{ lat, lng \}, formData\.propertyType\)', 'Calls auto-estimation after place selection'),
-                ('setTimeout\(\(\) => \{.*autoEstimateLawnArea', 'Delays auto-estimation to let map center'),
-                ('setPolygons\(\[\]\)', 'Clears existing polygons before estimation'),
+            # Check for fallback confidence
+            fallback_checks = [
+                ('No viewport\/bounds - using fallback estimation', 'Fallback estimation message'),
+                ('confidence = \'low\'', 'Low confidence for fallback estimation'),
+                ('const radiusMeters = ESTIMATION_CONFIG\.fallbackRadiusMeters', 'Uses fallback radius'),
+                ('estimatedLawnSqFt = boundsArea \* 0\.4', 'Assumes 40% of circular area is lawn'),
             ]
             
-            for pattern, description in place_changed_checks:
+            for pattern, description in fallback_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['auto_estimation_logic']['details'].append(f"✅ {description}")
+                    self.results['confidence_indicator']['details'].append(f"✅ {description}")
                 else:
-                    self.results['auto_estimation_logic']['details'].append(f"❌ {description}")
-                    self.results['auto_estimation_logic']['status'] = 'failed'
+                    self.results['confidence_indicator']['details'].append(f"❌ {description}")
+                    self.results['confidence_indicator']['status'] = 'failed'
                     return False
             
-            self.results['auto_estimation_logic']['status'] = 'passed'
+            self.results['confidence_indicator']['status'] = 'passed'
             return True
             
         except Exception as e:
-            self.results['auto_estimation_logic']['status'] = 'failed'
-            self.results['auto_estimation_logic']['details'].append(f"Error reading Quote.js: {str(e)}")
+            self.results['confidence_indicator']['status'] = 'failed'
+            self.results['confidence_indicator']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
     def test_multi_polygon_support(self):
