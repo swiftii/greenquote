@@ -1007,26 +1007,25 @@ export default function Quote() {
                 {isLoaded && isMapsConfigured && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label>Draw Service Area Boundary</Label>
+                      <Label>Service Area Boundary</Label>
                       <div className="flex gap-2">
-                        {!isDrawing ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={startDrawing}
-                            disabled={!formData.address}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            ✏️ Start Drawing
-                          </Button>
-                        ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={startDrawing}
+                          disabled={!formData.address || isDrawing}
+                        >
+                          ➕ Add Zone
+                        </Button>
+                        {isDrawing && (
                           <>
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
                               onClick={undoLastPoint}
-                              disabled={polygonPath.length === 0}
+                              disabled={currentDrawingPath.length === 0}
                             >
                               ↩️ Undo
                             </Button>
@@ -1034,29 +1033,43 @@ export default function Quote() {
                               type="button"
                               size="sm"
                               onClick={finishDrawing}
-                              disabled={polygonPath.length < 3}
+                              disabled={currentDrawingPath.length < 3}
                               className="bg-green-600 hover:bg-green-700"
                             >
-                              ✓ Finish
+                              ✓ Done
                             </Button>
                           </>
                         )}
-                        {polygonPath.length > 0 && (
+                        {polygons.length > 0 && !isDrawing && (
                           <Button
                             type="button"
                             size="sm"
                             variant="destructive"
-                            onClick={clearPolygon}
+                            onClick={clearAllPolygons}
                           >
-                            🗑️ Clear
+                            🗑️ Clear All
                           </Button>
                         )}
                       </div>
                     </div>
 
+                    {/* Status messages */}
+                    {isAutoEstimating && (
+                      <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded flex items-center gap-2">
+                        <span className="animate-spin">⏳</span>
+                        Detecting lawn area...
+                      </div>
+                    )}
+                    
+                    {!isAutoEstimating && polygons.length > 0 && !isDrawing && (
+                      <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
+                        ✓ We estimated your lawn area — drag corners to adjust, or click &quot;Add Zone&quot; for separated areas.
+                      </div>
+                    )}
+
                     {isDrawing && (
                       <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
-                        Click on the map to add boundary points (min 3), then click &quot;Finish&quot;.
+                        Click on the map to add boundary points (min 3), then click &quot;Done&quot;.
                       </p>
                     )}
 
@@ -1071,21 +1084,127 @@ export default function Quote() {
                         disableDefaultUI: true,
                         zoomControl: true,
                         mapTypeControl: true,
+                        mapTypeControlOptions: {
+                          style: window.google?.maps?.MapTypeControlStyle?.DROPDOWN_MENU,
+                          position: window.google?.maps?.ControlPosition?.TOP_RIGHT,
+                        },
                         fullscreenControl: true,
                       }}
                     >
-                      {polygonPath.length > 0 && (
-                        <Polygon paths={polygonPath} options={polygonOptions} />
+                      {/* Render all existing polygons (editable) */}
+                      {polygons.map((polygon, index) => (
+                        <Polygon
+                          key={polygon.id}
+                          paths={polygon.path}
+                          options={editablePolygonOptions}
+                          onMouseUp={() => {
+                            // Get updated path from the polygon ref
+                            const polygonRef = polygonRefs.current[index];
+                            if (polygonRef) {
+                              const path = polygonRef.getPath();
+                              const newPath = [];
+                              for (let i = 0; i < path.getLength(); i++) {
+                                const point = path.getAt(i);
+                                newPath.push({ lat: point.lat(), lng: point.lng() });
+                              }
+                              handlePolygonPathChange(index, newPath);
+                            }
+                          }}
+                          onLoad={(polygonInstance) => {
+                            polygonRefs.current[index] = polygonInstance;
+                            
+                            // Listen for path changes
+                            const path = polygonInstance.getPath();
+                            window.google.maps.event.addListener(path, 'set_at', () => {
+                              const newPath = [];
+                              for (let i = 0; i < path.getLength(); i++) {
+                                const point = path.getAt(i);
+                                newPath.push({ lat: point.lat(), lng: point.lng() });
+                              }
+                              handlePolygonPathChange(index, newPath);
+                            });
+                            window.google.maps.event.addListener(path, 'insert_at', () => {
+                              const newPath = [];
+                              for (let i = 0; i < path.getLength(); i++) {
+                                const point = path.getAt(i);
+                                newPath.push({ lat: point.lat(), lng: point.lng() });
+                              }
+                              handlePolygonPathChange(index, newPath);
+                            });
+                            window.google.maps.event.addListener(path, 'remove_at', () => {
+                              const newPath = [];
+                              for (let i = 0; i < path.getLength(); i++) {
+                                const point = path.getAt(i);
+                                newPath.push({ lat: point.lat(), lng: point.lng() });
+                              }
+                              handlePolygonPathChange(index, newPath);
+                            });
+                          }}
+                        />
+                      ))}
+                      
+                      {/* Current drawing path (not editable yet) */}
+                      {currentDrawingPath.length > 0 && (
+                        <Polygon 
+                          paths={currentDrawingPath} 
+                          options={{
+                            ...editablePolygonOptions,
+                            editable: false,
+                            strokeStyle: 'dashed',
+                            fillOpacity: 0.2,
+                          }} 
+                        />
                       )}
                     </GoogleMap>
 
-                    {calculatedArea > 0 && (
+                    {/* Polygon list with delete buttons */}
+                    {polygons.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium text-gray-700">
+                            Service Zones ({polygons.length})
+                          </span>
+                          <span className="text-green-600 font-bold">
+                            Total: {totalCalculatedArea.toLocaleString()} sq ft
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {polygons.map((polygon, index) => (
+                            <div 
+                              key={polygon.id}
+                              className="flex items-center justify-between bg-gray-50 border rounded px-3 py-2"
+                            >
+                              <span className="text-sm">
+                                Zone {index + 1}: {polygon.areaSqFt?.toLocaleString() || 0} sq ft
+                              </span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="text-red-500 hover:text-red-700 h-6 px-2"
+                                onClick={() => deletePolygon(index)}
+                              >
+                                ✕
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {totalCalculatedArea > 0 && (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
                         <div>
-                          <span className="text-sm text-gray-600">Measured Area:</span>
+                          <span className="text-sm text-gray-600">Total Measured Area:</span>
                           <span className="text-xl font-bold text-green-600 ml-2">
-                            {calculatedArea.toLocaleString()} sq ft
+                            {totalCalculatedArea.toLocaleString()} sq ft
                           </span>
+                          {polygons.length > 1 && (
+                            <span className="text-xs text-gray-500 ml-2">
+                              ({polygons.length} zones)
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
