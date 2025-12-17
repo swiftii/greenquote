@@ -29,19 +29,17 @@ from pathlib import Path
 # Add the app directory to Python path
 sys.path.insert(0, '/app')
 
-class GreenQuotePropertyDrawingTester:
+class GreenQuoteViewportEstimationTester:
     def __init__(self):
         self.app_dir = Path('/app')
         self.results = {
             'code_structure': {'status': 'pending', 'details': []},
-            'satellite_view_config': {'status': 'pending', 'details': []},
-            'auto_estimation_logic': {'status': 'pending', 'details': []},
-            'multi_polygon_support': {'status': 'pending', 'details': []},
-            'editable_polygons': {'status': 'pending', 'details': []},
-            'ui_controls': {'status': 'pending', 'details': []},
-            'data_model': {'status': 'pending', 'details': []},
-            'event_handlers': {'status': 'pending', 'details': []},
-            'integration_flow': {'status': 'pending', 'details': []}
+            'estimation_logic': {'status': 'pending', 'details': []},
+            'confidence_indicator': {'status': 'pending', 'details': []},
+            'polygon_generation': {'status': 'pending', 'details': []},
+            'ui_feedback': {'status': 'pending', 'details': []},
+            'console_logging': {'status': 'pending', 'details': []},
+            'place_reference_storage': {'status': 'pending', 'details': []}
         }
         
     def test_code_structure(self):
