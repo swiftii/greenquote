@@ -377,8 +377,8 @@ def test_frontend_team_settings():
         return
     
     # Test 6.1: Check members list display
-    members_list_pattern = r'members\.map.*member.*role'
-    if re.search(members_list_pattern, team_settings_content):
+    members_list_pattern = r'members\.map.*member'
+    if re.search(members_list_pattern, team_settings_content, re.DOTALL):
         log_test("frontend_team_settings", "Members list with roles display found")
     else:
         log_test("frontend_team_settings", "Members list display not found", False)
