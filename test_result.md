@@ -510,10 +510,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Click-to-Start Drawing UX"
-    - "Start Drawing Button"
-    - "Real-time Area Calculation"
-    - "Multi-Zone Drawing with + Add Zone"
+    - "Multi-User Accounts Feature"
+    - "Team Invite System"
+    - "Account Membership-based Resolution"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
