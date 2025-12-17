@@ -15,7 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { GoogleMap, useJsApiLoader, Autocomplete, Polygon, Circle, Marker } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Autocomplete, Polygon, Circle } from '@react-google-maps/api';
 
 /**
  * Quote Page - Pro Quote Flow Entry Point
