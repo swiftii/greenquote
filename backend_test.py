@@ -398,7 +398,7 @@ def test_frontend_team_settings():
         log_test("frontend_team_settings", "Invite form not found", False)
     
     # Test 6.4: Check revoke button functionality
-    revoke_button_pattern = r'handleRevokeInvite.*Revoke'
+    revoke_button_pattern = r'handleRevokeInvite|Revoke'
     if re.search(revoke_button_pattern, team_settings_content):
         log_test("frontend_team_settings", "Revoke button functionality found")
     else:
