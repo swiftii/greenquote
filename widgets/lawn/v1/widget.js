@@ -38,13 +38,15 @@
         pricingMode: 'flat',
         pricingTiersSnapshot: null,
         flatRateSnapshot: null,
-        basePricePerVisit: 0
+        basePricePerVisit: 0,
+        // Multi-polygon support
+        polygonCoords: [] // Array of coordinate arrays for persistence
     };
     
     // Google Maps objects
     let map = null;
     let drawingManager = null;
-    let currentPolygon = null;
+    let serviceAreaManager = null; // Multi-polygon manager
     let autocomplete = null;
     let selectedPlace = null;
     
