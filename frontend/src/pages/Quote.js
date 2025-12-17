@@ -67,10 +67,25 @@ const defaultCenter = {
   lng: -98.5795,
 };
 
-// Default area estimates by property type
-const DEFAULT_AREA_ESTIMATES = {
-  residential: 8000,
-  commercial: 15000,
+// Estimation config (used for viewport-based calculation)
+const ESTIMATION_CONFIG = {
+  // Fraction of viewport area that's typically serviceable lawn
+  viewportToLawnRatio: {
+    streetAddress: 0.25,  // Street addresses: ~25% of viewport is lawn
+    areaLevel: 0.10,      // City/ZIP level: more conservative
+  },
+  // Absolute bounds for estimated lawn area (sqft)
+  minLawnSqFt: 1500,
+  maxLawnSqFt: 60000,
+  // Fallback radius in meters when no viewport available
+  fallbackRadiusMeters: 40,
+  // Split ratios for residential (front/back)
+  frontYardRatio: 0.30,
+  backYardRatio: 0.70,
+  // Polygon aspect ratios
+  frontYardAspect: 2.5,  // Wide and shallow
+  backYardAspect: 1.2,   // More square
+  commercialAspect: 1.5,
 };
 
 // Polygon options for editable polygons
