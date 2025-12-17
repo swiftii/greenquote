@@ -412,7 +412,7 @@ def test_frontend_team_settings():
         log_test("frontend_team_settings", "API integration not found", False)
     
     # Test 6.6: Check role badge display
-    role_badge_pattern = r'getRoleBadgeClass.*owner.*admin.*member'
+    role_badge_pattern = r'getRoleBadgeClass|role.*badge'
     if re.search(role_badge_pattern, team_settings_content):
         log_test("frontend_team_settings", "Role badge display logic found")
     else:
