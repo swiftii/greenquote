@@ -532,95 +532,91 @@ class GreenQuoteViewportEstimationTester:
             self.results['console_logging']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
-    def test_data_model(self):
-        """Test data model for polygons and area calculation"""
-        print("🔍 Testing Data Model...")
+    def test_place_reference_storage(self):
+        """Test stored place reference for re-estimation"""
+        print("🔍 Testing Place Reference Storage...")
         
         quote_file = self.app_dir / 'frontend' / 'src' / 'pages' / 'Quote.js'
         
         if not quote_file.exists():
-            self.results['data_model']['status'] = 'failed'
-            self.results['data_model']['details'].append('❌ Quote.js file not found')
+            self.results['place_reference_storage']['status'] = 'failed'
+            self.results['place_reference_storage']['details'].append('❌ Quote.js file not found')
             return False
             
         try:
             content = quote_file.read_text()
             
-            # Check for polygon data structure
-            data_structure_checks = [
-                ('\{id, path: \[\{lat, lng\}\], areaSqFt\}', 'Polygon object structure with id, path, and area'),
-                ('id: \'manual-\' \+ Date\.now\(\)', 'Manual polygon ID generation'),
-                ('path: currentDrawingPath', 'Path from drawing coordinates'),
-                ('areaSqFt: 0', 'Initial area set to 0 (calculated later)'),
-                ('const updatedPolygons = currentPolygons\.map\(p => \{', 'Updates polygon areas in array'),
+            # Check for selectedPlaceRef declaration and usage
+            place_ref_checks = [
+                ('const selectedPlaceRef = useRef\(null\)', 'selectedPlaceRef ref declared'),
+                ('selectedPlaceRef\.current = place', 'Stores full place object in ref'),
+                ('Store full place object for estimation', 'Comment about storing place object'),
             ]
             
-            for pattern, description in data_structure_checks:
+            for pattern, description in place_ref_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['data_model']['details'].append(f"✅ {description}")
+                    self.results['place_reference_storage']['details'].append(f"✅ {description}")
                 else:
-                    self.results['data_model']['details'].append(f"❌ {description}")
-                    self.results['data_model']['status'] = 'failed'
+                    self.results['place_reference_storage']['details'].append(f"❌ {description}")
+                    self.results['place_reference_storage']['status'] = 'failed'
                     return False
             
-            # Check for area calculation logic
-            area_calculation_checks = [
-                ('const calculateSinglePolygonArea = useCallback\(\(path\)', 'Single polygon area calculation function'),
-                ('window\.google\.maps\.geometry\.spherical\.computeArea', 'Uses Google Maps spherical geometry'),
-                ('Math\.round\(areaInSqMeters \* 10\.7639\)', 'Converts square meters to square feet'),
-                ('const areaSqFt = calculateSinglePolygonArea\(p\.path\)', 'Calculates area for each polygon'),
-                ('total \+= areaSqFt', 'Sums all polygon areas'),
-                ('return \{ \.\.\.p, areaSqFt \}', 'Updates polygon with calculated area'),
+            # Check for property type change re-estimation
+            property_type_reestimation_checks = [
+                ('const handlePropertyTypeChange = \(value\)', 'handlePropertyTypeChange function'),
+                ('if \(selectedPlaceRef\.current\)', 'Checks for stored place reference'),
+                ('autoEstimateLawnArea\(selectedPlaceRef\.current, value\)', 'Re-estimates using stored place and new property type'),
+                ('Re-estimate when property type changes', 'Comment about re-estimation'),
             ]
             
-            for pattern, description in area_calculation_checks:
+            for pattern, description in property_type_reestimation_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['data_model']['details'].append(f"✅ {description}")
+                    self.results['place_reference_storage']['details'].append(f"✅ {description}")
                 else:
-                    self.results['data_model']['details'].append(f"❌ {description}")
-                    self.results['data_model']['status'] = 'failed'
+                    self.results['place_reference_storage']['details'].append(f"❌ {description}")
+                    self.results['place_reference_storage']['status'] = 'failed'
                     return False
             
-            # Check for total area state management
-            total_area_checks = [
-                ('const \[totalCalculatedArea, setTotalCalculatedArea\]', 'Total calculated area state'),
-                ('setTotalCalculatedArea\(total\)', 'Updates total calculated area'),
-                ('lawnSizeSqFt: total > 0 \? total\.toString\(\)', 'Updates form lawn size from total'),
-                ('areaSource: total > 0 \? \'measured\' : \'manual\'', 'Sets area source based on measurement'),
-                ('Total: \{totalCalculatedArea\.toLocaleString\(\)', 'Displays total area with formatting'),
+            # Check for fallback place object creation
+            fallback_checks = [
+                ('else if \(formData\.latitude && formData\.longitude\)', 'Fallback for coordinates without place object'),
+                ('const fallbackPlace = \{', 'Creates fallback place object'),
+                ('geometry: \{.*location:', 'Fallback place geometry structure'),
+                ('lat: \(\) => formData\.latitude', 'Fallback lat function'),
+                ('lng: \(\) => formData\.longitude', 'Fallback lng function'),
+                ('formatted_address: formData\.address', 'Fallback formatted address'),
             ]
             
-            for pattern, description in total_area_checks:
+            for pattern, description in fallback_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['data_model']['details'].append(f"✅ {description}")
+                    self.results['place_reference_storage']['details'].append(f"✅ {description}")
                 else:
-                    self.results['data_model']['details'].append(f"❌ {description}")
-                    self.results['data_model']['status'] = 'failed'
+                    self.results['place_reference_storage']['details'].append(f"❌ {description}")
+                    self.results['place_reference_storage']['status'] = 'failed'
                     return False
             
-            # Check for quote save data inclusion
-            save_data_checks = [
-                ('polygons: polygons', 'Polygons array included in quote save data'),
-                ('totalAreaSqFt: totalCalculatedArea', 'Total area included in quote save data'),
-                ('areaSource: formData\.areaSource', 'Area source (measured/manual) included'),
-                ('\{polygons\.length > 1 && \(', 'Multi-zone display logic'),
-                ('\(\{polygons\.length\} zones\)', 'Zone count display'),
+            # Check for place object usage in onPlaceChanged
+            place_changed_usage_checks = [
+                ('const onPlaceChanged = useCallback', 'onPlaceChanged callback function'),
+                ('const place = autocompleteRef\.current\.getPlace\(\)', 'Gets place from autocomplete'),
+                ('autoEstimateLawnArea\(place, formData\.propertyType\)', 'Passes full place object to estimation'),
+                ('setTimeout\(\(\) => \{.*autoEstimateLawnArea\(place', 'Delayed estimation with place object'),
             ]
             
-            for pattern, description in save_data_checks:
+            for pattern, description in place_changed_usage_checks:
                 if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
-                    self.results['data_model']['details'].append(f"✅ {description}")
+                    self.results['place_reference_storage']['details'].append(f"✅ {description}")
                 else:
-                    self.results['data_model']['details'].append(f"❌ {description}")
-                    self.results['data_model']['status'] = 'failed'
+                    self.results['place_reference_storage']['details'].append(f"❌ {description}")
+                    self.results['place_reference_storage']['status'] = 'failed'
                     return False
             
-            self.results['data_model']['status'] = 'passed'
+            self.results['place_reference_storage']['status'] = 'passed'
             return True
             
         except Exception as e:
-            self.results['data_model']['status'] = 'failed'
-            self.results['data_model']['details'].append(f"Error reading Quote.js: {str(e)}")
+            self.results['place_reference_storage']['status'] = 'failed'
+            self.results['place_reference_storage']['details'].append(f"Error reading Quote.js: {str(e)}")
             return False
     
     def test_event_handlers(self):
