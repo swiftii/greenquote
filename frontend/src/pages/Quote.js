@@ -971,7 +971,7 @@ export default function Quote() {
                     <Label htmlFor="propertyType">Property Type</Label>
                     <Select
                       value={formData.propertyType}
-                      onValueChange={(value) => handleInputChange('propertyType', value)}
+                      onValueChange={handlePropertyTypeChange}
                     >
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Select type" />
