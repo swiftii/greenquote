@@ -314,33 +314,39 @@
             });
             
             // Initialize Service Area Manager for multi-polygon support
-            serviceAreaManager = new ServiceAreaManager(map, {
-                debugMode: true,
-                styles: {
-                    fillColor: config.theme?.primaryColor || '#16a34a',
-                    fillOpacity: 0.35,
-                    strokeWeight: 3,
-                    strokeColor: adjustColor(config.theme?.primaryColor || '#16a34a', -20),
-                    editable: true,
-                    draggable: false
-                },
-                onAreaChange: (totalSqFt, breakdown) => {
-                    state.lawnSizeSqFt = totalSqFt;
-                    state.measuredAreaSqft = totalSqFt;
-                    state.areaSource = 'measured';
-                    state.polygonCoords = serviceAreaManager.getCoordinatesSnapshot();
-                    updateAreaDisplay(false);
-                    calculatePricing();
-                    console.log('[Pro] Area updated:', totalSqFt, 'sq ft from', breakdown.length, 'polygons');
-                },
-                onPolygonsCreated: (count) => {
-                    console.log('[Pro] Auto-created', count, 'polygon(s)');
-                    const msg = count > 1 
-                        ? `✓ Estimated lawn area (${count} zones) — drag corners to adjust`
-                        : '✓ Estimated lawn area — drag corners to adjust';
-                    updateMapStatus(msg, 'success');
-                }
-            });
+            // Check if ServiceAreaManager is available (loaded from serviceAreaUtils.js)
+            if (typeof ServiceAreaManager !== 'undefined') {
+                serviceAreaManager = new ServiceAreaManager(map, {
+                    debugMode: true,
+                    styles: {
+                        fillColor: config.theme?.primaryColor || '#16a34a',
+                        fillOpacity: 0.35,
+                        strokeWeight: 3,
+                        strokeColor: adjustColor(config.theme?.primaryColor || '#16a34a', -20),
+                        editable: true,
+                        draggable: false
+                    },
+                    onAreaChange: (totalSqFt, breakdown) => {
+                        state.lawnSizeSqFt = totalSqFt;
+                        state.measuredAreaSqft = totalSqFt;
+                        state.areaSource = 'measured';
+                        state.polygonCoords = serviceAreaManager.getCoordinatesSnapshot();
+                        updateAreaDisplay(false);
+                        calculatePricing();
+                        console.log('[Pro] Area updated:', totalSqFt, 'sq ft from', breakdown.length, 'polygons');
+                    },
+                    onPolygonsCreated: (count) => {
+                        console.log('[Pro] Auto-created', count, 'polygon(s)');
+                        const msg = count > 1 
+                            ? `✓ Estimated lawn area (${count} zones) — drag corners to adjust`
+                            : '✓ Estimated lawn area — drag corners to adjust';
+                        updateMapStatus(msg, 'success');
+                    }
+                });
+                console.log('[Pro] ✓ ServiceAreaManager initialized');
+            } else {
+                console.warn('[Pro] ServiceAreaManager not available - using basic polygon mode');
+            }
             
             // Drawing manager for manual drawing fallback
             drawingManager = new google.maps.drawing.DrawingManager({
@@ -361,8 +367,10 @@
             // Handle manually drawn polygons
             google.maps.event.addListener(drawingManager, 'polygoncomplete', function(polygon) {
                 // Clear auto-estimated polygons and use manual drawing
-                serviceAreaManager.clearAll();
-                serviceAreaManager.addPolygon(polygon);
+                if (serviceAreaManager) {
+                    serviceAreaManager.clearAll();
+                    serviceAreaManager.addPolygon(polygon);
+                }
                 drawingManager.setDrawingMode(null);
                 
                 document.getElementById('drawBtn').textContent = '✏️ Draw Area';
@@ -376,7 +384,6 @@
             google.maps.event.trigger(map, 'resize');
             
             console.log('[Pro] ✓ Map initialized successfully with satellite view');
-            console.log('[Pro] ✓ Service Area Manager ready');
             console.log('[Pro] ✓ Drawing manager ready');
             
             // Update map status to ready
