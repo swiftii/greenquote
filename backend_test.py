@@ -146,8 +146,8 @@ def test_api_invites_create():
         log_test("api_invites_create", "Email validation not found", False)
     
     # Test 2.3: Check membership lookup for owner/admin
-    membership_pattern = r'account_members.*owner.*admin'
-    if re.search(membership_pattern, create_content):
+    membership_pattern = r'account_members.*role.*owner.*admin'
+    if re.search(membership_pattern, create_content, re.DOTALL):
         log_test("api_invites_create", "Owner/admin membership check found")
     else:
         log_test("api_invites_create", "Owner/admin membership check not found", False)
