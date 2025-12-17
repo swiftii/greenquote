@@ -355,6 +355,18 @@ frontend:
         agent: "testing"
         comment: "✅ VERIFIED: Quote service properly includes source field with 'pro_app' and 'widget' options, defaults to 'pro_app', and passes source parameter to database for quote origin tracking."
 
+  - task: "Quote.js Property Drawing Feature - Multi-Polygon Auto-Estimation"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/Quote.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Quote.js property drawing feature fully implemented with satellite view default, auto-estimation after address selection, multi-polygon support, editable polygons with draggable vertices, UI controls (Add Zone, Clear All, individual delete), and proper data model with polygons array and totalCalculatedArea. All 9 test categories passed: Code Structure, Satellite View Config, Auto-Estimation Logic, Multi-Polygon Support, Editable Polygons, UI Controls, Data Model, Event Handlers, and Integration Flow."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
