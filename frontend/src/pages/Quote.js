@@ -67,15 +67,21 @@ const defaultCenter = {
   lng: -98.5795,
 };
 
-// Polygon options
-const polygonOptions = {
+// Default area estimates by property type
+const DEFAULT_AREA_ESTIMATES = {
+  residential: 8000,
+  commercial: 15000,
+};
+
+// Polygon options for editable polygons
+const editablePolygonOptions = {
   fillColor: '#22c55e',
   fillOpacity: 0.3,
   strokeColor: '#16a34a',
   strokeOpacity: 1,
   strokeWeight: 2,
-  clickable: false,
-  editable: false,
+  clickable: true,
+  editable: true, // Enable vertex dragging
   draggable: false,
   zIndex: 1,
 };
