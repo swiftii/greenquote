@@ -566,13 +566,19 @@ def test_app_routes():
         log_test("app_routes", "Team route protection not found", False)
     
     # Test 9.4: Check AcceptInvite route protection (should be ProtectedRoute but NOT SubscriptionGuard)
-    accept_protection_pattern = r'<ProtectedRoute>.*<AcceptInvite'
-    subscription_guard_pattern = r'<SubscriptionGuard>.*<AcceptInvite'
-    
-    if re.search(accept_protection_pattern, app_content, re.DOTALL) and not re.search(subscription_guard_pattern, app_content, re.DOTALL):
-        log_test("app_routes", "AcceptInvite route properly protected (ProtectedRoute but not SubscriptionGuard)")
+    # Extract the AcceptInvite route section specifically
+    accept_route_match = re.search(r'path="/accept-invite".*?</Route>', app_content, re.DOTALL)
+    if accept_route_match:
+        accept_route_section = accept_route_match.group()
+        has_protected_route = '<ProtectedRoute>' in accept_route_section
+        has_subscription_guard = '<SubscriptionGuard>' in accept_route_section
+        
+        if has_protected_route and not has_subscription_guard:
+            log_test("app_routes", "AcceptInvite route properly protected (ProtectedRoute but not SubscriptionGuard)")
+        else:
+            log_test("app_routes", "AcceptInvite route protection incorrect", False)
     else:
-        log_test("app_routes", "AcceptInvite route protection incorrect", False)
+        log_test("app_routes", "AcceptInvite route section not found", False)
     
     # Test 9.5: Check component imports
     imports_pattern = r'import.*TeamSettings.*AcceptInvite'
