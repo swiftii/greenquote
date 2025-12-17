@@ -248,62 +248,62 @@ def test_api_invites_accept():
     else:
         log_test("api_invites_accept", "Idempotent handling not found", False)
 
-def test_done_button_polygon_closing():
+def test_api_invites_list():
     """
-    TEST CASE 4: Done Button and Polygon Closing
-    - Verify finishDrawing() creates new polygon with path from currentDrawingPath
-    - Verify finishDrawing() calls recalculateTotalArea()
-    - Verify polygon is added with areaSqFt=0 initially, then recalculated
-    - Verify "Done" button shows point count: "Done (X pts)"
+    TEST CASE 4: API: GET /api/invites/list
+    - Verify requires Authorization header
+    - Verify returns members array with user details
+    - Verify returns pending_invites array
+    - Verify returns can_manage_team flag
     """
-    print("\n🔍 Testing Done Button and Polygon Closing...")
+    print("\n🔍 Testing API: GET /api/invites/list...")
     
-    quote_content = read_file_content('/app/frontend/src/pages/Quote.js')
-    if not quote_content:
-        log_test("done_button_polygon_closing", "Could not read Quote.js file", False)
+    list_content = read_file_content('/app/api/invites/list.js')
+    if not list_content:
+        log_test("api_invites_list", "Could not read /api/invites/list.js file", False)
         return
     
-    # Test 4.1: Check finishDrawing function exists
-    finish_drawing_pattern = r'const finishDrawing = \(\) => \{'
-    if re.search(finish_drawing_pattern, quote_content):
-        log_test("done_button_polygon_closing", "finishDrawing function found")
+    # Test 4.1: Check Authorization header validation
+    auth_pattern = r'authHeader.*Bearer'
+    if re.search(auth_pattern, list_content):
+        log_test("api_invites_list", "Authorization header validation found")
     else:
-        log_test("done_button_polygon_closing", "finishDrawing function not found", False)
+        log_test("api_invites_list", "Authorization header validation not found", False)
     
-    # Test 4.2: Check polygon creation from currentDrawingPath
-    polygon_creation_pattern = r'path: currentDrawingPath'
-    if re.search(polygon_creation_pattern, quote_content):
-        log_test("done_button_polygon_closing", "Polygon created with currentDrawingPath")
+    # Test 4.2: Check members array with user details
+    members_pattern = r'account_members.*select.*user_id.*role'
+    if re.search(members_pattern, list_content):
+        log_test("api_invites_list", "Members query with user details found")
     else:
-        log_test("done_button_polygon_closing", "Polygon creation from currentDrawingPath not found", False)
+        log_test("api_invites_list", "Members query not found", False)
     
-    # Test 4.3: Check recalculateTotalArea call
-    recalculate_call_pattern = r'recalculateTotalArea\(updated\)'
-    if re.search(recalculate_call_pattern, quote_content):
-        log_test("done_button_polygon_closing", "recalculateTotalArea called after polygon creation")
+    # Test 4.3: Check user details fetching
+    user_details_pattern = r'getUserById.*userData'
+    if re.search(user_details_pattern, list_content):
+        log_test("api_invites_list", "User details fetching found")
     else:
-        log_test("done_button_polygon_closing", "recalculateTotalArea call not found", False)
+        log_test("api_invites_list", "User details fetching not found", False)
     
-    # Test 4.4: Check initial areaSqFt=0
-    initial_area_pattern = r'areaSqFt: 0'
-    if re.search(initial_area_pattern, quote_content):
-        log_test("done_button_polygon_closing", "Polygon initialized with areaSqFt: 0")
+    # Test 4.4: Check pending invites query
+    pending_invites_pattern = r'account_invites.*pending.*expires_at'
+    if re.search(pending_invites_pattern, list_content):
+        log_test("api_invites_list", "Pending invites query found")
     else:
-        log_test("done_button_polygon_closing", "Initial areaSqFt: 0 not found", False)
+        log_test("api_invites_list", "Pending invites query not found", False)
     
-    # Test 4.5: Check Done button with point count
-    done_button_pattern = r'Done \(\{currentDrawingPath\.length\} pts\)'
-    if re.search(done_button_pattern, quote_content):
-        log_test("done_button_polygon_closing", "Done button shows point count")
+    # Test 4.5: Check can_manage_team flag
+    manage_team_pattern = r'can_manage_team.*owner.*admin'
+    if re.search(manage_team_pattern, list_content):
+        log_test("api_invites_list", "can_manage_team flag logic found")
     else:
-        log_test("done_button_polygon_closing", "Done button point count not found", False)
+        log_test("api_invites_list", "can_manage_team flag logic not found", False)
     
-    # Test 4.6: Check Done button onClick calls finishDrawing
-    done_onclick_pattern = r'onClick={finishDrawing}'
-    if re.search(done_onclick_pattern, quote_content):
-        log_test("done_button_polygon_closing", "Done button onClick calls finishDrawing")
+    # Test 4.6: Check response structure
+    response_structure_pattern = r'members.*pending_invites.*current_user_role'
+    if re.search(response_structure_pattern, list_content):
+        log_test("api_invites_list", "Complete response structure found")
     else:
-        log_test("done_button_polygon_closing", "Done button onClick not found", False)
+        log_test("api_invites_list", "Complete response structure not found", False)
 
 def test_real_time_area_updates():
     """
