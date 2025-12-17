@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabaseClient';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+// Use relative URLs for same-origin API calls on Vercel
+const BACKEND_URL = '';
 
 /**
  * Team Service
