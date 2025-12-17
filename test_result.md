@@ -411,15 +411,18 @@ frontend:
 
   - task: "Auto-Draw Removal from Pro App"
     implemented: true
-    working: "NA"
+    working: true
     file: "pro/pro.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented removal of auto-draw feature. Removed autoDrawServiceArea function call from locateProperty and onPlaceChanged. Removed auto-estimation logic from property type change handler. Updated clearPolygon to not re-auto-estimate. Updated UI instructions to prompt manual drawing. Satellite view already set as default."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Auto-draw functionality completely removed from pro.js. autoDrawServiceArea function removed, locateProperty/onPlaceChanged/clearPolygon do not call auto-draw, property type change only recalculates pricing (not auto-estimation), UI prompts manual drawing, satellite view set as default (mapTypeId: 'satellite'), manual drawing preserved with DrawingManager."
 
   - task: "Satellite View Default in All Maps"
     implemented: true
