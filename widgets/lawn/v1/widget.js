@@ -881,17 +881,18 @@
         }
     }
     
-    // Clear polygon
+    // Clear polygon(s)
     function clearPolygon() {
-        if (currentPolygon) {
-            currentPolygon.setMap(null);
-            currentPolygon = null;
+        if (serviceAreaManager) {
+            serviceAreaManager.clearAll();
         }
         
         state.measuredAreaSqft = 0;
+        state.polygonCoords = [];
         
         if (state.placeData || state.address) {
-            estimateAreaFromAddress();
+            // Re-auto-estimate when clearing
+            autoDrawServiceArea(state.placeData);
             document.getElementById('draw-btn').disabled = false;
         } else {
             state.lawnSizeSqFt = 0;
@@ -901,39 +902,25 @@
             document.getElementById('draw-btn').disabled = false;
         }
         
-        document.getElementById('draw-btn').textContent = 'Adjust Boundary';
+        document.getElementById('draw-btn').textContent = 'Draw Boundary';
         document.getElementById('draw-btn').style.background = '';
         document.getElementById('draw-btn').style.color = '';
         
         validateStep2();
     }
     
-    // Calculate polygon area
+    // Calculate total polygon area (for manual adjustments)
     function calculatePolygonArea() {
-        if (!currentPolygon || typeof google === 'undefined') return;
+        if (!serviceAreaManager) return;
         
-        try {
-            const area = google.maps.geometry.spherical.computeArea(currentPolygon.getPath());
-            const sqFt = Math.round(area * 10.7639);
-            
-            state.measuredAreaSqft = sqFt;
-            state.lawnSizeSqFt = sqFt;
-            state.estimatedAreaSqft = 0;
-            state.areaSource = 'measured';
-            
-            updateLawnSizeDisplay(false);
-            
-            const drawBtn = document.getElementById('draw-btn');
-            if (drawBtn) {
-                drawBtn.textContent = 'Adjust Boundary';
-                drawBtn.style.background = '';
-                drawBtn.style.color = '';
-            }
-            
-            console.log('[Widget] Measured area:', state.measuredAreaSqft, 'sq ft');
-        } catch (error) {
-            console.error('[Widget] Error calculating polygon area:', error);
-        }
+        const result = serviceAreaManager.recalculateTotal();
+        state.lawnSizeSqFt = result.totalSqFt;
+        state.measuredAreaSqft = result.totalSqFt;
+        state.areaSource = 'measured';
+        state.polygonCoords = serviceAreaManager.getCoordinatesSnapshot();
+        
+        updateLawnSizeDisplay(false);
+        console.log('[Widget] Area recalculated:', result.totalSqFt, 'sq ft');
     }
     
     // Update lawn size display
