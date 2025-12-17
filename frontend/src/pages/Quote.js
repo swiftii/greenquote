@@ -245,229 +245,8 @@ export default function Quote() {
     });
   }, [recalculateTotalArea]);
 
-  // Auto-estimate lawn area after address selection using viewport/bounds
-  const autoEstimateLawnArea = useCallback((place, propertyType) => {
-    if (!window.google?.maps) {
-      console.log('[Quote] Google Maps not available for auto-estimation');
-      return;
-    }
-
-    if (!place || !place.geometry || !place.geometry.location) {
-      console.log('[Quote] No valid place data for estimation');
-      return;
-    }
-
-    setIsAutoEstimating(true);
-    
-    const center = {
-      lat: place.geometry.location.lat(),
-      lng: place.geometry.location.lng(),
-    };
-
-    console.log('[Quote] ===== AUTO-ESTIMATION START =====');
-    console.log('[Quote] Address:', place.formatted_address || place.name);
-    console.log('[Quote] Center:', center);
-    console.log('[Quote] Property type:', propertyType);
-
-    // Simulate brief detection delay for UX
-    setTimeout(() => {
-      try {
-        let estimatedLawnSqFt;
-        let confidence = 'high';
-        let boundsArea = 0;
-
-        // Check for viewport or bounds
-        const viewport = place.geometry.viewport;
-        const bounds = place.geometry.bounds;
-
-        if (viewport || bounds) {
-          // Use viewport/bounds to estimate property size
-          const box = viewport || bounds;
-          
-          const ne = box.getNorthEast();
-          const sw = box.getSouthWest();
-          
-          // Calculate bounds dimensions in meters
-          const latDiff = Math.abs(ne.lat() - sw.lat());
-          const lngDiff = Math.abs(ne.lng() - sw.lng());
-          
-          // Convert to meters (approximation)
-          const latMeters = latDiff * 111320;
-          const avgLat = (ne.lat() + sw.lat()) / 2;
-          const lngMeters = lngDiff * 111320 * Math.cos(avgLat * Math.PI / 180);
-          
-          // Calculate bounds area in sqft
-          const boundsAreaMeters = latMeters * lngMeters;
-          boundsArea = boundsAreaMeters * 10.7639;
-          
-          console.log('[Quote] Viewport/Bounds detected:');
-          console.log('[Quote]   - NE:', { lat: ne.lat(), lng: ne.lng() });
-          console.log('[Quote]   - SW:', { lat: sw.lat(), lng: sw.lng() });
-          console.log('[Quote]   - Dimensions:', latMeters.toFixed(1), 'm x', lngMeters.toFixed(1), 'm');
-          console.log('[Quote]   - Bounds area:', boundsArea.toFixed(0), 'sqft');
-
-          // Determine if this is a precise street address or broader area
-          const hasStreetNumber = place.address_components?.some(
-            c => c.types.includes('street_number')
-          );
-          const hasRoute = place.address_components?.some(
-            c => c.types.includes('route')
-          );
-          const isStreetAddress = hasStreetNumber && hasRoute;
-
-          // Choose ratio based on address precision
-          let ratio;
-          if (isStreetAddress) {
-            ratio = ESTIMATION_CONFIG.viewportToLawnRatio.streetAddress;
-            confidence = 'high';
-          } else {
-            ratio = ESTIMATION_CONFIG.viewportToLawnRatio.areaLevel;
-            confidence = 'medium';
-          }
-
-          // Apply quality guardrails based on bounds size
-          if (boundsArea > 1500000) {
-            // Very large viewport (city-level), reduce ratio significantly
-            ratio = 0.05;
-            confidence = 'low';
-            console.log('[Quote] Large viewport detected, reducing ratio');
-          } else if (boundsArea < 10000) {
-            // Very small viewport, increase ratio slightly
-            ratio = Math.min(0.5, ratio * 1.5);
-            console.log('[Quote] Small viewport detected, increasing ratio');
-          }
-
-          // Calculate estimated lawn area
-          estimatedLawnSqFt = boundsArea * ratio;
-          
-          console.log('[Quote] Estimation ratio:', ratio);
-          console.log('[Quote] Raw estimate:', estimatedLawnSqFt.toFixed(0), 'sqft');
-
-        } else {
-          // Fallback: no viewport/bounds available
-          console.log('[Quote] No viewport/bounds - using fallback estimation');
-          confidence = 'low';
-          
-          // Use fallback radius to estimate
-          const radiusMeters = ESTIMATION_CONFIG.fallbackRadiusMeters;
-          const fallbackAreaMeters = Math.PI * radiusMeters * radiusMeters;
-          boundsArea = fallbackAreaMeters * 10.7639;
-          
-          // Assume ~40% of circular area is serviceable lawn
-          estimatedLawnSqFt = boundsArea * 0.4;
-        }
-
-        // Apply min/max clamps
-        estimatedLawnSqFt = Math.max(
-          ESTIMATION_CONFIG.minLawnSqFt,
-          Math.min(ESTIMATION_CONFIG.maxLawnSqFt, estimatedLawnSqFt)
-        );
-        
-        // Round to nearest 100 for cleaner numbers
-        estimatedLawnSqFt = Math.round(estimatedLawnSqFt / 100) * 100;
-
-        console.log('[Quote] Final estimated lawn area:', estimatedLawnSqFt, 'sqft');
-        console.log('[Quote] Confidence level:', confidence);
-
-        // Set confidence state
-        setEstimateConfidence(confidence);
-
-        // Generate polygons based on estimated area
-        const newPolygons = generatePolygonsFromEstimate(center, estimatedLawnSqFt, propertyType);
-        
-        // Calculate areas and set state
-        const polygonsWithArea = recalculateTotalArea(newPolygons);
-        setPolygons(polygonsWithArea);
-        
-        console.log('[Quote] Created', polygonsWithArea.length, 'polygon(s)');
-        console.log('[Quote] Total polygon area:', polygonsWithArea.reduce((sum, p) => sum + (p.areaSqFt || 0), 0), 'sqft');
-        console.log('[Quote] ===== AUTO-ESTIMATION END =====');
-        
-      } catch (err) {
-        console.error('[Quote] Error auto-estimating:', err);
-        setEstimateConfidence('low');
-      } finally {
-        setIsAutoEstimating(false);
-      }
-    }, 600); // Brief delay for "Detecting..." UX
-  }, [recalculateTotalArea]);
-
-  // Generate polygons that match the estimated square footage
-  const generatePolygonsFromEstimate = useCallback((center, estimatedSqFt, propertyType) => {
-    // Convert sqft to square meters
-    const totalSqMeters = estimatedSqFt / 10.7639;
-    
-    // Helper to convert meters to lat/lng offset at given latitude
-    const metersToLatOffset = (meters) => meters / 111320;
-    const metersToLngOffset = (meters, lat) => meters / (111320 * Math.cos(lat * Math.PI / 180));
-    
-    // Helper to create rectangle polygon
-    const createRectangle = (centerPoint, areaSqMeters, aspectRatio, offsetLat = 0) => {
-      const width = Math.sqrt(areaSqMeters * aspectRatio);
-      const depth = areaSqMeters / width;
-      
-      const halfWidth = metersToLngOffset(width / 2, centerPoint.lat);
-      const halfDepth = metersToLatOffset(depth / 2);
-      
-      const adjustedCenter = {
-        lat: centerPoint.lat + offsetLat,
-        lng: centerPoint.lng,
-      };
-      
-      return [
-        { lat: adjustedCenter.lat - halfDepth, lng: adjustedCenter.lng - halfWidth },
-        { lat: adjustedCenter.lat - halfDepth, lng: adjustedCenter.lng + halfWidth },
-        { lat: adjustedCenter.lat + halfDepth, lng: adjustedCenter.lng + halfWidth },
-        { lat: adjustedCenter.lat + halfDepth, lng: adjustedCenter.lng - halfWidth },
-      ];
-    };
-    
-    let newPolygons;
-    
-    if (propertyType === 'residential') {
-      // Split into front yard (30%) and back yard (70%)
-      const frontYardSqMeters = totalSqMeters * ESTIMATION_CONFIG.frontYardRatio;
-      const backYardSqMeters = totalSqMeters * ESTIMATION_CONFIG.backYardRatio;
-      
-      // Calculate lot depth for positioning
-      const totalDepth = Math.sqrt(totalSqMeters / 1.4); // Assume ~1.4 aspect for total lot
-      const frontOffset = metersToLatOffset(-totalDepth * 0.35); // Front yard towards "south"
-      const backOffset = metersToLatOffset(totalDepth * 0.35);   // Back yard towards "north"
-      
-      const frontYardPath = createRectangle(
-        center,
-        frontYardSqMeters,
-        ESTIMATION_CONFIG.frontYardAspect,
-        frontOffset
-      );
-      
-      const backYardPath = createRectangle(
-        center,
-        backYardSqMeters,
-        ESTIMATION_CONFIG.backYardAspect,
-        backOffset
-      );
-      
-      newPolygons = [
-        { id: 'front-yard-' + Date.now(), path: frontYardPath, areaSqFt: 0 },
-        { id: 'back-yard-' + Date.now(), path: backYardPath, areaSqFt: 0 },
-      ];
-    } else {
-      // Commercial: single polygon
-      const commercialPath = createRectangle(
-        center,
-        totalSqMeters,
-        ESTIMATION_CONFIG.commercialAspect,
-        0
-      );
-      
-      newPolygons = [
-        { id: 'commercial-' + Date.now(), path: commercialPath, areaSqFt: 0 },
-      ];
-    }
-    
-    return newPolygons;
-  }, []);
+  // Auto-estimation has been removed per user request.
+  // Users should manually draw their service area boundaries using the drawing tools.
 
   // Calculate pricing whenever form or add-ons change
   useEffect(() => {
@@ -603,37 +382,27 @@ export default function Quote() {
         const lat = place.geometry.location.lat();
         const lng = place.geometry.location.lng();
         
-        // Store full place object for estimation
-        selectedPlaceRef.current = place;
-        
         setFormData(prev => ({
           ...prev,
           address: place.formatted_address || place.name || '',
           latitude: lat,
           longitude: lng,
+          lawnSizeSqFt: '',
+          areaSource: 'manual',
         }));
         
         setMapCenter({ lat, lng });
         setMapZoom(19);
         
-        // Clear existing polygons
+        // Clear existing polygons - user will draw manually
         setPolygons([]);
         setCurrentDrawingPath([]);
         setTotalCalculatedArea(0);
-        setEstimateConfidence('high');
-        setFormData(prev => ({
-          ...prev,
-          lawnSizeSqFt: '',
-          areaSource: 'manual',
-        }));
         
-        // Auto-estimate lawn area using full place object (with viewport/bounds)
-        setTimeout(() => {
-          autoEstimateLawnArea(place, formData.propertyType);
-        }, 500);
+        console.log('[Quote] Address selected:', place.formatted_address || place.name);
       }
     }
-  }, [autoEstimateLawnArea, formData.propertyType]);
+  }, []);
 
   const onAutocompleteLoad = useCallback((autocomplete) => {
     autocompleteRef.current = autocomplete;
@@ -689,34 +458,9 @@ export default function Quote() {
     setCurrentDrawingPath(prev => prev.slice(0, -1));
   };
 
-  // Re-estimate when property type changes
+  // Handle property type change
   const handlePropertyTypeChange = (value) => {
     handleInputChange('propertyType', value);
-    
-    // If we have a stored place, re-estimate with new property type
-    if (selectedPlaceRef.current) {
-      setPolygons([]);
-      setTotalCalculatedArea(0);
-      setTimeout(() => {
-        autoEstimateLawnArea(selectedPlaceRef.current, value);
-      }, 300);
-    } else if (formData.latitude && formData.longitude) {
-      // Fallback: create a minimal place object from coordinates
-      setPolygons([]);
-      setTotalCalculatedArea(0);
-      const fallbackPlace = {
-        geometry: {
-          location: {
-            lat: () => formData.latitude,
-            lng: () => formData.longitude,
-          },
-        },
-        formatted_address: formData.address,
-      };
-      setTimeout(() => {
-        autoEstimateLawnArea(fallbackPlace, value);
-      }, 300);
-    }
   };
 
   const handleInputChange = (field, value) => {
@@ -1200,31 +944,16 @@ export default function Quote() {
                     </div>
 
                     {/* Status messages */}
-                    {isAutoEstimating && (
-                      <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded flex items-center gap-2">
-                        <span className="animate-spin">⏳</span>
-                        Detecting lawn area...
+                    {polygons.length > 0 && !isDrawing && (
+                      <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
+                        ✓ Service area drawn — drag corners to adjust, or click &quot;Add Zone&quot; for separated areas.
                       </div>
                     )}
-                    
-                    {!isAutoEstimating && polygons.length > 0 && !isDrawing && (
-                      <div className={`text-sm p-2 rounded ${
-                        estimateConfidence === 'high' 
-                          ? 'text-green-600 bg-green-50' 
-                          : estimateConfidence === 'medium'
-                            ? 'text-yellow-700 bg-yellow-50'
-                            : 'text-orange-600 bg-orange-50'
-                      }`}>
-                        {estimateConfidence === 'high' && (
-                          <>✓ Estimated lawn area — drag corners to adjust, or click &quot;Add Zone&quot; for separated areas.</>
-                        )}
-                        {estimateConfidence === 'medium' && (
-                          <>⚡ Estimated lawn area — please verify and adjust as needed.</>
-                        )}
-                        {estimateConfidence === 'low' && (
-                          <>⚠️ Rough estimate — please adjust the boundary to match your lawn.</>
-                        )}
-                      </div>
+
+                    {!polygons.length && !isDrawing && formData.address && (
+                      <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                        📍 Property located! Click &quot;Add Zone&quot; to draw your service area boundary.
+                      </p>
                     )}
 
                     {isDrawing && (
