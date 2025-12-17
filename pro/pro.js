@@ -548,13 +548,6 @@
         calculatePricing();
         console.log('[Pro] Area recalculated:', result.totalSqFt, 'sq ft');
     }
-            calculatePricing();
-            
-            console.log('[Pro] Area measured:', sqFt, 'sq ft');
-        } catch (error) {
-            console.error('[Pro] Error calculating area:', error);
-        }
-    }
     
     // Update area display
     function updateAreaDisplay(isEstimated) {
@@ -562,8 +555,10 @@
         const value = document.getElementById('areaValue');
         
         if (state.lawnSizeSqFt > 0) {
-            const label = isEstimated ? ' (estimated)' : ' (measured)';
-            value.textContent = state.lawnSizeSqFt.toLocaleString() + ' sq ft' + label;
+            const polygonCount = serviceAreaManager ? serviceAreaManager.getPolygonCount() : 0;
+            const zoneLabel = polygonCount > 1 ? ` (${polygonCount} zones)` : '';
+            const label = isEstimated ? ' (estimated)' : '';
+            value.textContent = state.lawnSizeSqFt.toLocaleString() + ' sq ft' + zoneLabel + label;
             
             if (isEstimated) {
                 display.classList.add('estimated');
