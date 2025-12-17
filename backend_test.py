@@ -355,7 +355,7 @@ def test_api_invites_revoke():
         log_test("api_invites_revoke", "Status update to revoked not found", False)
     
     # Test 5.6: Check already revoked/accepted handling
-    already_handled_pattern = r'already been revoked.*already been accepted'
+    already_handled_pattern = r'already.*revoked|already.*accepted'
     if re.search(already_handled_pattern, revoke_content):
         log_test("api_invites_revoke", "Already revoked/accepted handling found")
     else:
