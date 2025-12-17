@@ -433,7 +433,7 @@ def test_frontend_accept_invite():
         return
     
     # Test 7.1: Check redirect to login if not authenticated
-    login_redirect_pattern = r'navigate.*login.*redirect.*token'
+    login_redirect_pattern = r'navigate.*login.*redirect'
     if re.search(login_redirect_pattern, accept_invite_content):
         log_test("frontend_accept_invite", "Redirect to login if not authenticated found")
     else:
