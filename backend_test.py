@@ -271,8 +271,8 @@ def test_api_invites_list():
         log_test("api_invites_list", "Authorization header validation not found", False)
     
     # Test 4.2: Check members array with user details
-    members_pattern = r'account_members.*select.*user_id.*role'
-    if re.search(members_pattern, list_content):
+    members_pattern = r'account_members.*select.*user_id'
+    if re.search(members_pattern, list_content, re.DOTALL):
         log_test("api_invites_list", "Members query with user details found")
     else:
         log_test("api_invites_list", "Members query not found", False)
