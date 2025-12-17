@@ -11,7 +11,7 @@
     // Google Maps objects
     let map = null;
     let drawingManager = null;
-    let currentPolygon = null;
+    let serviceAreaManager = null; // Multi-polygon manager
     let autocomplete = null;
     let selectedPlace = null;
     
@@ -35,6 +35,7 @@
         measuredAreaSqft: 0,
         estimatedAreaSqft: 0,
         areaSource: 'none',
+        polygonCoords: [], // Multi-polygon coordinates
         
         // Service info
         primaryService: '',
