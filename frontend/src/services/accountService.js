@@ -231,7 +231,7 @@ export async function ensureUserAccount(user) {
   }
 
   console.log('[AccountService] Returning account and settings');
-  return { account, settings };
+  return { account, settings, membership: membershipInfo };
 }
 
 /**
