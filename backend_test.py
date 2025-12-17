@@ -474,82 +474,62 @@ def test_frontend_accept_invite():
     else:
         log_test("frontend_accept_invite", "Success/error state handling not found", False)
 
-def test_no_auto_draw_address_selection():
+def test_account_service_membership():
     """
-    TEST CASE 8: No Auto-Draw on Address Selection
-    - Verify onPlaceChanged does NOT call any auto-draw functions
-    - Verify onPlaceChanged clears existing polygons
-    - Verify onPlaceChanged does NOT start drawing mode automatically
+    TEST CASE 8: AccountService: Membership Resolution
+    - Verify getUserAccountMembership function exists
+    - Verify queries account_members table first
+    - Verify fallback to owner_user_id for backwards compatibility
+    - Verify returns membership info with role
     """
-    print("\n🔍 Testing No Auto-Draw on Address Selection...")
+    print("\n🔍 Testing AccountService: Membership Resolution...")
     
-    quote_content = read_file_content('/app/frontend/src/pages/Quote.js')
-    if not quote_content:
-        log_test("no_auto_draw_address_selection", "Could not read Quote.js file", False)
+    account_service_content = read_file_content('/app/frontend/src/services/accountService.js')
+    if not account_service_content:
+        log_test("account_service_membership", "Could not read accountService.js file", False)
         return
     
-    # Test 8.1: Check onPlaceChanged function exists
-    on_place_changed_pattern = r'const onPlaceChanged = useCallback\(\(\) => \{'
-    if re.search(on_place_changed_pattern, quote_content):
-        log_test("no_auto_draw_address_selection", "onPlaceChanged function found")
+    # Test 8.1: Check getUserAccountMembership function exists
+    membership_function_pattern = r'getUserAccountMembership.*userId'
+    if re.search(membership_function_pattern, account_service_content):
+        log_test("account_service_membership", "getUserAccountMembership function found")
     else:
-        log_test("no_auto_draw_address_selection", "onPlaceChanged function not found", False)
+        log_test("account_service_membership", "getUserAccountMembership function not found", False)
     
-    # Test 8.2: Check NO auto-draw function calls
-    auto_draw_patterns = [
-        r'autoEstimateLawnArea',
-        r'autoDrawServiceArea',
-        r'generatePolygonsFromEstimate'
-    ]
-    
-    found_auto_draw = False
-    for pattern in auto_draw_patterns:
-        if re.search(pattern, quote_content):
-            found_auto_draw = True
-            log_test("no_auto_draw_address_selection", f"Found auto-draw function call: {pattern}", False)
-    
-    if not found_auto_draw:
-        log_test("no_auto_draw_address_selection", "No auto-draw function calls found in onPlaceChanged")
-    
-    # Test 8.3: Check polygons are cleared
-    clear_polygons_pattern = r'setPolygons\(\[\]\)'
-    if re.search(clear_polygons_pattern, quote_content):
-        log_test("no_auto_draw_address_selection", "Existing polygons cleared on address selection")
+    # Test 8.2: Check account_members table query
+    members_query_pattern = r'account_members.*select.*account_id.*role.*user_id'
+    if re.search(members_query_pattern, account_service_content):
+        log_test("account_service_membership", "account_members table query found")
     else:
-        log_test("no_auto_draw_address_selection", "Polygon clearing not found", False)
+        log_test("account_service_membership", "account_members table query not found", False)
     
-    # Test 8.4: Check drawing mode is NOT started automatically in onPlaceChanged
-    # Extract onPlaceChanged function content
-    onplace_start = quote_content.find('const onPlaceChanged = useCallback(() => {')
-    if onplace_start != -1:
-        # Find the end of the function (matching braces)
-        brace_count = 0
-        func_start = onplace_start
-        func_end = func_start
-        for i, char in enumerate(quote_content[func_start:]):
-            if char == '{':
-                brace_count += 1
-            elif char == '}':
-                brace_count -= 1
-                if brace_count == 0:
-                    func_end = func_start + i
-                    break
-        
-        onplace_content = quote_content[func_start:func_end]
-        
-        if 'setIsDrawing(true)' in onplace_content:
-            log_test("no_auto_draw_address_selection", "Auto-start drawing found in onPlaceChanged - should not happen", False)
-        else:
-            log_test("no_auto_draw_address_selection", "No auto-start drawing mode in onPlaceChanged")
+    # Test 8.3: Check fallback to owner_user_id
+    fallback_pattern = r'owner_user_id.*fallback'
+    if re.search(fallback_pattern, account_service_content):
+        log_test("account_service_membership", "Fallback to owner_user_id for backwards compatibility found")
     else:
-        log_test("no_auto_draw_address_selection", "onPlaceChanged function not found for auto-start check", False)
+        log_test("account_service_membership", "Fallback to owner_user_id not found", False)
     
-    # Test 8.5: Check manual drawing prompt
-    manual_prompt_pattern = r'Draw your service area|Start Drawing|click.*map'
-    if re.search(manual_prompt_pattern, quote_content):
-        log_test("no_auto_draw_address_selection", "Manual drawing prompts found")
+    # Test 8.4: Check membership info return with role
+    membership_return_pattern = r'accountId.*role.*membership'
+    if re.search(membership_return_pattern, account_service_content):
+        log_test("account_service_membership", "Membership info return with role found")
     else:
-        log_test("no_auto_draw_address_selection", "Manual drawing prompts not found", False)
+        log_test("account_service_membership", "Membership info return not found", False)
+    
+    # Test 8.5: Check ensureUserAccount integration
+    ensure_account_pattern = r'ensureUserAccount.*membership'
+    if re.search(ensure_account_pattern, account_service_content):
+        log_test("account_service_membership", "ensureUserAccount integration with membership found")
+    else:
+        log_test("account_service_membership", "ensureUserAccount integration not found", False)
+    
+    # Test 8.6: Check multi-user support comments
+    multi_user_pattern = r'multi-user.*account.*membership'
+    if re.search(multi_user_pattern, account_service_content, re.IGNORECASE):
+        log_test("account_service_membership", "Multi-user support documentation found")
+    else:
+        log_test("account_service_membership", "Multi-user support documentation not found", False)
 
 def print_test_summary():
     """Print comprehensive test summary"""
