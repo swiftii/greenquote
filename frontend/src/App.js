@@ -140,14 +140,16 @@ function App() {
             }
           />
           
-          {/* Accept Invite page - requires auth but not subscription */}
+          {/* Accept Invite page - does NOT require auth initially */}
           <Route
             path="/accept-invite"
-            element={
-              <ProtectedRoute>
-                <AcceptInvite />
-              </ProtectedRoute>
-            }
+            element={<AcceptInvite />}
+          />
+          
+          {/* Invite Signup page - for new users accepting invites */}
+          <Route
+            path="/invite-signup"
+            element={<InviteSignup />}
           />
           
           {/* Quote page - Pro quote flow (requires subscription) */}
