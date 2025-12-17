@@ -128,6 +128,26 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/settings/team"
+            element={
+              <ProtectedRoute>
+                <SubscriptionGuard>
+                  <TeamSettings />
+                </SubscriptionGuard>
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Accept Invite page - requires auth but not subscription */}
+          <Route
+            path="/accept-invite"
+            element={
+              <ProtectedRoute>
+                <AcceptInvite />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Quote page - Pro quote flow (requires subscription) */}
           <Route
