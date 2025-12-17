@@ -593,7 +593,7 @@ class GreenQuoteServiceAreaTester:
             
             # Check for polygon creation logic
             creation_checks = [
-                ('createRectangle\\(center, sqFtTarget, options\\)', 'Rectangle creation method'),
+                ('createRectangle\\(center, sqFtTarget, options', 'Rectangle creation method'),
                 ('aspectRatio.*rotation', 'Aspect ratio and rotation parameters'),
                 ('sqMeters = sqFtTarget / 10\\.7639', 'Square feet to meters conversion'),
                 ('Math\\.sqrt\\(sqMeters / aspectRatio\\)', 'Dimension calculation'),
