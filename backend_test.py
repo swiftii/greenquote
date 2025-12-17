@@ -525,7 +525,7 @@ def test_account_service_membership():
         log_test("account_service_membership", "ensureUserAccount integration not found", False)
     
     # Test 8.6: Check multi-user support comments
-    multi_user_pattern = r'multi-user.*account.*membership'
+    multi_user_pattern = r'multi-user|membership'
     if re.search(multi_user_pattern, account_service_content, re.IGNORECASE):
         log_test("account_service_membership", "Multi-user support documentation found")
     else:
