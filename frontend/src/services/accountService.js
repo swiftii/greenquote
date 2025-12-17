@@ -4,6 +4,9 @@ import { supabase } from '@/lib/supabaseClient';
  * Account Service
  * Handles all account and account_settings operations
  * 
+ * UPDATED: Now uses account_members table to resolve user's account
+ * This supports multi-user accounts where multiple users share the same account.
+ * 
  * NOTE: With the Supabase trigger in place, accounts and account_settings
  * are auto-created when a user signs up. This service is now primarily
  * for READING data, with fallback creation logic just in case.
@@ -28,13 +31,47 @@ function getSafeErrorMessage(error) {
 }
 
 /**
+ * Get user's account via membership table
+ * This is the primary method for multi-user account support
+ * 
+ * @param {string} userId - User ID
+ * @returns {Promise<{accountId: string, role: string} | null>}
+ */
+async function getUserAccountMembership(userId) {
+  try {
+    const { data: membership, error } = await supabase
+      .from('account_members')
+      .select('account_id, role')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      console.error('[AccountService] Membership lookup error:', error);
+      return null;
+    }
+    
+    if (membership) {
+      console.log('[AccountService] Found membership:', membership.account_id, 'role:', membership.role);
+      return { accountId: membership.account_id, role: membership.role };
+    }
+    
+    return null;
+  } catch (e) {
+    console.error('[AccountService] Exception in membership lookup:', getSafeErrorMessage(e));
+    return null;
+  }
+}
+
+/**
  * Get account and settings for the current user
  * 
- * With the Supabase trigger, these should already exist.
- * If they don't (edge case), we create them as a fallback.
+ * UPDATED: Now checks account_members table first for multi-user support,
+ * then falls back to owner_user_id for backwards compatibility.
  * 
  * @param {Object} user - Supabase user object
- * @returns {Promise<{account: Object, settings: Object}>}
+ * @returns {Promise<{account: Object, settings: Object, membership: Object}>}
  */
 export async function ensureUserAccount(user) {
   if (!user || !user.id) {
@@ -43,32 +80,63 @@ export async function ensureUserAccount(user) {
 
   console.log('[AccountService] Getting account for user:', user.id);
 
-  // Step 1: Get existing account (should exist from trigger)
   let account = null;
+  let membershipInfo = null;
+
+  // Step 1: Try to find account via membership (multi-user support)
+  const membership = await getUserAccountMembership(user.id);
   
-  try {
-    const result = await supabase
-      .from('accounts')
-      .select('*')
-      .eq('owner_user_id', user.id)
-      .single();
-    
-    account = result.data;
-    
-    // If no account found (PGRST116), we'll create one below
-    if (result.error && result.error.code !== 'PGRST116') {
-      throw new Error('Failed to fetch account: ' + getSafeErrorMessage(result.error));
+  if (membership) {
+    // User has a membership - fetch the account
+    try {
+      const result = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('id', membership.accountId)
+        .single();
+      
+      if (result.data) {
+        account = result.data;
+        membershipInfo = { role: membership.role, accountId: membership.accountId };
+        console.log('[AccountService] Found account via membership:', account.id);
+      }
+    } catch (e) {
+      console.error('[AccountService] Exception fetching account by id:', getSafeErrorMessage(e));
     }
-  } catch (e) {
-    // Re-throw if it's our custom error
-    if (e.message && e.message.includes('Failed to fetch')) {
-      throw e;
-    }
-    console.error('[AccountService] Exception fetching account:', getSafeErrorMessage(e));
-    throw new Error('Failed to fetch account: ' + getSafeErrorMessage(e));
   }
 
-  // Step 2: Create account if missing (fallback - trigger should handle this)
+  // Step 2: Fallback - Try legacy owner_user_id lookup
+  if (!account) {
+    try {
+      const result = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('owner_user_id', user.id)
+        .single();
+      
+      account = result.data;
+      
+      // If found via owner, assume owner role
+      if (account) {
+        membershipInfo = { role: 'owner', accountId: account.id };
+        console.log('[AccountService] Found account via owner_user_id:', account.id);
+      }
+      
+      // If no account found (PGRST116), we'll create one below
+      if (result.error && result.error.code !== 'PGRST116') {
+        throw new Error('Failed to fetch account: ' + getSafeErrorMessage(result.error));
+      }
+    } catch (e) {
+      // Re-throw if it's our custom error
+      if (e.message && e.message.includes('Failed to fetch')) {
+        throw e;
+      }
+      console.error('[AccountService] Exception fetching account:', getSafeErrorMessage(e));
+      throw new Error('Failed to fetch account: ' + getSafeErrorMessage(e));
+    }
+  }
+
+  // Step 3: Create account if missing (fallback - trigger should handle this)
   if (!account) {
     console.warn('[AccountService] Account missing - creating fallback. Check if trigger is working.');
     
@@ -90,6 +158,7 @@ export async function ensureUserAccount(user) {
       }
       
       account = result.data;
+      membershipInfo = { role: 'owner', accountId: account.id };
       console.log('[AccountService] Fallback account created:', account?.id);
     } catch (e) {
       if (e.message && e.message.includes('Failed to create')) {
@@ -98,8 +167,6 @@ export async function ensureUserAccount(user) {
       console.error('[AccountService] Exception creating account:', getSafeErrorMessage(e));
       throw new Error('Failed to create account: ' + getSafeErrorMessage(e));
     }
-  } else {
-    console.log('[AccountService] Found existing account:', account.id);
   }
 
   if (!account || !account.id) {
