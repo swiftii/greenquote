@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 """
-Backend Testing for GreenQuote Pro App Quote.js Property Drawing Feature
+Backend Testing for GreenQuote Pro App Viewport-Based Lawn Area Estimation Feature
 
-This test suite verifies the improved property drawing feature in Quote.js page:
-1. Satellite View Default - Map initializes with satellite view
-2. Auto-Estimation After Address Selection - autoEstimateLawnArea() function
-3. Multi-Polygon Support - polygons array state and management
-4. Editable Polygons with Draggable Vertices - editablePolygonOptions
-5. UI Controls - Add Zone, Clear All, individual delete buttons
-6. Data Model - polygons array with individual areas and totalCalculatedArea
+This test suite verifies the viewport-based lawn area estimation feature in Quote.js:
+1. Code Structure - ESTIMATION_CONFIG, autoEstimateLawnArea function signature, confidence state
+2. Estimation Logic - viewport/bounds calculation, quality guardrails, min/max bounds
+3. Confidence Indicator - high/medium/low confidence based on address precision
+4. Polygon Generation - generatePolygonsFromEstimate function, front/back yard splitting
+5. UI Feedback - different messages based on confidence level
+6. Console Logging - detailed logging for debugging and verification
+7. Place Reference Storage - selectedPlaceRef for re-estimation on property type change
 
-Since this is a frontend React feature, we focus on:
-- Code structure and logic verification
-- State management and event handlers
-- Google Maps integration and configuration
-- Multi-polygon data model implementation
+Key Changes Tested:
+- Removed DEFAULT_AREA_ESTIMATES mock constants
+- Added ESTIMATION_CONFIG with viewportToLawnRatio settings
+- Viewport-based calculation using place.geometry.viewport/bounds
+- Quality guardrails for large (>1.5M sqft) and small (<10K sqft) viewports
+- Confidence levels: high (street address), medium (area-level), low (fallback/large)
+- UI feedback with different colored messages based on confidence
 """
 
 import os
