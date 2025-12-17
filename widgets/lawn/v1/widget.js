@@ -839,23 +839,17 @@
         
         if (map) {
             recenterMapToPlace(place);
-        }
-        
-        if (!currentPolygon) {
-            estimateAreaFromAddress();
+            
+            // Auto-draw estimated service area after centering
+            setTimeout(() => {
+                autoDrawServiceArea(place);
+            }, 500);
         }
         
         const drawBtn = document.getElementById('draw-btn');
         const clearBtn = document.getElementById('clear-btn');
         if (drawBtn) drawBtn.disabled = false;
         if (clearBtn) clearBtn.disabled = false;
-        
-        const instructions = document.querySelector('.map-instructions');
-        if (instructions) {
-            instructions.innerHTML = '<strong>✓ Property located!</strong> Click "Draw Boundary" to measure your exact service area.';
-            instructions.style.background = '#d4edda';
-            instructions.style.borderLeft = '4px solid #28a745';
-        }
     }
     
     // Enable drawing
