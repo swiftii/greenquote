@@ -662,18 +662,20 @@ def print_test_summary():
 
 def main():
     """Main test execution"""
-    print("🚀 Starting Click-to-Start Drawing UX Code Review Testing...")
-    print("📁 Testing file: /app/frontend/src/pages/Quote.js")
+    print("🚀 Starting Multi-User Accounts Feature Testing...")
+    print("📁 Testing files: SQL migration, API endpoints, and frontend components")
     
     # Run all test categories
-    test_click_to_start_drawing()
-    test_start_drawing_button()
-    test_visual_feedback()
-    test_done_button_polygon_closing()
-    test_real_time_area_updates()
-    test_multi_zone_support()
-    test_satellite_view_default()
-    test_no_auto_draw_address_selection()
+    test_sql_migration_structure()
+    test_api_invites_create()
+    test_api_invites_accept()
+    test_api_invites_list()
+    test_api_invites_revoke()
+    test_frontend_team_settings()
+    test_frontend_accept_invite()
+    test_account_service_membership()
+    test_app_routes()
+    test_login_signup_redirect()
     
     # Print summary
     all_passed = print_test_summary()
