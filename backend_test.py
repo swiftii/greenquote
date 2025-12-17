@@ -114,62 +114,64 @@ def test_sql_migration_structure():
     else:
         log_test("sql_migration_structure", "Role constraints not found", False)
 
-def test_start_drawing_button():
+def test_api_invites_create():
     """
-    TEST CASE 2: Start Drawing Button
-    - Verify button with text "Start Drawing" exists in JSX
-    - Verify button is shown when: !isDrawing && !polygons.length && formData.address
-    - Verify button onClick calls startDrawing() function
-    - Verify startDrawing() sets isDrawing=true and clears currentDrawingPath
+    TEST CASE 2: API: POST /api/invites/create
+    - Verify requires Authorization header
+    - Verify validates invited_email
+    - Verify checks user is owner/admin via account_members
+    - Verify creates invite record with token
+    - Verify sends email via Resend
+    - Verify returns { ok: true }
     """
-    print("\n🔍 Testing Start Drawing Button...")
+    print("\n🔍 Testing API: POST /api/invites/create...")
     
-    quote_content = read_file_content('/app/frontend/src/pages/Quote.js')
-    if not quote_content:
-        log_test("start_drawing_button", "Could not read Quote.js file", False)
+    create_content = read_file_content('/app/api/invites/create.js')
+    if not create_content:
+        log_test("api_invites_create", "Could not read /api/invites/create.js file", False)
         return
     
-    # Test 2.1: Check Start Drawing button exists
-    start_button_pattern = r'Start Drawing'
-    if re.search(start_button_pattern, quote_content):
-        log_test("start_drawing_button", "Start Drawing button text found")
+    # Test 2.1: Check Authorization header validation
+    auth_pattern = r'authHeader.*Bearer'
+    if re.search(auth_pattern, create_content):
+        log_test("api_invites_create", "Authorization header validation found")
     else:
-        log_test("start_drawing_button", "Start Drawing button text not found", False)
+        log_test("api_invites_create", "Authorization header validation not found", False)
     
-    # Test 2.2: Check button visibility conditions
-    button_condition_pattern = r'\{!isDrawing && !polygons\.length && formData\.address'
-    if re.search(button_condition_pattern, quote_content):
-        log_test("start_drawing_button", "Button visibility conditions found (!isDrawing && !polygons.length && formData.address)")
+    # Test 2.2: Check email validation
+    email_validation_pattern = r'invited_email.*toLowerCase.*trim'
+    if re.search(email_validation_pattern, create_content):
+        log_test("api_invites_create", "Email validation and normalization found")
     else:
-        log_test("start_drawing_button", "Button visibility conditions not found", False)
+        log_test("api_invites_create", "Email validation not found", False)
     
-    # Test 2.3: Check onClick calls startDrawing
-    onclick_pattern = r'onClick={startDrawing}'
-    if re.search(onclick_pattern, quote_content):
-        log_test("start_drawing_button", "Button onClick calls startDrawing function")
+    # Test 2.3: Check membership lookup for owner/admin
+    membership_pattern = r'account_members.*owner.*admin'
+    if re.search(membership_pattern, create_content):
+        log_test("api_invites_create", "Owner/admin membership check found")
     else:
-        log_test("start_drawing_button", "Button onClick does not call startDrawing function", False)
+        log_test("api_invites_create", "Owner/admin membership check not found", False)
     
-    # Test 2.4: Check startDrawing function exists
-    start_drawing_function_pattern = r'const startDrawing = \(\) => \{'
-    if re.search(start_drawing_function_pattern, quote_content):
-        log_test("start_drawing_button", "startDrawing function found")
+    # Test 2.4: Check token generation
+    token_pattern = r'generateToken.*crypto\.randomBytes'
+    if re.search(token_pattern, create_content):
+        log_test("api_invites_create", "Secure token generation found")
     else:
-        log_test("start_drawing_button", "startDrawing function not found", False)
+        log_test("api_invites_create", "Secure token generation not found", False)
     
-    # Test 2.5: Check startDrawing sets isDrawing=true
-    set_drawing_true_pattern = r'setIsDrawing\(true\)'
-    if re.search(set_drawing_true_pattern, quote_content):
-        log_test("start_drawing_button", "startDrawing sets isDrawing to true")
+    # Test 2.5: Check Resend email integration
+    resend_pattern = r'resend\.emails\.send'
+    if re.search(resend_pattern, create_content):
+        log_test("api_invites_create", "Resend email integration found")
     else:
-        log_test("start_drawing_button", "startDrawing does not set isDrawing to true", False)
+        log_test("api_invites_create", "Resend email integration not found", False)
     
-    # Test 2.6: Check startDrawing clears currentDrawingPath
-    clear_path_pattern = r'setCurrentDrawingPath\(\[\]\)'
-    if re.search(clear_path_pattern, quote_content):
-        log_test("start_drawing_button", "startDrawing clears currentDrawingPath")
+    # Test 2.6: Check success response
+    success_pattern = r'ok: true'
+    if re.search(success_pattern, create_content):
+        log_test("api_invites_create", "Success response format found")
     else:
-        log_test("start_drawing_button", "startDrawing does not clear currentDrawingPath", False)
+        log_test("api_invites_create", "Success response format not found", False)
 
 def test_visual_feedback():
     """
