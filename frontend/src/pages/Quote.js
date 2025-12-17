@@ -463,14 +463,8 @@ export default function Quote() {
       lng: event.latLng.lng(),
     };
 
-    setPolygonPath(prev => {
-      const newPath = [...prev, newPoint];
-      if (newPath.length >= 3) {
-        calculatePolygonArea(newPath);
-      }
-      return newPath;
-    });
-  }, [isDrawing, calculatePolygonArea]);
+    setCurrentDrawingPath(prev => [...prev, newPoint]);
+  }, [isDrawing]);
 
   // Handle autocomplete place selection
   const onPlaceChanged = useCallback(() => {
@@ -491,17 +485,23 @@ export default function Quote() {
         setMapCenter({ lat, lng });
         setMapZoom(19);
         
-        // Clear existing polygon
-        setPolygonPath([]);
-        setCalculatedArea(0);
+        // Clear existing polygons
+        setPolygons([]);
+        setCurrentDrawingPath([]);
+        setTotalCalculatedArea(0);
         setFormData(prev => ({
           ...prev,
           lawnSizeSqFt: '',
           areaSource: 'manual',
         }));
+        
+        // Auto-estimate lawn area after a brief delay to let map center
+        setTimeout(() => {
+          autoEstimateLawnArea({ lat, lng }, formData.propertyType);
+        }, 500);
       }
     }
-  }, []);
+  }, [autoEstimateLawnArea, formData.propertyType]);
 
   const onAutocompleteLoad = useCallback((autocomplete) => {
     autocompleteRef.current = autocomplete;
