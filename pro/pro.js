@@ -456,14 +456,10 @@
             recenterMapToPlace(place);
         }
         
-        if (!currentPolygon) {
-            estimateAreaFromAddress();
-        }
-        
         document.getElementById('drawBtn').disabled = false;
         document.getElementById('clearBtn').disabled = false;
         
-        updateMapStatus('✓ Property located! Draw boundary for accurate area.', 'success');
+        updateMapStatus('✓ Property located! Draw your service area boundary for accurate pricing.', 'success');
         
         console.log('[Pro] Place selected:', state.address, 'ZIP:', state.zipCode);
     }
@@ -652,11 +648,9 @@
         document.querySelectorAll('input[name=\"propertyType\"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 state.propertyType = e.target.value;
-                // Re-auto-estimate with new property type if we have a place
-                if (selectedPlace && serviceAreaManager) {
-                    autoDrawServiceArea(selectedPlace);
-                } else if (state.address) {
-                    estimateAreaFromAddress();
+                // Property type changed - recalculate pricing if area is set
+                if (state.lawnSizeSqFt > 0) {
+                    calculatePricing();
                 }
             });
         });
@@ -723,26 +717,20 @@
         }
         
         if (typeof google === 'undefined') {
-            // Mock mode
-            const mockSize = Math.floor(Math.random() * 15000) + 3000;
-            state.lawnSizeSqFt = mockSize;
-            state.estimatedAreaSqft = mockSize;
-            state.areaSource = 'estimated';
+            // Mock mode - no area estimation, prompt to enter manually
             state.address = address;
-            updateAreaDisplay(true);
-            calculatePricing();
-            updateMapStatus('✓ Address saved (maps unavailable)', 'success');
+            state.lawnSizeSqFt = 0;
+            state.areaSource = 'none';
+            updateMapStatus('✓ Address saved. Enter lawn size manually below.', 'success');
             return;
         }
         
         // Use selected place if available
         if (selectedPlace && selectedPlace.geometry) {
             recenterMapToPlace(selectedPlace);
-            
-            // Auto-draw estimated service area after centering
-            setTimeout(() => {
-                autoDrawServiceArea(selectedPlace);
-            }, 500);
+            document.getElementById('drawBtn').disabled = false;
+            document.getElementById('clearBtn').disabled = false;
+            updateMapStatus('✓ Property located! Draw your service area boundary for accurate pricing.', 'success');
             return;
         }
         
@@ -769,60 +757,17 @@
                 extractZipCode(place);
                 recenterMapToPlace(place);
                 
-                // Auto-draw estimated service area after centering
-                setTimeout(() => {
-                    autoDrawServiceArea(place);
-                }, 500);
-                
                 document.getElementById('drawBtn').disabled = false;
                 document.getElementById('clearBtn').disabled = false;
+                updateMapStatus('✓ Property located! Draw your service area boundary for accurate pricing.', 'success');
             } else {
                 updateMapStatus('❌ Address not found - try selecting from dropdown', 'error');
             }
         });
     }
     
-    /**
-     * Auto-draw estimated service area polygons
-     */
-    function autoDrawServiceArea(place) {
-        if (!serviceAreaManager || !place) {
-            console.log('[Pro] Cannot auto-draw: missing manager or place');
-            estimateAreaFromAddress(); // Fallback to simple estimate
-            return;
-        }
-        
-        try {
-            const defaultAreas = {
-                residential: config.defaultAreaEstimates?.residential || 8000,
-                commercial: config.defaultAreaEstimates?.commercial || 15000
-            };
-            
-            const result = serviceAreaManager.autoEstimate(place, state.propertyType, defaultAreas);
-            
-            if (result && result.totalSqFt > 0) {
-                state.lawnSizeSqFt = result.totalSqFt;
-                state.estimatedAreaSqft = result.totalSqFt;
-                state.areaSource = 'auto-estimated';
-                state.polygonCoords = serviceAreaManager.getCoordinatesSnapshot();
-                
-                updateAreaDisplay(true);
-                calculatePricing();
-                
-                console.log('[Pro] Auto-drew', result.polygonCount, 'polygon(s),', 
-                    result.totalSqFt, 'sq ft total');
-            } else {
-                // Fallback if auto-estimation fails
-                console.warn('[Pro] Auto-estimation returned no results, using fallback');
-                estimateAreaFromAddress();
-                updateMapStatus('⚠️ Couldn\'t auto-detect lawn. Draw your service area manually.', 'warning');
-            }
-        } catch (error) {
-            console.error('[Pro] Error auto-drawing service area:', error);
-            estimateAreaFromAddress();
-            updateMapStatus('⚠️ Couldn\'t auto-detect lawn. Draw your service area manually.', 'warning');
-        }
-    }
+    // Auto-draw functionality has been removed per user request.
+    // Users should manually draw their service area boundaries.
     
     // Enable drawing
     function enableDrawing() {
@@ -849,23 +794,19 @@
         }
         
         state.measuredAreaSqft = 0;
+        state.lawnSizeSqFt = 0;
+        state.estimatedAreaSqft = 0;
+        state.areaSource = 'none';
         state.polygonCoords = [];
         
-        if (state.address && selectedPlace) {
-            // Re-auto-estimate when clearing
-            autoDrawServiceArea(selectedPlace);
-        } else if (state.address) {
-            estimateAreaFromAddress();
-            updateMapStatus('Boundary cleared. Using estimated area.', '');
-        } else {
-            state.lawnSizeSqFt = 0;
-            state.estimatedAreaSqft = 0;
-            state.areaSource = 'none';
-            document.getElementById('areaDisplay').classList.add('hidden');
-            calculatePricing();
-        }
+        document.getElementById('areaDisplay').classList.add('hidden');
+        calculatePricing();
         
         document.getElementById('drawBtn').textContent = '✏️ Draw Area';
+        
+        if (state.address) {
+            updateMapStatus('Boundary cleared. Draw your service area for accurate pricing.', '');
+        }
     }
     
     // Validate form
