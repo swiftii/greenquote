@@ -507,10 +507,20 @@
                 } else if (!isFullAddress && currentZoom < 14) {
                     map.setZoom(14);
                 }
+                
+                // Enforce satellite after bounds change
+                if (window.SatelliteUtils) {
+                    window.SatelliteUtils.applySatelliteDefault(map, 'Pro:bounds_changed');
+                }
             });
         } else if (place.geometry.location) {
             map.setCenter(place.geometry.location);
             map.setZoom(isFullAddress ? 20 : (state.zipCode ? 14 : 16));
+        }
+        
+        // Enforce satellite after viewport change
+        if (window.SatelliteUtils) {
+            window.SatelliteUtils.enforceSatelliteAfterViewportChange(map, 'Pro:recenter');
         }
         
         setTimeout(() => {
