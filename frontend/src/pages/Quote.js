@@ -359,6 +359,36 @@ export default function Quote() {
   // Handle map load
   const onMapLoad = useCallback((mapInstance) => {
     setMap(mapInstance);
+    
+    // Enforce satellite view and add diagnostics
+    if (mapInstance) {
+      console.log('[Quote] Map loaded, enforcing satellite view');
+      
+      // Ensure satellite is set
+      if (mapInstance.getMapTypeId() !== 'satellite') {
+        console.log('[Quote] Setting map to satellite (was:', mapInstance.getMapTypeId(), ')');
+        mapInstance.setMapTypeId('satellite');
+      }
+      
+      // Add diagnostic listener for map type changes
+      if (window.google?.maps) {
+        window.google.maps.event.addListener(mapInstance, 'maptypeid_changed', () => {
+          const newType = mapInstance.getMapTypeId();
+          console.log('[Quote:Satellite] Map type changed to:', newType);
+          if (newType !== 'satellite') {
+            console.warn('[Quote:Satellite] ⚠️ Map type changed AWAY from satellite to:', newType);
+          }
+        });
+      }
+      
+      // Double-check satellite after a short delay
+      setTimeout(() => {
+        if (mapInstance.getMapTypeId() !== 'satellite') {
+          console.log('[Quote] Re-enforcing satellite after delay');
+          mapInstance.setMapTypeId('satellite');
+        }
+      }, 100);
+    }
   }, []);
 
   // Handle map click for drawing polygon
