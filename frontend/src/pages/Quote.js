@@ -439,10 +439,25 @@ export default function Quote() {
         setCurrentDrawingPath([]);
         setTotalCalculatedArea(0);
         
+        // Enforce satellite view after address selection
+        if (map) {
+          console.log('[Quote] Address selected, enforcing satellite view');
+          if (map.getMapTypeId() !== 'satellite') {
+            map.setMapTypeId('satellite');
+          }
+          // Also check after a delay (viewport changes can reset map type)
+          setTimeout(() => {
+            if (map.getMapTypeId() !== 'satellite') {
+              console.log('[Quote] Re-enforcing satellite after address selection');
+              map.setMapTypeId('satellite');
+            }
+          }, 500);
+        }
+        
         console.log('[Quote] Address selected:', place.formatted_address || place.name);
       }
     }
-  }, []);
+  }, [map]);
 
   const onAutocompleteLoad = useCallback((autocomplete) => {
     autocompleteRef.current = autocomplete;
