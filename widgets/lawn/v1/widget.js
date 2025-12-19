@@ -496,7 +496,7 @@
             map = new google.maps.Map(document.getElementById('map'), {
                 center: { lat: 39.8283, lng: -98.5795 },
                 zoom: 4,
-                mapTypeId: 'satellite', // Satellite view by default
+                mapTypeId: 'satellite', // Satellite view by default - ENFORCED
                 disableDefaultUI: true,
                 zoomControl: true,
                 streetViewControl: false,
@@ -508,6 +508,14 @@
                 fullscreenControl: false,
                 tilt: 0
             });
+            
+            // Initialize satellite enforcement with diagnostics
+            if (window.SatelliteUtils) {
+                window.SatelliteUtils.initMapWithSatellite(map, 'Widget');
+            } else {
+                console.log('[Widget] SatelliteUtils not loaded, manually enforcing satellite');
+                map.setMapTypeId('satellite');
+            }
             
             // Initialize Service Area Manager for multi-polygon support
             // Check if ServiceAreaManager is available (loaded from serviceAreaUtils.js)
