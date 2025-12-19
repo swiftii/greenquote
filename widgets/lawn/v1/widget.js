@@ -708,10 +708,20 @@
                 } else if (!isFullAddress && currentZoom < 14) {
                     map.setZoom(14);
                 }
+                
+                // Enforce satellite after bounds change
+                if (window.SatelliteUtils) {
+                    window.SatelliteUtils.applySatelliteDefault(map, 'Widget:bounds_changed');
+                }
             });
         } else if (place.geometry.location) {
             map.setCenter(place.geometry.location);
             map.setZoom(isFullAddress ? 20 : 14);
+        }
+        
+        // Enforce satellite after viewport change
+        if (window.SatelliteUtils) {
+            window.SatelliteUtils.enforceSatelliteAfterViewportChange(map, 'Widget:recenter');
         }
         
         setTimeout(() => {
